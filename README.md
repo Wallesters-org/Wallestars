@@ -59,6 +59,19 @@ N8N_EMAIL = "your-email@example.com"
 N8N_PASSWORD = "your-password"
 ```
 
+### Using Environment Variables (Recommended)
+
+For better security, use the `example_usage.py` script with environment variables:
+
+```bash
+export N8N_URL="https://n8n.srv1201204.hstgr.cloud"
+export N8N_EMAIL="miropetrovski12@gmail.com"
+export N8N_PASSWORD="MagicBoyy24#"
+python3 example_usage.py
+```
+
+This approach keeps credentials out of the source code.
+
 ### Sample Output
 
 ```
