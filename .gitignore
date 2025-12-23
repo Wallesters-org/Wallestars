@@ -1,0 +1,27 @@
+# Temporary files
+/tmp/
+*.tmp
+*.temp
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Node modules (if we add npm later)
+node_modules/
+package-lock.json
+
+# Build outputs
+dist/
+build/
+
+# Log files
+*.log
+
+# Environment files
+.env
+.env.local
