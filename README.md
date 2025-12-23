@@ -34,39 +34,39 @@ pip install -r requirements.txt
 
 ## Usage
 
-### Basic Usage
+### Setup Configuration
 
-Simply run the script:
+First, create your configuration file with your credentials:
+
 ```bash
-python3 check_n8n_workflows.py
+cp config.example.py config.py
 ```
 
-The script is pre-configured with your n8n instance credentials.
-
-### Configuration
-
-The script is configured to connect to:
-- **Instance URL**: https://n8n.srv1201204.hstgr.cloud
-- **Email**: miropetrovski12@gmail.com
-- **Password**: MagicBoyy24#
-
-To change these settings, edit the configuration section in `check_n8n_workflows.py`:
+Then edit `config.py` with your n8n instance credentials:
 
 ```python
-# Configuration
 N8N_URL = "https://your-n8n-instance.com"
 N8N_EMAIL = "your-email@example.com"
 N8N_PASSWORD = "your-password"
 ```
 
-### Using Environment Variables (Recommended)
+⚠️ **Important**: The `config.py` file is gitignored and will not be committed to version control to protect your credentials.
 
-For better security, use the `example_usage.py` script with environment variables:
+### Basic Usage
+
+Once configured, simply run the script:
+```bash
+python3 check_n8n_workflows.py
+```
+
+### Using Environment Variables (Alternative)
+
+For better security in shared environments, use the `example_usage.py` script with environment variables:
 
 ```bash
-export N8N_URL="https://n8n.srv1201204.hstgr.cloud"
-export N8N_EMAIL="miropetrovski12@gmail.com"
-export N8N_PASSWORD="MagicBoyy24#"
+export N8N_URL="https://your-n8n-instance.com"
+export N8N_EMAIL="your-email@example.com"
+export N8N_PASSWORD="your-password"
 python3 example_usage.py
 ```
 
@@ -79,8 +79,8 @@ This approach keeps credentials out of the source code.
 n8n Workflow Status Checker
 ================================================================================
 
-Connecting to: https://n8n.srv1201204.hstgr.cloud
-User: miropetrovski12@gmail.com
+Connecting to: https://your-n8n-instance.com
+User: user@example.com
 
 ✓ Successfully authenticated with n8n
 

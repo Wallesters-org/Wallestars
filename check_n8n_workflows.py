@@ -193,10 +193,16 @@ def display_workflow_status(workflows: List[Dict], client: N8nClient):
 
 def main():
     """Main function"""
-    # Configuration
-    N8N_URL = "https://n8n.srv1201204.hstgr.cloud"
-    N8N_EMAIL = "miropetrovski12@gmail.com"
-    N8N_PASSWORD = "MagicBoyy24#"
+    # Try to load configuration from config.py
+    try:
+        from config import N8N_URL, N8N_EMAIL, N8N_PASSWORD
+    except ImportError:
+        print("Error: config.py not found!")
+        print("\nPlease create a config.py file with your credentials.")
+        print("You can copy config.example.py and fill in your details:")
+        print("  cp config.example.py config.py")
+        print("\nThen edit config.py with your credentials.")
+        sys.exit(1)
     
     print("=" * 80)
     print("n8n Workflow Status Checker")
