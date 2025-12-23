@@ -31,7 +31,7 @@ def main():
         print("  N8N_EMAIL    - Your n8n account email")
         print("  N8N_PASSWORD - Your n8n account password")
         print("\nExample:")
-        print('  export N8N_URL="https://n8n.example.com"')
+        print('  export N8N_URL="https://your-n8n-instance.com"')
         print('  export N8N_EMAIL="user@example.com"')
         print('  export N8N_PASSWORD="your-password"')
         print('  python3 example_usage.py')
