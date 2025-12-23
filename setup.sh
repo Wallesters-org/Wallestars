@@ -39,12 +39,16 @@ if [ -z "$api_key" ]; then
 fi
 
 # Replace the placeholder with actual API key
+# Use @ as delimiter to avoid issues with / in the API key
+# Escape special characters that might break sed
+escaped_api_key=$(printf '%s\n' "$api_key" | sed 's/[&/\]/\\&/g')
+
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # macOS
-    sed -i '' "s/YOUR_HOSTINGER_API_KEY_HERE/$api_key/" .claude-code.json
+    sed -i '' "s@YOUR_HOSTINGER_API_KEY_HERE@$escaped_api_key@" .claude-code.json
 else
     # Linux
-    sed -i "s/YOUR_HOSTINGER_API_KEY_HERE/$api_key/" .claude-code.json
+    sed -i "s@YOUR_HOSTINGER_API_KEY_HERE@$escaped_api_key@" .claude-code.json
 fi
 
 echo ""

@@ -9,6 +9,7 @@ This repository contains configuration and setup instructions for connecting Cla
 Run the setup script to automatically configure your connection:
 
 ```bash
+chmod +x setup.sh  # Make the script executable (first time only)
 ./setup.sh
 ```
 
