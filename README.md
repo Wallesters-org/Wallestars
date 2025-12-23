@@ -4,14 +4,31 @@ This repository contains configuration and setup instructions for connecting Cla
 
 ## Quick Start
 
-To connect Claude Code to your Hostinger VPS, follow the setup guide:
+### Option 1: Automated Setup (Recommended)
+
+Run the setup script to automatically configure your connection:
+
+```bash
+./setup.sh
+```
+
+The script will:
+- Copy the configuration template
+- Prompt you for your Hostinger API key
+- Create the properly configured `.claude-code.json` file
+
+### Option 2: Manual Setup
+
+Follow the detailed setup guide:
 
 👉 **[Hostinger VPS Setup Guide](HOSTINGER_SETUP.md)**
 
 ## What's Included
 
+- `setup.sh` - Automated setup script for quick configuration
 - `.claude-code.template.json` - Configuration template for Claude Code with Hostinger MCP
 - `HOSTINGER_SETUP.md` - Comprehensive setup instructions
+- `SECURITY.md` - Important security notices and best practices
 - `.gitignore` - Security configuration to prevent accidental API key commits
 
 ## Security First 🔒
