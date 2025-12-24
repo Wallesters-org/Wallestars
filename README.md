@@ -9,6 +9,7 @@ This repository includes comprehensive documentation for implementing task autom
 ## 📚 Documentation
 
 - **[Quick Start Checklist](QUICK_START_CHECKLIST.md)**: ⭐ Step-by-step implementation checklist - Start here!
+- **[Login Visualization](LOGIN_VISUALIZATION.md)**: 🔐 Complete guide to login process visualization and automation
 - **[ActivePieces Guide](ACTIVEPIECES_GUIDE.md)**: Complete guide to setting up and using ActivePieces for task automation
 - **[Automation Tools](AUTOMATION_TOOLS.md)**: Best automation tools and workflows recommended for this project
 - **[Workflow Examples](WORKFLOW_EXAMPLES.md)**: Ready-to-use workflow examples with JSON configurations
@@ -27,6 +28,7 @@ This repository includes comprehensive documentation for implementing task autom
 - Development workflow automation (builds, deployments, code reviews)
 - Project management automation (sprint tracking, milestones)
 - Communication automation (Slack, email, notifications)
+- Login and authentication automation (tracking, security, monitoring)
 
 ### Key Benefits
 - ⚡ Save 10+ hours/week on manual tasks
@@ -64,12 +66,14 @@ This repository includes comprehensive documentation for implementing task autom
 - Issue Auto-Assignment
 - Slack Notifications
 - Build Status Alerts
+- Login Success/Failure Tracking
 
 ### Medium Priority
 - PR Review Reminders
 - Daily Activity Digest
 - Release Announcements
 - Sprint Progress Tracking
+- Session Activity Monitoring
 
 ### Long Term
 - AI-Powered Code Review

@@ -556,6 +556,392 @@ This file contains ready-to-use workflow examples that can be imported into Acti
 }
 ```
 
+## Workflow 7: Login Success Tracker
+
+**Purpose**: Track and notify on successful user logins with security monitoring
+
+**Triggers**: Webhook endpoint receives login success event
+
+**Benefits**:
+- Real-time login tracking
+- Security anomaly detection
+- User activity monitoring
+- Automated notifications
+
+```json
+{
+  "name": "Login Success Tracker",
+  "description": "Track successful logins and detect suspicious activity",
+  "trigger": {
+    "type": "WEBHOOK",
+    "settings": {
+      "method": "POST",
+      "path": "/login-success"
+    }
+  },
+  "actions": [
+    {
+      "name": "Extract Login Data",
+      "type": "CODE",
+      "settings": {
+        "input": {
+          "loginData": "{{trigger.body}}"
+        },
+        "code": `
+          const login = inputs.loginData;
+          const timestamp = new Date().toISOString();
+          
+          return {
+            userId: login.userId || 'unknown',
+            username: login.username || 'unknown',
+            timestamp: timestamp,
+            ipAddress: login.ipAddress || 'unknown',
+            device: login.device || 'unknown',
+            location: login.location || 'unknown',
+            loginMethod: login.loginMethod || 'password'
+          };
+        `
+      }
+    },
+    {
+      "name": "Analyze Login Pattern",
+      "type": "CODE",
+      "settings": {
+        "input": {
+          "loginInfo": "{{steps.extract_login_data.output}}"
+        },
+        "code": `
+          const info = inputs.loginInfo;
+          let isSuspicious = false;
+          let alerts = [];
+          
+          // Check login time (suspicious if between 2 AM - 5 AM)
+          const hour = new Date().getHours();
+          if (hour >= 2 && hour <= 5) {
+            isSuspicious = true;
+            alerts.push('Login during unusual hours');
+          }
+          
+          // Check for unknown location (placeholder - implement with actual location tracking)
+          if (info.location.toLowerCase().includes('unknown')) {
+            alerts.push('Unknown location detected');
+          }
+          
+          return {
+            isSuspicious: isSuspicious,
+            alertLevel: isSuspicious ? 'warning' : 'info',
+            alerts: alerts,
+            loginInfo: info
+          };
+        `
+      }
+    },
+    {
+      "name": "Send Login Notification",
+      "type": "PIECE",
+      "settings": {
+        "pieceName": "slack",
+        "actionName": "send_message",
+        "input": {
+          "channel": "#user-activity",
+          "text": "✅ Login Successful\\n*User:* {{steps.extract_login_data.output.username}}\\n*Time:* {{steps.extract_login_data.output.timestamp}}\\n*IP:* {{steps.extract_login_data.output.ipAddress}}\\n*Device:* {{steps.extract_login_data.output.device}}"
+        }
+      }
+    },
+    {
+      "name": "Check for Security Alerts",
+      "type": "BRANCH",
+      "settings": {
+        "conditions": [
+          {
+            "firstValue": "{{steps.analyze_login_pattern.output.isSuspicious}}",
+            "operator": "EQUALS",
+            "secondValue": true
+          }
+        ]
+      },
+      "onSuccess": [
+        {
+          "name": "Send Security Alert",
+          "type": "PIECE",
+          "settings": {
+            "pieceName": "slack",
+            "actionName": "send_message",
+            "input": {
+              "channel": "#security-alerts",
+              "text": "⚠️ SUSPICIOUS LOGIN DETECTED\\n*User:* {{steps.extract_login_data.output.username}}\\n*IP:* {{steps.extract_login_data.output.ipAddress}}\\n*Alerts:* {{steps.analyze_login_pattern.output.alerts}}\\n*Time:* {{steps.extract_login_data.output.timestamp}}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Workflow 8: Failed Login Monitor
+
+**Purpose**: Monitor failed login attempts and prevent brute force attacks
+
+**Triggers**: Webhook endpoint receives failed login event
+
+**Benefits**:
+- Brute force attack prevention
+- Account lockout automation
+- Security incident tracking
+- Real-time threat detection
+
+```json
+{
+  "name": "Failed Login Monitor",
+  "description": "Monitor and respond to failed login attempts",
+  "trigger": {
+    "type": "WEBHOOK",
+    "settings": {
+      "method": "POST",
+      "path": "/login-failed"
+    }
+  },
+  "actions": [
+    {
+      "name": "Process Failed Login",
+      "type": "CODE",
+      "settings": {
+        "input": {
+          "failureData": "{{trigger.body}}"
+        },
+        "code": `
+          const failure = inputs.failureData;
+          
+          return {
+            userId: failure.userId || 'unknown',
+            username: failure.username || 'unknown',
+            timestamp: new Date().toISOString(),
+            ipAddress: failure.ipAddress || 'unknown',
+            reason: failure.reason || 'Invalid credentials',
+            attemptNumber: failure.attemptNumber || 1,
+            maxAttempts: 5
+          };
+        `
+      }
+    },
+    {
+      "name": "Evaluate Threat Level",
+      "type": "CODE",
+      "settings": {
+        "input": {
+          "failureInfo": "{{steps.process_failed_login.output}}"
+        },
+        "code": `
+          const info = inputs.failureInfo;
+          const shouldLock = info.attemptNumber >= info.maxAttempts;
+          const attemptsRemaining = Math.max(0, info.maxAttempts - info.attemptNumber);
+          
+          let threatLevel = 'low';
+          if (info.attemptNumber >= 3) threatLevel = 'medium';
+          if (info.attemptNumber >= 4) threatLevel = 'high';
+          if (shouldLock) threatLevel = 'critical';
+          
+          return {
+            shouldLock: shouldLock,
+            attemptsRemaining: attemptsRemaining,
+            threatLevel: threatLevel,
+            failureInfo: info
+          };
+        `
+      }
+    },
+    {
+      "name": "Log Failed Attempt",
+      "type": "PIECE",
+      "settings": {
+        "pieceName": "slack",
+        "actionName": "send_message",
+        "input": {
+          "channel": "#security-logs",
+          "text": "❌ Failed Login Attempt\\n*User:* {{steps.process_failed_login.output.username}}\\n*IP:* {{steps.process_failed_login.output.ipAddress}}\\n*Attempt:* {{steps.process_failed_login.output.attemptNumber}}/{{steps.process_failed_login.output.maxAttempts}}\\n*Threat Level:* {{steps.evaluate_threat_level.output.threatLevel}}"
+        }
+      }
+    },
+    {
+      "name": "Handle Account Lockout",
+      "type": "BRANCH",
+      "settings": {
+        "conditions": [
+          {
+            "firstValue": "{{steps.evaluate_threat_level.output.shouldLock}}",
+            "operator": "EQUALS",
+            "secondValue": true
+          }
+        ]
+      },
+      "onSuccess": [
+        {
+          "name": "Send Critical Alert",
+          "type": "PIECE",
+          "settings": {
+            "pieceName": "slack",
+            "actionName": "send_message",
+            "input": {
+              "channel": "#security-alerts",
+              "text": "🔒 ACCOUNT LOCKED\\n*User:* {{steps.process_failed_login.output.username}}\\n*Reason:* Maximum failed login attempts reached\\n*IP:* {{steps.process_failed_login.output.ipAddress}}\\n*Total Attempts:* {{steps.process_failed_login.output.attemptNumber}}\\n*Action Required:* Manual unlock needed"
+            }
+          }
+        },
+        {
+          "name": "Email User About Lockout",
+          "type": "PIECE",
+          "settings": {
+            "pieceName": "gmail",
+            "actionName": "send_email",
+            "input": {
+              "to": "{{steps.process_failed_login.output.email}}",
+              "subject": "Account Locked - Security Alert",
+              "body": "Your Wallestars account has been locked due to multiple failed login attempts. Please contact support@wallestars.com to unlock your account and verify your identity.",
+              "body_type": "text"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Workflow 9: Session Activity Monitor
+
+**Purpose**: Monitor active user sessions and detect anomalies
+
+**Triggers**: Schedule (runs every 5 minutes)
+
+**Benefits**:
+- Concurrent session detection
+- Inactive session cleanup
+- Session hijacking prevention
+- Resource optimization
+
+```json
+{
+  "name": "Session Activity Monitor",
+  "description": "Monitor and manage active user sessions",
+  "trigger": {
+    "type": "SCHEDULE",
+    "settings": {
+      "cron": "*/5 * * * *",
+      "timezone": "UTC"
+    }
+  },
+  "actions": [
+    {
+      "name": "Get Active Sessions",
+      "type": "CODE",
+      "settings": {
+        "code": `
+          // In production, fetch from session database
+          // This is a mock implementation
+          const activeSessions = [
+            {
+              sessionId: 'sess_001',
+              userId: 'user_123',
+              username: 'john.doe',
+              startTime: new Date(Date.now() - 3600000).toISOString(),
+              lastActivity: new Date(Date.now() - 300000).toISOString(),
+              ipAddress: '192.168.1.1'
+            },
+            {
+              sessionId: 'sess_002',
+              userId: 'user_123',
+              username: 'john.doe',
+              startTime: new Date(Date.now() - 1800000).toISOString(),
+              lastActivity: new Date().toISOString(),
+              ipAddress: '10.0.0.1'
+            }
+          ];
+          
+          return { sessions: activeSessions };
+        `
+      }
+    },
+    {
+      "name": "Analyze Sessions",
+      "type": "CODE",
+      "settings": {
+        "input": {
+          "sessions": "{{steps.get_active_sessions.output.sessions}}"
+        },
+        "code": `
+          const sessions = inputs.sessions || [];
+          const now = Date.now();
+          const inactiveThreshold = 30 * 60 * 1000; // 30 minutes
+          
+          // Find inactive sessions
+          const inactiveSessions = sessions.filter(s => {
+            const lastActivity = new Date(s.lastActivity).getTime();
+            return (now - lastActivity) > inactiveThreshold;
+          });
+          
+          // Find concurrent sessions (same user, different IPs)
+          const userSessions = {};
+          sessions.forEach(s => {
+            if (!userSessions[s.userId]) userSessions[s.userId] = [];
+            userSessions[s.userId].push(s);
+          });
+          
+          const concurrentSessions = [];
+          Object.entries(userSessions).forEach(([userId, userSessionList]) => {
+            if (userSessionList.length > 1) {
+              const uniqueIPs = new Set(userSessionList.map(s => s.ipAddress));
+              if (uniqueIPs.size > 1) {
+                concurrentSessions.push({
+                  userId: userId,
+                  username: userSessionList[0].username,
+                  sessionCount: userSessionList.length,
+                  ipAddresses: Array.from(uniqueIPs)
+                });
+              }
+            }
+          });
+          
+          return {
+            totalSessions: sessions.length,
+            inactiveSessions: inactiveSessions,
+            concurrentSessions: concurrentSessions,
+            hasAlerts: inactiveSessions.length > 0 || concurrentSessions.length > 0
+          };
+        `
+      }
+    },
+    {
+      "name": "Send Session Report",
+      "type": "BRANCH",
+      "settings": {
+        "conditions": [
+          {
+            "firstValue": "{{steps.analyze_sessions.output.hasAlerts}}",
+            "operator": "EQUALS",
+            "secondValue": true
+          }
+        ]
+      },
+      "onSuccess": [
+        {
+          "name": "Alert About Anomalies",
+          "type": "PIECE",
+          "settings": {
+            "pieceName": "slack",
+            "actionName": "send_message",
+            "input": {
+              "channel": "#security-alerts",
+              "text": "📊 Session Activity Alert\\n*Total Active Sessions:* {{steps.analyze_sessions.output.totalSessions}}\\n*Inactive Sessions:* {{steps.analyze_sessions.output.inactiveSessions.length}}\\n*Concurrent Sessions Detected:* {{steps.analyze_sessions.output.concurrentSessions.length}}\\n*Action:* Review and terminate suspicious sessions"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
 ## 🔧 Configuration Notes
 
 ### Required Connections

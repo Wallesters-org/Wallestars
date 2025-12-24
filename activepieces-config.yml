@@ -177,6 +177,112 @@ automation_flows:
         - type: generate_milestone_report
         - type: schedule_retrospective_meeting
   
+  # Login and Authentication Automations
+  login_automations:
+    
+    - name: "Login Success Tracker"
+      description: "Track and log successful login attempts"
+      priority: high
+      trigger:
+        type: webhook
+        endpoint: "/login-success"
+        method: POST
+      actions:
+        - type: extract_login_data
+          fields:
+            - userId
+            - username
+            - timestamp
+            - ipAddress
+            - device
+            - location
+        - type: analyze_security
+          checks:
+            - unusual_time
+            - unknown_location
+            - suspicious_ip
+        - type: slack.send_message
+          channel: "#user-activity"
+          message: "✅ User {username} logged in from {location}"
+        - type: conditional_alert
+          if: "suspicious_activity_detected"
+          then:
+            - type: slack.send_message
+              channel: "#security-alerts"
+              message: "⚠️ Suspicious login detected for {username}"
+    
+    - name: "Failed Login Monitor"
+      description: "Monitor and respond to failed login attempts"
+      priority: high
+      trigger:
+        type: webhook
+        endpoint: "/login-failed"
+        method: POST
+      actions:
+        - type: increment_failure_counter
+          key: "user_{userId}_failures"
+        - type: check_threshold
+          max_attempts: 5
+          action_on_exceed: "lock_account"
+        - type: slack.send_message
+          channel: "#security-logs"
+          message: "❌ Failed login for {username} from {ipAddress}"
+        - type: conditional_lock
+          if: "attempts >= max_attempts"
+          then:
+            - type: lock_user_account
+              userId: "{userId}"
+            - type: slack.send_message
+              channel: "#security-alerts"
+              message: "🔒 Account locked: {username} (too many failed attempts)"
+            - type: email.send
+              to: "{user_email}"
+              subject: "Account Locked - Security Alert"
+              body: "Your account has been locked due to multiple failed login attempts"
+    
+    - name: "Session Activity Monitor"
+      description: "Monitor active sessions and detect anomalies"
+      priority: medium
+      trigger:
+        type: schedule
+        cron: "*/5 * * * *"  # Every 5 minutes
+      actions:
+        - type: get_active_sessions
+          source: "session_database"
+        - type: analyze_sessions
+          checks:
+            - inactive_sessions
+            - concurrent_sessions
+            - unusual_locations
+        - type: conditional_alert
+          if: "anomalies_detected"
+          then:
+            - type: slack.send_message
+              channel: "#security-alerts"
+              message: "📊 Session anomalies detected: {anomaly_summary}"
+    
+    - name: "Login Analytics Reporter"
+      description: "Generate daily login analytics reports"
+      priority: low
+      trigger:
+        type: schedule
+        cron: "0 9 * * *"  # Daily at 9 AM
+      actions:
+        - type: aggregate_login_stats
+          timeframe: "24 hours"
+          metrics:
+            - total_logins
+            - successful_logins
+            - failed_logins
+            - unique_users
+            - peak_hours
+            - geographic_distribution
+        - type: generate_report
+          format: "summary"
+        - type: slack.send_message
+          channel: "#analytics"
+          message: "📈 Daily Login Report: {stats.summary}"
+  
   # Communication Automations
   communication_automations:
     
