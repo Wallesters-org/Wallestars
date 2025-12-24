@@ -1,7 +1,7 @@
 {
   "name": "wallestars",
   "version": "1.0.0",
-  "description": "Browser automation to open ChatGPT",
+  "description": "Browser automation to open ChatGPT using Airtop cloud browsers",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -15,6 +15,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@airtop/sdk": "^0.1.47",
     "playwright": "^1.40.0"
   }
 }
