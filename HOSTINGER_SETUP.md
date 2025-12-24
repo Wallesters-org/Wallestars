@@ -16,10 +16,46 @@ This guide will help you connect Claude Code to your Hostinger VPS using the Hos
 
 ### Step 1: Get Your Hostinger API Key
 
-1. Log in to your Hostinger account
-2. Navigate to the API section
-3. Generate or copy your API key
-4. Keep this key secure - treat it like a password
+#### Logging into Hostinger
+
+1. **Open your web browser** and navigate to [https://www.hostinger.com](https://www.hostinger.com)
+2. **Click on "Login"** in the top right corner of the page
+3. **Enter your credentials**:
+   - Email address or username
+   - Password
+4. **Complete two-factor authentication** if enabled (recommended for security)
+5. **You should now be logged into your Hostinger control panel**
+
+#### Getting Your API Key
+
+Once logged in:
+
+1. **Navigate to the API section**:
+   - Click on your profile/account icon (usually in the top right)
+   - Look for "API" or "Developer" in the dropdown menu
+   - Alternatively, go to: Settings → API Management
+   
+2. **Create or access your API key**:
+   - If you don't have an API key yet, click "Create New API Key" or "Generate API Key"
+   - If you already have an API key, you can copy it from the list
+   - Give your API key a descriptive name (e.g., "Claude Code Integration")
+   
+3. **Copy your API key**:
+   - Click the copy button or manually select and copy the entire key
+   - The API key will be a long string of characters (e.g., 40-50 characters)
+   - Example format: `c1ghCBBVJoVJIryWby7k5BjeZhuhDzg8Ua3Q9nWl7ec6a479`
+   
+4. **Keep this key secure** - treat it like a password:
+   - Store it in a secure password manager
+   - Never share it publicly or commit it to version control
+   - Consider saving it temporarily in a secure note during setup
+
+#### Troubleshooting Login Issues
+
+- **Forgot password?** Use the "Forgot Password" link on the login page
+- **Two-factor authentication issues?** Check your authenticator app or use backup codes
+- **Can't find API section?** Ensure your Hostinger account has API access enabled (may require specific plan types)
+- **Account locked?** Contact Hostinger support at support@hostinger.com
 
 ### Step 2: Create Your Configuration File
 
