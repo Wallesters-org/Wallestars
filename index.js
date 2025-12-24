@@ -1,10 +1,16 @@
 const express = require('express');
 const session = require('express-session');
+const crypto = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Session store for tracking active sessions
 const activeSessions = new Map();
+
+// Helper function to generate CSRF token
+function generateCSRFToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
 
 // Session configuration
 app.use(session({
@@ -30,6 +36,7 @@ app.use((req, res, next) => {
   if (!req.session.visitCount) {
     req.session.visitCount = 0;
     req.session.createdAt = new Date().toISOString();
+    req.session.csrfToken = generateCSRFToken(); // Generate CSRF token for new sessions
   }
   req.session.visitCount++;
   req.session.lastVisit = new Date().toISOString();
@@ -46,6 +53,19 @@ app.use((req, res, next) => {
   next();
 });
 
+// CSRF protection middleware for state-changing operations
+function csrfProtection(req, res, next) {
+  // Only protect POST, PUT, DELETE, PATCH methods
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+    const token = req.headers['x-csrf-token'] || req.body._csrf;
+    
+    if (!token || token !== req.session.csrfToken) {
+      return res.status(403).json({ error: 'Invalid CSRF token' });
+    }
+  }
+  next();
+}
+
 // Session Management Routes
 app.get('/api/session', (req, res) => {
   res.json({
@@ -53,7 +73,8 @@ app.get('/api/session', (req, res) => {
     createdAt: req.session.createdAt,
     lastVisit: req.session.lastVisit,
     visitCount: req.session.visitCount,
-    isNewSession: req.session.visitCount === 1
+    isNewSession: req.session.visitCount === 1,
+    csrfToken: req.session.csrfToken
   });
 });
 
@@ -80,7 +101,7 @@ app.get('/api/sessions', (req, res) => {
   });
 });
 
-app.post('/api/session/new', (req, res) => {
+app.post('/api/session/new', csrfProtection, (req, res) => {
   // Destroy current session and create a new one
   req.session.regenerate((err) => {
     if (err) {
@@ -90,16 +111,18 @@ app.post('/api/session/new', (req, res) => {
     req.session.visitCount = 1;
     req.session.createdAt = new Date().toISOString();
     req.session.lastVisit = new Date().toISOString();
+    req.session.csrfToken = generateCSRFToken(); // Generate new CSRF token for new session
     
     res.json({
       message: 'New session created successfully',
       sessionId: req.sessionID,
-      createdAt: req.session.createdAt
+      createdAt: req.session.createdAt,
+      csrfToken: req.session.csrfToken
     });
   });
 });
 
-app.delete('/api/session', (req, res) => {
+app.delete('/api/session', csrfProtection, (req, res) => {
   const sessionId = req.sessionID;
   req.session.destroy((err) => {
     if (err) {
@@ -299,11 +322,17 @@ app.get('/', (req, res) => {
       </div>
       
       <script>
+        // Store CSRF token globally
+        let csrfToken = null;
+        
         // Load session information on page load
         async function loadSessionInfo() {
           try {
             const response = await fetch('/api/session');
             const data = await response.json();
+            
+            // Store CSRF token for later use
+            csrfToken = data.csrfToken;
             
             document.getElementById('sessionId').textContent = data.sessionId.substring(0, 16) + '...';
             document.getElementById('createdAt').textContent = new Date(data.createdAt).toLocaleString();
@@ -324,8 +353,18 @@ app.get('/', (req, res) => {
           if (!confirm('This will create a new session. Continue?')) return;
           
           try {
-            const response = await fetch('/api/session/new', { method: 'POST' });
+            const response = await fetch('/api/session/new', {
+              method: 'POST',
+              headers: {
+                'X-CSRF-Token': csrfToken
+              }
+            });
             const data = await response.json();
+            
+            if (!response.ok) {
+              throw new Error(data.error || 'Failed to create new session');
+            }
+            
             alert(data.message);
             window.location.reload();
           } catch (error) {
@@ -337,8 +376,18 @@ app.get('/', (req, res) => {
           if (!confirm('This will destroy your current session. Continue?')) return;
           
           try {
-            const response = await fetch('/api/session', { method: 'DELETE' });
+            const response = await fetch('/api/session', {
+              method: 'DELETE',
+              headers: {
+                'X-CSRF-Token': csrfToken
+              }
+            });
             const data = await response.json();
+            
+            if (!response.ok) {
+              throw new Error(data.error || 'Failed to destroy session');
+            }
+            
             alert(data.message);
             window.location.reload();
           } catch (error) {
