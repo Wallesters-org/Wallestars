@@ -11,7 +11,11 @@ This file contains ready-to-use workflow examples that can be imported into Acti
 5. Configure the required connections (GitHub, Slack, etc.)
 6. Test and publish
 
-**Note**: In the JSON examples below, backslashes in strings are escaped as `\\` per JSON specification. When parsed, they will become single backslashes in the actual code.
+**Important Notes**:
+- These configurations use ActivePieces' JSON-based workflow format, which supports template literals (backticks) for code blocks
+- Backslashes in strings are escaped as `\\` per JSON specification
+- The configurations are designed to be copy-pasted directly into ActivePieces' import function
+- ActivePieces will parse and validate the configuration upon import
 
 ## Workflow 1: PR Auto-Labeler
 
