@@ -1,0 +1,333 @@
+# ActivePieces Configuration for Wallestars
+# This file contains recommended automation configurations
+
+# Project Information
+project:
+  name: Wallestars
+  organization: Wallesters-org
+  repository: https://github.com/Wallesters-org/Wallestars
+
+# Recommended Automation Flows
+automation_flows:
+  
+  # GitHub Repository Automations
+  github_automations:
+    
+    - name: "PR Auto-Labeler"
+      description: "Automatically add labels to pull requests based on file changes"
+      priority: high
+      trigger:
+        type: github.pull_request_opened
+        repository: Wallestars
+      actions:
+        - type: github.add_labels
+          conditions:
+            - if: "files_changed contains '.md'"
+              labels: ["documentation"]
+            - if: "files_changed contains '.yml' OR files_changed contains '.yaml'"
+              labels: ["configuration"]
+            - if: "files_changed contains '.js' OR files_changed contains '.ts'"
+              labels: ["code"]
+            - if: "files_changed contains 'test'"
+              labels: ["testing"]
+      
+    - name: "New Issue Notifier"
+      description: "Notify team when new issues are created"
+      priority: high
+      trigger:
+        type: github.issue_opened
+        repository: Wallestars
+      actions:
+        - type: slack.send_message
+          channel: "#wallestars-issues"
+          message: "New issue created: {issue.title}\n{issue.url}"
+        - type: github.add_to_project
+          project: "Wallestars Backlog"
+      
+    - name: "PR Review Reminder"
+      description: "Send reminder if PR is not reviewed within 24 hours"
+      priority: medium
+      trigger:
+        type: github.pull_request_review_requested
+        repository: Wallestars
+      actions:
+        - type: delay
+          duration: "24 hours"
+        - type: check_pr_status
+          if: "not reviewed"
+          then:
+            - type: slack.send_message
+              channel: "@reviewer"
+              message: "Reminder: PR review pending for {pr.title}"
+      
+    - name: "Release Announcer"
+      description: "Announce new releases across multiple channels"
+      priority: high
+      trigger:
+        type: github.release_published
+        repository: Wallestars
+      actions:
+        - type: slack.send_message
+          channel: "#announcements"
+          message: "🎉 New release {release.tag_name} is live!\n{release.body}"
+        - type: email.send
+          to: "stakeholders@wallestars.com"
+          subject: "Wallestars {release.tag_name} Released"
+          body: "{release.body}"
+        - type: create_changelog_entry
+          version: "{release.tag_name}"
+      
+    - name: "Issue Auto-Assign"
+      description: "Auto-assign issues based on labels"
+      priority: medium
+      trigger:
+        type: github.issue_labeled
+        repository: Wallestars
+      actions:
+        - type: github.assign_issue
+          conditions:
+            - if: "label == 'bug'"
+              assignee: "bug-squad"
+            - if: "label == 'feature'"
+              assignee: "feature-team"
+            - if: "label == 'documentation'"
+              assignee: "docs-team"
+  
+  # Development Workflow Automations
+  development_automations:
+    
+    - name: "Build Status Notifier"
+      description: "Notify team of build success or failure"
+      priority: high
+      trigger:
+        type: github.workflow_run_completed
+        repository: Wallestars
+      actions:
+        - type: slack.send_message
+          channel: "#builds"
+          message: |
+            Build {workflow.name}: {workflow.conclusion}
+            Branch: {workflow.head_branch}
+            Commit: {workflow.head_sha}
+            {workflow.html_url}
+          color:
+            success: "good"
+            failure: "danger"
+      
+    - name: "Code Review Metrics"
+      description: "Track and report code review metrics"
+      priority: low
+      trigger:
+        type: github.pull_request_review_submitted
+        repository: Wallestars
+      actions:
+        - type: update_metrics_database
+          metrics:
+            - reviewer: "{review.user}"
+            - review_time: "{review.submitted_at - pr.created_at}"
+            - review_quality: "{review.body.length}"
+        - type: generate_weekly_report
+          schedule: "every monday 9am"
+      
+    - name: "Dependency Update Checker"
+      description: "Monitor and notify about dependency updates"
+      priority: medium
+      trigger:
+        type: schedule
+        cron: "0 9 * * 1"  # Every Monday at 9 AM
+      actions:
+        - type: github.check_dependencies
+          repository: Wallestars
+        - type: create_issue_if_outdated
+          title: "Dependency updates available"
+          labels: ["dependencies", "maintenance"]
+  
+  # Project Management Automations
+  project_management_automations:
+    
+    - name: "Sprint Progress Tracker"
+      description: "Track sprint progress and generate reports"
+      priority: medium
+      trigger:
+        type: schedule
+        cron: "0 17 * * *"  # Daily at 5 PM
+      actions:
+        - type: github.get_issues
+          filter: "state:open label:current-sprint"
+        - type: calculate_progress
+          metrics:
+            - total_issues
+            - completed_issues
+            - in_progress_issues
+            - blocked_issues
+        - type: slack.send_message
+          channel: "#sprint-updates"
+          message: "Daily sprint update: {progress.summary}"
+      
+    - name: "Milestone Completion"
+      description: "Celebrate milestone achievements"
+      priority: low
+      trigger:
+        type: github.milestone_closed
+        repository: Wallestars
+      actions:
+        - type: slack.send_message
+          channel: "#general"
+          message: "🎯 Milestone completed: {milestone.title}"
+        - type: generate_milestone_report
+        - type: schedule_retrospective_meeting
+  
+  # Communication Automations
+  communication_automations:
+    
+    - name: "Daily Digest"
+      description: "Send daily digest of repository activity"
+      priority: medium
+      trigger:
+        type: schedule
+        cron: "0 9 * * 1-5"  # Weekdays at 9 AM
+      actions:
+        - type: github.get_activity
+          repository: Wallestars
+          since: "24 hours ago"
+        - type: generate_digest
+          include:
+            - new_issues
+            - merged_prs
+            - open_prs
+            - comments
+        - type: email.send
+          to: "team@wallestars.com"
+          subject: "Wallestars Daily Digest"
+          body: "{digest.html}"
+      
+    - name: "Weekly Team Report"
+      description: "Generate and share weekly team report"
+      priority: medium
+      trigger:
+        type: schedule
+        cron: "0 17 * * 5"  # Friday at 5 PM
+      actions:
+        - type: github.get_activity
+          repository: Wallestars
+          since: "7 days ago"
+        - type: generate_weekly_report
+          metrics:
+            - prs_merged
+            - issues_closed
+            - new_contributors
+            - code_coverage
+        - type: slack.send_message
+          channel: "#weekly-reports"
+          message: "{report.summary}"
+          attachments: ["{report.pdf}"]
+
+# Integration Configuration
+integrations:
+  
+  github:
+    enabled: true
+    repository: Wallesters-org/Wallestars
+    webhooks:
+      - pull_request
+      - issues
+      - push
+      - release
+      - discussion
+    permissions:
+      read: true
+      write: true
+      admin: false
+  
+  slack:
+    enabled: true
+    channels:
+      announcements: "#announcements"
+      builds: "#builds"
+      issues: "#wallestars-issues"
+      general: "#general"
+      sprint_updates: "#sprint-updates"
+      weekly_reports: "#weekly-reports"
+  
+  email:
+    enabled: true
+    smtp:
+      provider: "custom"
+      # Configure SMTP settings in ActivePieces UI
+  
+  ai_services:
+    openai:
+      enabled: true
+      use_cases:
+        - code_review_suggestions
+        - documentation_generation
+        - issue_triage
+    
+# Best Practices and Settings
+settings:
+  
+  error_handling:
+    retry_attempts: 3
+    retry_delay: "5 minutes"
+    notify_on_failure: true
+    fallback_action: "create_issue"
+  
+  security:
+    encrypt_credentials: true
+    use_environment_variables: true
+    audit_logging: true
+    access_control: "role_based"
+  
+  performance:
+    concurrent_flows: 5
+    timeout: "5 minutes"
+    cache_enabled: true
+  
+  monitoring:
+    track_metrics: true
+    log_level: "info"
+    alert_threshold: "90% failure rate"
+
+# Deployment Options
+deployment:
+  recommended: "self_hosted"
+  alternatives:
+    - cloud_hosted
+    - hybrid
+  
+  self_hosted:
+    method: "docker_compose"
+    url: "https://github.com/activepieces/activepieces"
+    benefits:
+      - "Unlimited tasks"
+      - "Full data control"
+      - "Cost effective"
+      - "Custom integrations"
+
+# Getting Started Checklist
+getting_started:
+  - step: "Review ACTIVEPIECES_GUIDE.md"
+    status: pending
+  - step: "Set up ActivePieces account"
+    status: pending
+  - step: "Connect GitHub repository"
+    status: pending
+  - step: "Configure integrations (Slack, Email)"
+    status: pending
+  - step: "Create first automation flow"
+    status: pending
+  - step: "Test automation flow"
+    status: pending
+  - step: "Deploy to production"
+    status: pending
+  - step: "Monitor and optimize"
+    status: pending
+
+# Resources
+resources:
+  explore_page: "https://cloud.activepieces.com/explore"
+  documentation: "https://www.activepieces.com/docs"
+  pieces_gallery: "https://www.activepieces.com/pieces"
+  github_integration: "https://www.activepieces.com/pieces/github"
+  community: "https://community.activepieces.com"
+  support: "https://discord.gg/activepieces"
