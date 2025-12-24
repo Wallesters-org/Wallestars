@@ -5,7 +5,7 @@ This guide walks through using ChatGPT to assist with the Replit deployment proc
 ## Prerequisites
 
 - GitHub account with access to Wallesters-org/Wallestars repository
-- Replit account credentials: krasavetsa1@icloud.com / MagicBoyy24#
+- Replit account credentials: [your-email@domain.com] / [your-password]
 - Access to ChatGPT at https://chatgpt.com/login
 
 ## Step-by-Step Process
@@ -44,9 +44,9 @@ This guide walks through using ChatGPT to assist with the Replit deployment proc
 1. **Access Replit**
    - Open a new browser window (incognito/private mode recommended)
    - Go to https://replit.com/login
-   - Log in with:
-     - Email: krasavetsa1@icloud.com
-     - Password: MagicBoyy24#
+   - Log in with your Replit account credentials:
+     - Email: [your-email@domain.com]
+     - Password: [your-password]
 
 2. **Verify Account Access**
    - Confirm email verification status

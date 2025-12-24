@@ -13,9 +13,9 @@ This guide provides step-by-step instructions for deploying the Wallestars SAAS 
 
 1. Open a new browser window
 2. Navigate to [https://replit.com/login](https://replit.com/login)
-3. Log in with:
-   - Email: krasavetsa1@icloud.com
-   - Password: MagicBoyy24#
+3. Log in with your Replit account credentials:
+   - Email: [your-email@domain.com]
+   - Password: [your-password]
 
 ### Step 2: Create New Repl from GitHub
 
