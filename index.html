@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallestars - Self-Hosted Project Manager</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌟 Wallestars</h1>
+            <p class="tagline">Discover & Save Amazing Self-Hosted Projects</p>
+            <div class="header-controls">
+                <button id="viewSavedBtn" class="btn-secondary">
+                    📚 Saved (<span id="savedCount">0</span>)
+                </button>
+                <button id="refreshBtn" class="btn-secondary">🔄 Refresh</button>
+            </div>
+        </header>
+
+        <div id="aiGuide" class="ai-guide">
+            <div class="ai-avatar">🤖</div>
+            <div class="ai-message">
+                <p id="aiText">Welcome! Swipe right to save projects you like, or left to skip them. Let me guide you through amazing self-hosted tools!</p>
+            </div>
+        </div>
+
+        <div id="cardContainer" class="card-container">
+            <div id="cardStack" class="card-stack">
+                <!-- Cards will be dynamically inserted here -->
+            </div>
+            <div id="noMoreCards" class="no-more-cards" style="display: none;">
+                <h2>🎉 All Caught Up!</h2>
+                <p>You've reviewed all available projects.</p>
+                <button id="restartBtn" class="btn-primary">Start Over</button>
+            </div>
+        </div>
+
+        <div class="swipe-instructions">
+            <div class="instruction-item">
+                <div class="swipe-icon swipe-left">👈</div>
+                <span>Swipe Left to Skip</span>
+            </div>
+            <div class="instruction-item">
+                <div class="swipe-icon swipe-right">👉</div>
+                <span>Swipe Right to Save</span>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button id="skipBtn" class="action-btn skip-btn">✖️ Skip</button>
+            <button id="saveBtn" class="action-btn save-btn">❤️ Save</button>
+        </div>
+    </div>
+
+    <!-- Saved Projects Modal -->
+    <div id="savedModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📚 Saved Projects</h2>
+                <button class="close-btn" id="closeModal">&times;</button>
+            </div>
+            <div id="savedProjectsList" class="saved-projects-list">
+                <!-- Saved projects will be listed here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Details Modal -->
+    <div id="detailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="detailsTitle">Project Details</h2>
+                <button class="close-btn" id="closeDetailsModal">&times;</button>
+            </div>
+            <div id="detailsContent" class="details-content">
+                <!-- Project details will be shown here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
