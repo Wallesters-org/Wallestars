@@ -35,8 +35,17 @@ async function openChatGPT() {
   browser = await chromium.connectOverCDP(airtopWindow.cdpUrl);
   
   // Get the default context and first page
-  const context = browser.contexts()[0];
-  const page = context.pages()[0];
+  const contexts = browser.contexts();
+  if (contexts.length === 0) {
+    throw new Error('No browser contexts available');
+  }
+  const context = contexts[0];
+  
+  const pages = context.pages();
+  if (pages.length === 0) {
+    throw new Error('No pages available in browser context');
+  }
+  const page = pages[0];
   
   console.log('Successfully connected to Airtop browser!');
   console.log('ChatGPT.com is loading...');
@@ -61,10 +70,19 @@ async function cleanup() {
       // Note: Window will be closed when session terminates
     }
     
-    if (airtopSession) {
+    if (airtopSession && airtopSession.id) {
       console.log('Terminating Airtop session...');
-      // Session will automatically terminate based on timeout
-      // or you can explicitly terminate it via the API
+      try {
+        // Get the client instance to terminate the session
+        const apiKey = process.env.AIRTOP_API_KEY;
+        if (apiKey) {
+          const client = new AirtopClient({ apiKey });
+          await client.sessions.terminate(airtopSession.id);
+          console.log('Airtop session terminated.');
+        }
+      } catch (sessionError) {
+        console.error('Error terminating session:', sessionError.message);
+      }
     }
   } catch (error) {
     console.error('Error during cleanup:', error.message);
