@@ -54,8 +54,8 @@ class SetupHandler(http.server.SimpleHTTPRequestHandler):
                 else:
                     self.send_error_response(500, "Failed to create configuration file")
                     
-            except json.JSONDecodeError:
-                self.send_error_response(400, "Invalid JSON data")
+            except json.JSONDecodeError as e:
+                self.send_error_response(400, f"Invalid JSON format: {str(e)}")
             except Exception as e:
                 self.send_error_response(500, f"Server error: {str(e)}")
         else:
