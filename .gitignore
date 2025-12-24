@@ -1,0 +1,19 @@
+# Claude Code configuration with actual API keys
+.claude-code.json
+claude-code-config.json
+
+# Environment files that may contain secrets
+.env
+.env.local
+.env.*.local
+
+# API keys and secrets
+**/api-keys.json
+**/secrets.json
+
+# Node modules if MCP server is installed locally
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
