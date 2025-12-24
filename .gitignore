@@ -14,6 +14,12 @@ claude-code-config.json
 # Node modules if MCP server is installed locally
 node_modules/
 
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
 # OS files
 .DS_Store
 Thumbs.db

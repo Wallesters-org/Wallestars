@@ -9,6 +9,29 @@ echo "  Hostinger VPS Connection Setup"
 echo "=================================================="
 echo ""
 
+# Check if running in GitHub Codespaces
+if [ -n "$CODESPACE_NAME" ]; then
+    echo "🚀 GitHub Codespaces detected!"
+    echo ""
+    echo "You can configure using either:"
+    echo "  1. Web Interface (recommended for Codespaces)"
+    echo "  2. Command Line (this script)"
+    echo ""
+    read -p "Use web interface? (Y/n): " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+        echo "Starting web server..."
+        echo ""
+        echo "The web interface will open automatically."
+        echo "If it doesn't, look for the forwarded port 8000 in your Ports panel."
+        echo ""
+        python3 web-setup.py
+        exit 0
+    fi
+    echo "Continuing with command line setup..."
+    echo ""
+fi
+
 # Check if .claude-code.json already exists
 if [ -f ".claude-code.json" ]; then
     echo "⚠️  Warning: .claude-code.json already exists!"

@@ -14,6 +14,42 @@ This guide will help you connect Claude Code to your Hostinger VPS using the Hos
 
 ## Setup Instructions
 
+### Setup in GitHub Codespaces
+
+If you're using GitHub Codespaces, the setup is streamlined:
+
+1. **Open this repository in GitHub Codespaces**
+   - Click the "Code" button on GitHub
+   - Select "Codespaces" tab
+   - Click "Create codespace on main" (or your branch)
+
+2. **Run the setup script**
+   ```bash
+   ./setup.sh
+   ```
+
+3. **Choose your setup method**
+   - **Web Interface (Recommended)**: Press 'Y' or Enter to launch the web-based setup
+   - **Command Line**: Press 'N' to continue with the terminal-based setup
+
+4. **Using the Web Interface**
+   - The web server will start automatically
+   - Your browser should open the setup page (or check the Ports panel for port 8000)
+   - Enter your Hostinger API token in the web form
+   - Click "Save Configuration"
+   - Done! The `.claude-code.json` file is created automatically
+
+5. **Using Command Line**
+   - Follow the prompts to enter your API key
+   - The script will create the configuration file for you
+
+The Codespaces environment is pre-configured with:
+- Node.js for running the Hostinger MCP server
+- Python for the web setup interface
+- Auto-forwarded ports (8000, 3000) for easy access
+
+### Setup on Local Machine
+
 ### Step 1: Get Your Hostinger API Key
 
 1. Log in to your Hostinger account

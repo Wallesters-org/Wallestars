@@ -4,7 +4,24 @@ This repository contains configuration and setup instructions for connecting Cla
 
 ## Quick Start
 
-### Option 1: Automated Setup (Recommended)
+### 🚀 GitHub Codespaces (Recommended)
+
+If you're using GitHub Codespaces, simply run:
+
+```bash
+./setup.sh
+```
+
+The script will automatically:
+- Detect the Codespaces environment
+- Offer to launch a web-based setup interface
+- Guide you through the configuration process
+
+**Web Interface:** The web setup provides a user-friendly interface accessible through your browser, perfect for Codespaces users.
+
+### 💻 Local Setup
+
+#### Option 1: Automated Setup (Recommended)
 
 Run the setup script to automatically configure your connection:
 
@@ -18,7 +35,17 @@ The script will:
 - Prompt you for your Hostinger API key
 - Create the properly configured `.claude-code.json` file
 
-### Option 2: Manual Setup
+#### Option 2: Web Interface
+
+Launch the web-based setup interface:
+
+```bash
+python3 web-setup.py
+```
+
+Then open http://localhost:8000 in your browser.
+
+#### Option 3: Manual Setup
 
 Follow the detailed setup guide:
 
@@ -26,7 +53,10 @@ Follow the detailed setup guide:
 
 ## What's Included
 
-- `setup.sh` - Automated setup script for quick configuration
+- `setup.sh` - Automated setup script with Codespaces support
+- `web-setup.py` - Web-based setup interface for easy configuration
+- `index.html` - Web interface for interactive setup
+- `.devcontainer/devcontainer.json` - GitHub Codespaces configuration
 - `.claude-code.template.json` - Configuration template for Claude Code with Hostinger MCP
 - `HOSTINGER_SETUP.md` - Comprehensive setup instructions
 - `SECURITY.md` - Important security notices and best practices
