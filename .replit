@@ -1,0 +1,72 @@
+# Replit configuration for Wallestars SAAS Platform
+
+# The command that runs the program
+run = "npm start"
+
+# The entrypoint file for the repl
+entrypoint = "index.js"
+
+# Set up modules for Node.js
+modules = ["nodejs-20"]
+
+# Show hidden files in the editor
+hidden = [".config", ".git", ".gitignore", "node_modules"]
+
+[nix]
+channel = "stable-23_11"
+
+[deployment]
+# Enable deployment on Replit
+run = ["sh", "-c", "npm start"]
+deploymentTarget = "cloudrun"
+
+[env]
+# Environment variables
+PORT = "3000"
+NODE_ENV = "production"
+
+[languages.javascript]
+pattern = "**/*.{js,jsx,mjs,cjs}"
+syntax = "javascript"
+
+[languages.javascript.languageServer]
+start = "typescript-language-server --stdio"
+
+[packager]
+language = "nodejs"
+
+[packager.features]
+packageSearch = true
+guessImports = true
+enabledForHosting = false
+
+[unitTest]
+language = "nodejs"
+
+[debugger]
+support = true
+
+[debugger.interactive]
+transport = "localhost:0"
+startCommand = ["dap-node"]
+
+[debugger.interactive.initializeMessage]
+command = "initialize"
+type = "request"
+
+[debugger.interactive.launchMessage]
+command = "launch"
+type = "request"
+
+[debugger.interactive.launchMessage.arguments]
+console = "externalTerminal"
+cwd = "."
+pauseForSourceMap = false
+program = "./index.js"
+request = "launch"
+sourceMaps = true
+stopOnEntry = false
+type = "pwa-node"
+
+[gitHubImport]
+requiredFiles = [".replit", "replit.nix", "package.json", "index.js"]
