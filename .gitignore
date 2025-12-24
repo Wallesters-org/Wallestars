@@ -3,6 +3,9 @@
 .env.local
 .env.production
 
+# Credentials (NEVER commit)
+CREDENTIALS.md
+
 # Dependencies
 node_modules/
 package-lock.json

@@ -8,17 +8,16 @@ This document provides step-by-step instructions for deploying the Wallestars SA
 ### Account Setup
 - **ChatGPT Account**: Access ChatGPT.com/login
 - **Replit Account**: Create or login to Replit.com
-- **Email**: krasavetsa1@outlook.com
-- **Password**: MagicBoyy24#
+- **Credentials**: Use the provided account credentials (see secure documentation or contact administrator)
+
+> **Security Note**: Never commit actual credentials to version control. This document references credentials for deployment purposes only.
 
 ## Deployment Steps
 
 ### Step 1: Access ChatGPT
 1. Open your web browser in a new/incognito window
 2. Navigate to `https://chatgpt.com/login`
-3. Login with credentials:
-   - Email: `krasavetsa1@outlook.com`
-   - Password: `MagicBoyy24#`
+3. Login with your provided credentials (contact administrator for access)
 
 ### Step 2: Connect to Replit via ChatGPT
 1. Once logged into ChatGPT, ask ChatGPT to help you set up Replit

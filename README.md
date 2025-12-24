@@ -36,6 +36,8 @@ npm start
 
 For detailed deployment instructions using Replit, see [DEPLOYMENT.md](DEPLOYMENT.md).
 
+**Credentials**: The deployment requires ChatGPT and Replit account access. Credentials are provided separately in a secure file (CREDENTIALS.md) which is excluded from version control for security.
+
 Quick steps:
 1. Import this repository to Replit
 2. Configure environment variables in Replit Secrets

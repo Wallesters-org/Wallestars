@@ -9,9 +9,10 @@
    - Navigate to: `https://chatgpt.com/login`
 
 2. **Login Credentials**
-   - Email: `krasavetsa1@outlook.com`
-   - Password: `MagicBoyy24#`
+   - Use the provided account credentials
    - Complete any 2FA if prompted
+
+> **Security Warning**: These credentials are for deployment purposes only. Never share or commit credentials to public repositories.
 
 3. **Access Replit Tool**
    - In ChatGPT, request: "Help me deploy to Replit"
@@ -163,8 +164,7 @@ API_KEY=<your_api_key>
 **Quick Reference**
 
 Login URL: https://chatgpt.com/login
-Email: krasavetsa1@outlook.com
-Password: MagicBoyy24#
+Credentials: See secure documentation
 Repository: https://github.com/Wallesters-org/Wallestars
 Run Command: `npm start`
 Health Check: `/health`
