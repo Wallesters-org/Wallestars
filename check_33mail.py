@@ -10,6 +10,11 @@ import sys
 from typing import Dict, List, Optional
 
 
+# API Status Constants
+API_STATUS_MESSAGE = "33Mail does not currently provide a public API."
+MANUAL_MANAGEMENT_URL = "https://www.33mail.com/"
+
+
 class Mail33Client:
     """Client to interact with 33Mail service"""
     
@@ -33,9 +38,9 @@ class Mail33Client:
         Returns:
             True if authentication successful, False otherwise
         """
-        print("⚠ Note: 33Mail does not provide a public API.")
+        print(f"⚠ Note: {API_STATUS_MESSAGE}")
         print("  This is a placeholder for future implementation.")
-        print("  You can manually check your aliases at https://www.33mail.com/")
+        print(f"  You can manually check your aliases at {MANUAL_MANAGEMENT_URL}")
         return False
     
     def get_aliases(self) -> Optional[List[Dict]]:
@@ -106,8 +111,8 @@ def main():
         print("\nPlease add your 33Mail credentials to config.py:")
         print('  MAIL33_USERNAME = "your-33mail-username"')
         print('  MAIL33_PASSWORD = "your-33mail-password"')
-        print("\nNote: 33Mail does not have a public API yet.")
-        print("Visit https://www.33mail.com/ to manage your aliases manually.")
+        print(f"\nNote: {API_STATUS_MESSAGE}")
+        print(f"Visit {MANUAL_MANAGEMENT_URL} to manage your aliases manually.")
         sys.exit(1)
     
     print("=" * 80)
@@ -121,11 +126,11 @@ def main():
     # Attempt authentication
     if not client.authenticate():
         print("\n⚠ 33Mail Integration Status: Placeholder")
-        print("\n33Mail does not currently provide a public API.")
-        print("To check your aliases, visit: https://www.33mail.com/")
+        print(f"\n{API_STATUS_MESSAGE}")
+        print(f"To check your aliases, visit: {MANUAL_MANAGEMENT_URL}")
         print("\nThis integration can be enhanced in the future when:")
         print("  - 33Mail provides an official API")
-        print("  - Web automation is implemented (requires selenium/playwright)")
+        print("  - Web automation is implemented (requires Selenium/Playwright)")
         print()
         sys.exit(1)
     

@@ -230,7 +230,7 @@ Example with environment variables:
 ```python
 import os
 
-N8N_URL = os.getenv('N8N_URL', 'https://your-n8n-instance.com')
+N8N_URL = os.getenv('N8N_URL')  # No default - must be explicitly set
 N8N_EMAIL = os.getenv('N8N_EMAIL')
 N8N_PASSWORD = os.getenv('N8N_PASSWORD')
 ```

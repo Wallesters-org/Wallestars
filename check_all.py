@@ -8,7 +8,7 @@ This script provides a unified dashboard for monitoring your infrastructure.
 import sys
 from check_n8n_workflows import N8nClient, display_workflow_status
 from check_hostinger_vps import HostingerClient, display_vps_status, display_account_info
-from check_33mail import Mail33Client, display_alias_status
+from check_33mail import Mail33Client, display_alias_status, API_STATUS_MESSAGE, MANUAL_MANAGEMENT_URL
 
 
 def main():
@@ -102,8 +102,8 @@ def main():
         else:
             print("❌ Failed to fetch aliases.")
     else:
-        print("⚠ 33Mail: Placeholder implementation (no public API available)")
-        print("  Visit https://www.33mail.com/ to manage your aliases manually.")
+        print(f"⚠ 33Mail: Placeholder implementation ({API_STATUS_MESSAGE})")
+        print(f"  Visit {MANUAL_MANAGEMENT_URL} to manage your aliases manually.")
     
     # ===== Summary =====
     print("\n" + "=" * 80)
