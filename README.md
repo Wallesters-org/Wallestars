@@ -31,10 +31,12 @@ Or on Windows:
 set AIRTOP_API_KEY=your_api_key_here
 ```
 
-You can also create a `.env` file in the project root (make sure to add it to `.gitignore`):
+You can also create a `.env` file in the project root:
 ```
 AIRTOP_API_KEY=your_api_key_here
 ```
+
+Note: To use `.env` files, you'll need to install and configure the `dotenv` package separately, or manually export the variables before running the script.
 
 ## Usage
 

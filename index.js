@@ -4,6 +4,7 @@ const { AirtopClient } = require('@airtop/sdk');
 let browser = null;
 let airtopSession = null;
 let airtopWindow = null;
+let airtopClient = null;
 
 async function openChatGPT() {
   console.log('Initializing Airtop client...');
@@ -14,10 +15,10 @@ async function openChatGPT() {
     throw new Error('AIRTOP_API_KEY environment variable is required');
   }
   
-  const client = new AirtopClient({ apiKey });
+  airtopClient = new AirtopClient({ apiKey });
   
   console.log('Creating Airtop session...');
-  airtopSession = await client.sessions.create({
+  airtopSession = await airtopClient.sessions.create({
     configuration: {
       timeoutMinutes: 30
     }
@@ -25,7 +26,7 @@ async function openChatGPT() {
   console.log(`Session created: ${airtopSession.id}`);
   
   console.log('Creating Airtop window...');
-  airtopWindow = await client.windows.create(airtopSession.id, {
+  airtopWindow = await airtopClient.windows.create(airtopSession.id, {
     url: 'https://chatgpt.com'
   });
   console.log(`Window created: ${airtopWindow.id}`);
@@ -39,13 +40,11 @@ async function openChatGPT() {
   if (contexts.length === 0) {
     throw new Error('No browser contexts available');
   }
-  const context = contexts[0];
   
-  const pages = context.pages();
+  const pages = contexts[0].pages();
   if (pages.length === 0) {
     throw new Error('No pages available in browser context');
   }
-  const page = pages[0];
   
   console.log('Successfully connected to Airtop browser!');
   console.log('ChatGPT.com is loading...');
@@ -70,16 +69,11 @@ async function cleanup() {
       // Note: Window will be closed when session terminates
     }
     
-    if (airtopSession && airtopSession.id) {
+    if (airtopSession && airtopSession.id && airtopClient) {
       console.log('Terminating Airtop session...');
       try {
-        // Get the client instance to terminate the session
-        const apiKey = process.env.AIRTOP_API_KEY;
-        if (apiKey) {
-          const client = new AirtopClient({ apiKey });
-          await client.sessions.terminate(airtopSession.id);
-          console.log('Airtop session terminated.');
-        }
+        await airtopClient.sessions.terminate(airtopSession.id);
+        console.log('Airtop session terminated.');
       } catch (sessionError) {
         console.error('Error terminating session:', sessionError.message);
       }
