@@ -31,7 +31,8 @@ Get information about the current session.
   "createdAt": "2025-12-24T14:51:57.790Z",
   "lastVisit": "2025-12-24T14:51:57.790Z",
   "visitCount": 1,
-  "isNewSession": true
+  "isNewSession": true,
+  "csrfToken": "992e2326c6e73aac80ab0228be2374b538c705ae180033cb6931e2b0246c6a63"
 }
 ```
 
@@ -56,17 +57,24 @@ List all active sessions (admin view).
 ### POST `/api/session/new`
 Create a new session by regenerating the session ID.
 
+**Headers:**
+- `X-CSRF-Token`: Required CSRF token (obtained from GET /api/session)
+
 **Response:**
 ```json
 {
   "message": "New session created successfully",
   "sessionId": "p_jBHqnGHJ4IkvXjiAHJqsImwIBvvJNt",
-  "createdAt": "2025-12-24T14:52:05.721Z"
+  "createdAt": "2025-12-24T14:52:05.721Z",
+  "csrfToken": "8f8e0ffc95cb935357cedf2a3b6f4871876206b98d6e8cca9f7cc520bbbbb3b5"
 }
 ```
 
 ### DELETE `/api/session`
 Destroy the current session.
+
+**Headers:**
+- `X-CSRF-Token`: Required CSRF token (obtained from GET /api/session)
 
 **Response:**
 ```json
@@ -149,7 +157,10 @@ app.use(session({
 - **Secure Flag**: Cookies are only sent over HTTPS in production
 - **Session Expiration**: Sessions automatically expire after 24 hours
 - **Session ID Truncation**: Full session IDs are never displayed to users
-- **CSRF Protection**: Session regeneration on important operations
+- **CSRF Protection**: All state-changing operations require a valid CSRF token
+  - Tokens are generated per session
+  - Tokens are validated on POST, PUT, DELETE, and PATCH requests
+  - Tokens are automatically included in client-side requests
 
 ### Session Cleanup
 
@@ -209,17 +220,24 @@ Developers can use the session information to debug issues:
 ### API Testing with curl
 
 ```bash
-# Get current session
+# Get current session (includes CSRF token)
 curl -c cookies.txt http://localhost:3000/api/session
+
+# Extract the CSRF token from the response
+# Example token: 992e2326c6e73aac80ab0228be2374b538c705ae180033cb6931e2b0246c6a63
 
 # List all sessions
 curl -b cookies.txt http://localhost:3000/api/sessions
 
-# Create new session
-curl -b cookies.txt -X POST http://localhost:3000/api/session/new
+# Create new session (requires CSRF token)
+curl -b cookies.txt -X POST \
+  -H "X-CSRF-Token: YOUR_TOKEN_HERE" \
+  http://localhost:3000/api/session/new
 
-# Destroy session
-curl -b cookies.txt -X DELETE http://localhost:3000/api/session
+# Destroy session (requires CSRF token)
+curl -b cookies.txt -X DELETE \
+  -H "X-CSRF-Token: YOUR_TOKEN_HERE" \
+  http://localhost:3000/api/session
 
 # Check health with session stats
 curl http://localhost:3000/api/health
