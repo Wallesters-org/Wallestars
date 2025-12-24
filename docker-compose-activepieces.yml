@@ -1,0 +1,21 @@
+version: '3.8'
+services:
+  activepieces:
+    image: activepieces/activepieces:latest
+    ports:
+      - "3000:80"
+    environment:
+      DATABASE_URL: "postgresql://user:pass@postgres:5432/activepieces"
+      AP_PRIVATE_KEY: "<your-secret>"
+    depends_on:
+      - postgres
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: activepieces
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+volumes:
+  postgres_data:
