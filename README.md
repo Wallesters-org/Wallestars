@@ -9,6 +9,7 @@ A modern SAAS platform built with Node.js and Express, optimized for deployment 
 - ⚡ Scalable architecture
 - 🎨 Modern, responsive UI
 - 🛠️ Built with Express.js
+- 🔐 Session management and connection tracking
 
 ## Quick Start
 
@@ -73,8 +74,14 @@ The app is configured for Replit's Cloud Run deployment:
 
 ## API Endpoints
 
-- `GET /` - Main landing page
-- `GET /api/health` - Health check endpoint
+- `GET /` - Main landing page with session management UI
+- `GET /api/health` - Health check endpoint with session statistics
+- `GET /api/session` - Get current session information
+- `GET /api/sessions` - List all active sessions
+- `POST /api/session/new` - Create a new session
+- `DELETE /api/session` - Destroy current session
+
+For detailed session management documentation, see [SESSION_MANAGEMENT.md](SESSION_MANAGEMENT.md).
 
 ## Technology Stack
 
