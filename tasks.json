@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Създаване на нов Codespace",
+      "description": "Създаване на нов GitHub Codespace за проекта",
+      "type": "codespace",
+      "status": "pending",
+      "priority": "high"
+    },
+    {
+      "id": 2,
+      "title": "Инсталиране на зависимости",
+      "description": "Инсталиране на npm пакети и Playwright браузъри",
+      "type": "setup",
+      "status": "pending",
+      "commands": [
+        "npm install",
+        "npm run install-browsers"
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Конфигуриране на проекта",
+      "description": "Настройка на environment variables и конфигурации",
+      "type": "config",
+      "status": "pending"
+    },
+    {
+      "id": 4,
+      "title": "Изпълнение на тестове",
+      "description": "Стартиране на автоматизирани тестове",
+      "type": "test",
+      "status": "pending",
+      "commands": [
+        "npm test"
+      ]
+    }
+  ],
+  "metadata": {
+    "project": "Wallestars",
+    "description": "Автоматизация на GitHub задачи с браузър",
+    "created": "2025-12-25",
+    "language": "bg"
+  }
+}
