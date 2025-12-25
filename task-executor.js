@@ -22,7 +22,7 @@ const { chromium } = require('playwright');
 // Конфигурация
 const CONFIG = {
     // GitHub credentials
-    GITHUB_EMAIL: process.env.GITHUB_EMAIL || 'krasavetsa1@gmail.com',
+    GITHUB_EMAIL: process.env.GITHUB_EMAIL || '',
     GITHUB_PASSWORD: process.env.GITHUB_PASSWORD || '',
     
     // Timeout настройки
@@ -282,7 +282,7 @@ async function loginToGitHub(page) {
  * Изпълнява задача
  */
 async function executeTask(page, task, taskIndex, totalTasks) {
-    console.log(`\n[${ taskIndex + 1}/${totalTasks}] Изпълнение на задача: ${task.description || task.title || 'Задача ' + task.id}`);
+    console.log(`\n[${taskIndex + 1}/${totalTasks}] Изпълнение на задача: ${task.description || task.title || 'Задача ' + task.id}`);
     console.log('━'.repeat(70));
     
     try {

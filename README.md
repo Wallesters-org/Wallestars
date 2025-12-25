@@ -57,7 +57,7 @@ GITHUB_PASSWORD=your_password npm run tasks tasks.json
 
 #### Direct Execution:
 ```bash
-GITHUB_EMAIL=krasavetsa1@gmail.com GITHUB_PASSWORD=MagicBoyy24# node task-executor.js tasks.json
+GITHUB_EMAIL=your_email@example.com GITHUB_PASSWORD=your_password node task-executor.js tasks.json
 ```
 
 See `CODESPACE-SETUP-BG.md` for detailed Bulgarian instructions.

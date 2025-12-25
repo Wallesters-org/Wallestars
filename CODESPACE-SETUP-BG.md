@@ -7,8 +7,8 @@
 #### Стъпка 1: Отваряне на GitHub
 1. Отворете браузър и отидете на https://github.com
 2. Влезте с вашите данни:
-   - Email: `krasavetsa1@gmail.com`
-   - Парола: `MagicBoyy24#`
+   - Email: `your_email@example.com`
+   - Парола: `your_password`
 
 #### Стъпка 2: Навигация към Codespaces
 1. Кликнете на иконата в горния десен ъгъл
@@ -41,8 +41,8 @@ npm run install-browsers
 ```bash
 # Създаване на .env файл
 cat > .env << EOF
-GITHUB_EMAIL=krasavetsa1@gmail.com
-GITHUB_PASSWORD=MagicBoyy24#
+GITHUB_EMAIL=your_email@example.com
+GITHUB_PASSWORD=your_password
 SUCCESS_TIMEOUT=30000
 FAILURE_TIMEOUT=60000
 SLOW_MO=100
@@ -55,7 +55,7 @@ EOF
 
 #### Интерактивен режим:
 ```bash
-GITHUB_PASSWORD=MagicBoyy24# node task-executor.js --interactive
+GITHUB_PASSWORD=your_password node task-executor.js --interactive
 ```
 
 След това въведете задачите си една по една:
@@ -68,23 +68,23 @@ Commit и push
 
 #### С JSON файл:
 ```bash
-GITHUB_PASSWORD=MagicBoyy24# node task-executor.js tasks.json
+GITHUB_PASSWORD=your_password node task-executor.js tasks.json
 ```
 
 ### 5. Примерни Команди
 
 ```bash
 # Демо режим (без реален браузър)
-GITHUB_EMAIL=krasavetsa1@gmail.com GITHUB_PASSWORD=MagicBoyy24# npm run login-demo
+GITHUB_EMAIL=your_email@example.com GITHUB_PASSWORD=your_password npm run login-demo
 
 # Пълна автоматизация
-GITHUB_EMAIL=krasavetsa1@gmail.com GITHUB_PASSWORD=MagicBoyy24# npm run login
+GITHUB_EMAIL=your_email@example.com GITHUB_PASSWORD=your_password npm run login
 
 # Изпълнение на задачи с потвърждение
-GITHUB_PASSWORD=MagicBoyy24# node task-executor.js tasks.json
+GITHUB_PASSWORD=your_password node task-executor.js tasks.json
 
 # Интерактивно въвеждане на задачи
-GITHUB_PASSWORD=MagicBoyy24# node task-executor.js -i
+GITHUB_PASSWORD=your_password node task-executor.js -i
 ```
 
 ### 6. Структура на Проекта
