@@ -1,0 +1,23 @@
+{
+  "name": "wallestars",
+  "version": "1.0.0",
+  "description": "Browser automation for GitHub login",
+  "main": "github-login.js",
+  "scripts": {
+    "login": "node github-login-playwright.js",
+    "login-demo": "node github-login.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "install-browsers": "playwright install chromium"
+  },
+  "keywords": [
+    "github",
+    "automation",
+    "browser",
+    "playwright"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "playwright": "^1.40.0"
+  }
+}
