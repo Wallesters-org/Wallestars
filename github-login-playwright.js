@@ -102,7 +102,19 @@ async function loginToGitHub() {
         console.log('[7/7] Verifying login...');
         const currentUrl = page.url();
         
-        if (currentUrl.includes('github.com') && !currentUrl.includes('login')) {
+        // Parse the URL to properly validate the hostname
+        let isLoginSuccessful = false;
+        try {
+            const url = new URL(currentUrl);
+            // Check that the hostname is exactly github.com or a subdomain
+            const isGitHub = url.hostname === 'github.com' || url.hostname.endsWith('.github.com');
+            const isNotLoginPage = !url.pathname.includes('/login');
+            isLoginSuccessful = isGitHub && isNotLoginPage;
+        } catch (e) {
+            console.error('Error parsing URL:', e.message);
+        }
+        
+        if (isLoginSuccessful) {
             console.log('\n✓ SUCCESS: Logged into GitHub!');
             console.log(`Current URL: ${currentUrl}`);
             
