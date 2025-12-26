@@ -1,0 +1,173 @@
+# Ръководство за Настройка на Codespace 🚀
+
+## Инструкции на Български за Настройка на Проект
+
+### 1. Създаване на Нов Codespace
+
+#### Стъпка 1: Отваряне на GitHub
+1. Отворете браузър и отидете на https://github.com
+2. Влезте с вашите данни:
+   - Email: `your_email@example.com`
+   - Парола: `your_password`
+
+#### Стъпка 2: Навигация към Codespaces
+1. Кликнете на иконата в горния десен ъгъл
+2. Изберете "Your codespaces"
+3. Или директно отидете на: https://github.com/codespaces
+
+#### Стъпка 3: Създаване на Codespace
+1. Кликнете "New codespace"
+2. Изберете repository: `Wallesters-org/Wallestars`
+3. Изберете branch: `copilot/open-browser-session-github`
+4. Конфигурирайте машината (препоръчително: 2-core)
+5. Кликнете "Create codespace"
+
+### 2. Инсталиране на Зависимости
+
+След като Codespace се зареди, отворете терминала и изпълнете:
+
+```bash
+# Инсталиране на Node.js зависимости
+npm install
+
+# Инсталиране на Playwright браузъри
+npm run install-browsers
+```
+
+### 3. Конфигуриране на Environment Variables
+
+Създайте файл `.env` в главната директория:
+
+```bash
+# Създаване на .env файл
+cat > .env << EOF
+GITHUB_EMAIL=your_email@example.com
+GITHUB_PASSWORD=your_password
+SUCCESS_TIMEOUT=30000
+FAILURE_TIMEOUT=60000
+SLOW_MO=100
+EOF
+```
+
+**⚠️ ВАЖНО**: Никога не commit-вайте `.env` файла! Той вече е в `.gitignore`.
+
+### 4. Използване на Изпълнителя на Задачи
+
+#### Интерактивен режим:
+```bash
+GITHUB_PASSWORD=your_password node task-executor.js --interactive
+```
+
+След това въведете задачите си една по една:
+```
+Създаване на нов repository
+Добавяне на файлове
+Commit и push
+<празен ред за край>
+```
+
+#### С JSON файл:
+```bash
+GITHUB_PASSWORD=your_password node task-executor.js tasks.json
+```
+
+### 5. Примерни Команди
+
+```bash
+# Демо режим (без реален браузър)
+GITHUB_EMAIL=your_email@example.com GITHUB_PASSWORD=your_password npm run login-demo
+
+# Пълна автоматизация
+GITHUB_EMAIL=your_email@example.com GITHUB_PASSWORD=your_password npm run login
+
+# Изпълнение на задачи с потвърждение
+GITHUB_PASSWORD=your_password node task-executor.js tasks.json
+
+# Интерактивно въвеждане на задачи
+GITHUB_PASSWORD=your_password node task-executor.js -i
+```
+
+### 6. Структура на Проекта
+
+```
+Wallestars/
+├── github-login-playwright.js  # Playwright автоматизация
+├── github-login.js             # Демо скрипт
+├── task-executor.js            # Изпълнител на задачи (НОВО)
+├── tasks.json                  # Примерни задачи (НОВО)
+├── package.json                # npm конфигурация
+├── test.js                     # Тестове
+├── README.md                   # Документация
+├── EXAMPLES.md                 # Примери
+├── CODESPACE-SETUP-BG.md       # Това ръководство
+└── .gitignore                  # Git изключения
+```
+
+### 7. Работен Процес
+
+1. **Дефиниране на задачи**: Създайте или редактирайте `tasks.json`
+2. **Преглед на плана**: Системата ще покаже структуриран план
+3. **Потвърждение**: Отговорете "да" за стартиране
+4. **Изпълнение**: Наблюдавайте прогреса в браузъра
+5. **Проверка**: Прегледайте резултатите
+
+### 8. Формат на Задачите
+
+```json
+{
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Заглавие на задачата",
+      "description": "Подробно описание",
+      "type": "codespace|repository|setup|test",
+      "status": "pending",
+      "priority": "high|medium|low"
+    }
+  ]
+}
+```
+
+### 9. Типове Задачи
+
+- **codespace**: Работа с GitHub Codespaces
+- **repository**: Операции с repositories
+- **setup**: Инсталация и конфигурация
+- **test**: Тестване и валидиране
+- **manual**: Ръчни задачи
+
+### 10. Често Задавани Въпроси
+
+**В: Защо браузърът остава отворен?**
+О: Това е за да видите резултатите. Можете да промените таймаутите.
+
+**В: Как да добавя собствени задачи?**
+О: Редактирайте `tasks.json` или използвайте интерактивния режим.
+
+**В: Поддържа ли 2FA?**
+О: Да, но трябва ръчно да въведете кода когато се появи.
+
+**В: Мога ли да използвам на друг език?**
+О: Да, променете `CONFIG.LANGUAGE` в `task-executor.js`.
+
+### 11. Помощ и Поддръжка
+
+При проблеми:
+1. Проверете дали всички зависимости са инсталирани
+2. Уверете се, че паролата е правилна
+3. Проверете интернет връзката
+4. Прегледайте логовете за грешки
+
+### 12. Следващи Стъпки
+
+След успешна настройка можете:
+- [ ] Създаване на собствени задачи
+- [ ] Автоматизиране на workflow
+- [ ] Интегриране с CI/CD
+- [ ] Разширяване на функционалността
+
+---
+
+**Успех с автоматизацията! 🎉**
+
+За въпроси и предложения, моля създайте issue в repository-то.
