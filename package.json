@@ -4,6 +4,8 @@
   "description": "GitHub Browser Automation with Task Execution System (Система за изпълнение на GitHub задачи с автоматизация на браузъра)",
   "main": "github-login.js",
   "scripts": {
+    "start": "node web-gui-server.js",
+    "gui": "node web-gui-server.js",
     "login": "node github-login-playwright.js",
     "login-demo": "node github-login.js",
     "tasks": "node task-executor.js",

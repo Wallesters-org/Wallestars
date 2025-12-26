@@ -4,12 +4,43 @@ GitHub Browser Automation - Open Browser Session and Login
 
 **Система за Изпълнение на GitHub Задачи** | **GitHub Task Execution System**
 
+## 🌟 Най-лесен начин: Web GUI Platform (v3.0)
+
+**НОВО!** Използвайте браузър-базиран интерфейс - без командна линия, без credentials, на български език!
+
+```bash
+# Стартирай веднага
+npm start
+
+# Отвори в браузър
+http://localhost:3000
+```
+
+**Виж [WEB-GUI-GUIDE-BG.md](WEB-GUI-GUIDE-BG.md) за пълно ръководство на български!**
+
+### ✨ Защо Web GUI?
+
+- 🖱️ **Интерактивни бутони** - без командна линия
+- 🇧🇬 **На български език** - пълен превод
+- 🔓 **Без credentials** - работи без GitHub парола (опционални)
+- 📊 **Real-time статус** - виждаш прогреса в реално време
+- 🎨 **Красив интерфейс** - модерен дизайн
+- 👶 **Лесен за начинаещи** - просто добави задачи и натисни Старт
+
 ## Overview
 
-This project provides browser automation to open a new browser session and login to GitHub web interface using Playwright. Now includes a **task execution system** with Bulgarian language support for automated task planning and execution.
+This project provides browser automation to open a new browser session and login to GitHub web interface using Playwright. Now includes a **task execution system** with Bulgarian language support and a **web-based GUI** for easy task management.
 
-## 🆕 New Features (v2.0)
+## 🆕 New Features
 
+### v3.0 - Web GUI Platform
+- 🖥️ **Browser-based Interface** - No command line needed
+- 🎮 **Interactive Buttons** - Add, remove, start, stop tasks with clicks
+- 📊 **Real-time Progress** - Visual progress bar and live logs
+- 🔓 **Optional Credentials** - Works without GitHub login
+- 🇧🇬 **Bulgarian UI** - Complete Bulgarian interface
+
+### v2.0 - Task Execution System
 - 🇧🇬 **Bulgarian Language Support** - Full interface in Bulgarian (Български език)
 - 📋 **Task-Based System** - Read tasks from JSON files or interactive input
 - 📊 **Structured Planning** - Automatic task structuring with step-by-step breakdown
@@ -20,13 +51,14 @@ This project provides browser automation to open a new browser session and login
 ## Features
 
 - ✨ Automated browser session creation
-- 🔐 GitHub web login automation
+- 🔐 GitHub web login automation (optional)
 - 🎭 Playwright-based browser control
 - 📝 Interactive and environment variable credential input
 - 🖥️ Visual browser mode (non-headless) to see the login process
 - 🇧🇬 Bulgarian language interface for task execution
 - 📋 JSON-based task definition system
 - ✅ Plan confirmation before execution
+- 🌐 Web GUI for easy task management
 
 ## Installation
 
@@ -41,7 +73,23 @@ npm run install-browsers
 
 ## Usage
 
-### 🆕 Task Execution System (With Bulgarian Interface)
+### 🌟 Recommended: Web GUI Platform
+
+**Най-лесния начин / The easiest way:**
+
+```bash
+npm start
+# или / or
+npm run gui
+```
+
+Then open your browser at: `http://localhost:3000`
+
+**No credentials required!** The platform works without GitHub login.
+
+See [WEB-GUI-GUIDE-BG.md](WEB-GUI-GUIDE-BG.md) for complete Bulgarian guide.
+
+### 🆕 Task Execution System (Command Line)
 
 #### Interactive Mode:
 ```bash
