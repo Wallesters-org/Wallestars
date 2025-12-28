@@ -505,7 +505,11 @@
    ssh root@your-vps-ip
    
 6. Инсталирайте VPN:
+   # Изтеглете скрипта
    wget https://git.io/vpnsetup -O vpnsetup.sh
+   # Прегледайте скрипта преди изпълнение
+   cat vpnsetup.sh
+   # Изпълнете след проверка
    sudo sh vpnsetup.sh
    
 7. Или инсталирайте WireGuard:
@@ -602,7 +606,7 @@ sudo wg show
 ```
 1. Проверете credentials
 2. Тествайте с curl:
-   curl -v -x http://proxy:port https://google.com
+   curl -v -x http://proxy:port https://www.google.com
 3. Проверете firewall настройките
 ```
 
