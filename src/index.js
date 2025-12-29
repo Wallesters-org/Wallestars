@@ -1,6 +1,7 @@
 const express = require('express');
 const sparkPremiumRouter = require('./routes/sparkPremium');
 const sparkExamplesRouter = require('./routes/sparkExamples');
+const { apiLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -8,6 +9,9 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Apply rate limiting to all routes
+app.use(apiLimiter);
 
 // Root endpoint
 app.get('/', (req, res) => {

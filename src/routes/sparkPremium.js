@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { verifyEnterpriseUser } = require('../middleware/auth');
+const { premiumApiLimiter } = require('../middleware/rateLimiter');
 
 // In-memory storage for demo purposes
 // In production, this would use a database
@@ -8,7 +9,7 @@ const sparkRequests = [];
 let requestIdCounter = 1;
 
 // Create a new spark premium request
-router.post('/request', verifyEnterpriseUser, (req, res) => {
+router.post('/request', premiumApiLimiter, verifyEnterpriseUser, (req, res) => {
   const { sparkType, description, priority, metadata } = req.body;
 
   if (!sparkType) {
@@ -39,7 +40,7 @@ router.post('/request', verifyEnterpriseUser, (req, res) => {
 });
 
 // Get all spark premium requests for the user
-router.get('/requests', verifyEnterpriseUser, (req, res) => {
+router.get('/requests', premiumApiLimiter, verifyEnterpriseUser, (req, res) => {
   const userRequests = sparkRequests.filter(
     request => request.userId === req.user.userId
   );
@@ -51,7 +52,7 @@ router.get('/requests', verifyEnterpriseUser, (req, res) => {
 });
 
 // Get a specific spark premium request
-router.get('/request/:id', verifyEnterpriseUser, (req, res) => {
+router.get('/request/:id', premiumApiLimiter, verifyEnterpriseUser, (req, res) => {
   const requestId = parseInt(req.params.id);
   const request = sparkRequests.find(r => r.id === requestId);
 
@@ -74,7 +75,7 @@ router.get('/request/:id', verifyEnterpriseUser, (req, res) => {
 });
 
 // Update a spark premium request
-router.patch('/request/:id', verifyEnterpriseUser, (req, res) => {
+router.patch('/request/:id', premiumApiLimiter, verifyEnterpriseUser, (req, res) => {
   const requestId = parseInt(req.params.id);
   const request = sparkRequests.find(r => r.id === requestId);
 
@@ -109,7 +110,7 @@ router.patch('/request/:id', verifyEnterpriseUser, (req, res) => {
 });
 
 // Delete a spark premium request
-router.delete('/request/:id', verifyEnterpriseUser, (req, res) => {
+router.delete('/request/:id', premiumApiLimiter, verifyEnterpriseUser, (req, res) => {
   const requestId = parseInt(req.params.id);
   const requestIndex = sparkRequests.findIndex(r => r.id === requestId);
 
