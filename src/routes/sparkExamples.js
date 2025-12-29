@@ -300,20 +300,4 @@ router.get('/workflow', (req, res) => {
   });
 });
 
-// Get a specific spark example by category
-router.get('/:category', (req, res) => {
-  const { category } = req.params;
-  const validCategories = ['analytics', 'ai-ml', 'processing', 'security', 'workflow'];
-
-  if (!validCategories.includes(category)) {
-    return res.status(404).json({
-      error: 'Not Found',
-      message: 'Spark category not found',
-      availableCategories: validCategories
-    });
-  }
-
-  res.redirect(`/api/spark-examples/${category}`);
-});
-
 module.exports = router;
