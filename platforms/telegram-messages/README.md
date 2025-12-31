@@ -289,7 +289,7 @@ GET /api/export/{format} - Export data
   "telegram": {
     "api_id": "${TELEGRAM_API_ID}",
     "api_hash": "${TELEGRAM_API_HASH}",
-    "session_name": "wallestars_session"
+    "sessionName": "wallestars_session"
   },
   "extraction": {
     "max_messages": null,
