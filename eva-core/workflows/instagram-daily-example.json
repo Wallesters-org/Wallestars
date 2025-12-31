@@ -82,7 +82,7 @@
     },
     "dm_handling": {
       "auto_respond": true,
-      "response_delay_minutes": [5, 15],
+      "response_delay_minutes": [5, 15], // Random delay between 5 and 15 minutes
       "response_delay_note": "Random delay between 5 and 15 minutes",
       "classify_messages": true,
       "priority_keywords": ["order", "buy", "price", "urgent"],
