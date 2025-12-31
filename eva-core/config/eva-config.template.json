@@ -1,0 +1,92 @@
+{
+  "eva": {
+    "version": "1.0.0",
+    "name": "Eva Core Algorithm",
+    "description": "Персонализиран алгоритъм за потребителска интеракция"
+  },
+  "settings": {
+    "language": "bg",
+    "personality": {
+      "type": "adaptive",
+      "tone": "friendly",
+      "formality": "moderate"
+    },
+    "response_time": {
+      "min_delay_seconds": 2,
+      "max_delay_seconds": 30,
+      "adaptive": true
+    },
+    "context_window": {
+      "max_messages": 50,
+      "max_age_hours": 168
+    }
+  },
+  "rules": {
+    "user_interaction": {
+      "analyze_before_respond": true,
+      "consider_history": true,
+      "personalize_response": true,
+      "learn_from_feedback": true
+    },
+    "content_generation": {
+      "enabled": true,
+      "max_length": 2000,
+      "use_emojis": true,
+      "match_user_style": true
+    },
+    "safety": {
+      "content_filtering": true,
+      "spam_detection": true,
+      "inappropriate_content_block": true
+    }
+  },
+  "integrations": {
+    "database": {
+      "type": "supabase",
+      "connection_string": "${SUPABASE_URL}",
+      "api_key": "${SUPABASE_KEY}"
+    },
+    "storage": {
+      "type": "google_sheets",
+      "credentials_path": "${GOOGLE_SHEETS_CREDENTIALS}"
+    }
+  },
+  "social_platforms": {
+    "instagram": {
+      "enabled": true,
+      "max_sessions": 15,
+      "features": ["post", "story", "dm", "comment", "like"]
+    },
+    "facebook": {
+      "enabled": true,
+      "max_sessions": 15,
+      "features": ["post", "comment", "message", "like", "share"]
+    },
+    "telegram": {
+      "enabled": true,
+      "max_sessions": 15,
+      "features": ["message", "channel_post", "group_message"]
+    },
+    "whatsapp": {
+      "enabled": true,
+      "max_sessions": 15,
+      "features": ["message", "status"]
+    },
+    "youtube": {
+      "enabled": true,
+      "max_sessions": 15,
+      "features": ["comment", "like", "subscribe"]
+    },
+    "tiktok": {
+      "enabled": true,
+      "max_sessions": 15,
+      "features": ["post", "comment", "like", "follow"]
+    }
+  },
+  "monitoring": {
+    "activity_tracking": true,
+    "performance_metrics": true,
+    "error_logging": true,
+    "daily_reports": true
+  }
+}
