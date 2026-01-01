@@ -92,9 +92,17 @@ jobs:
     - name: Restart n8n service
       run: |
         echo "Restarting n8n service..."
+        
+        # Try to restart n8n service and capture exit code
         ssh -o StrictHostKeyChecking=no ${{ secrets.N8N_VPS_USER }}@${{ secrets.N8N_VPS_HOST }} \
-          "systemctl --user restart n8n || docker restart n8n || true"
-        echo "✓ n8n service restarted"
+          "systemctl --user restart n8n 2>&1 || docker restart n8n 2>&1" && restart_success=true || restart_success=false
+        
+        if [ "$restart_success" = "true" ]; then
+          echo "✓ n8n service restarted successfully"
+        else
+          echo "⚠ Warning: Could not restart n8n service. Manual restart may be required."
+          exit 1
+        fi
 
   notify-deployment:
     runs-on: ubuntu-latest

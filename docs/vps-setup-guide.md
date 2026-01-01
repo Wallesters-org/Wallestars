@@ -74,6 +74,16 @@ docker run -d \
   -e N8N_BASIC_AUTH_USER=admin \
   -e N8N_BASIC_AUTH_PASSWORD=changeme123 \
   n8nio/n8n
+
+# ⚠️ SECURITY WARNING: Change 'changeme123' to a strong password!
+# Generate a secure password with: openssl rand -base64 32
+```
+
+**🔒 IMPORTANT SECURITY NOTE**: The example above uses a default password `changeme123` for demonstration purposes only. You **MUST** change this to a strong, unique password before deploying to production. Use the command below to generate a secure password:
+
+```bash
+# Generate a secure random password
+openssl rand -base64 32
 ```
 
 ### Step 4: Setup SSL with Let's Encrypt

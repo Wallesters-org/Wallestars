@@ -109,7 +109,7 @@
         "owner": "={{$json[\"repository\"][\"owner\"][\"login\"]}}",
         "repository": "={{$json[\"repository\"][\"name\"]}}",
         "issueNumber": "={{$json[\"issue\"][\"number\"]}}",
-        "body": "={{$json[\"content\"][0][\"text\"]}}"
+        "body": "={{$json[\"content\"] && $json[\"content\"][0] ? $json[\"content\"][0][\"text\"] : 'Thank you for your submission. We will review it shortly.'}}"
       },
       "name": "GitHub - Post Comment",
       "type": "n8n-nodes-base.github",
