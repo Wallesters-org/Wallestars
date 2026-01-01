@@ -1,0 +1,220 @@
+{
+  "name": "GitHub User Contact Automation with Claude AI",
+  "nodes": [
+    {
+      "parameters": {
+        "events": [
+          "issues",
+          "issue_comment",
+          "discussion",
+          "discussion_comment"
+        ],
+        "repository": "owner/repo",
+        "authentication": "oAuth2"
+      },
+      "name": "GitHub Webhook Trigger",
+      "type": "n8n-nodes-base.githubTrigger",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "github-webhook-id",
+      "credentials": {
+        "githubOAuth2Api": {
+          "id": "1",
+          "name": "GitHub OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"action\"]}}",
+              "operation": "equals",
+              "value2": "opened"
+            }
+          ]
+        }
+      },
+      "name": "Filter New Issues/Discussions",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$credentials.apiKey}}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "claude-3-5-sonnet-20241022"
+            },
+            {
+              "name": "max_tokens",
+              "value": "1024"
+            },
+            {
+              "name": "messages",
+              "value": "=[{\"role\": \"user\", \"content\": \"You are a helpful GitHub assistant. A user has created an issue with the title: {{$json[\"issue\"][\"title\"]}} and body: {{$json[\"issue\"][\"body\"]}}. Generate a friendly, helpful response acknowledging their issue and providing any immediate guidance or next steps.\"}]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Claude AI - Generate Response",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        650,
+        300
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "2",
+          "name": "Claude AI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "createComment",
+        "owner": "={{$json[\"repository\"][\"owner\"][\"login\"]}}",
+        "repository": "={{$json[\"repository\"][\"name\"]}}",
+        "issueNumber": "={{$json[\"issue\"][\"number\"]}}",
+        "body": "={{$json[\"content\"][0][\"text\"]}}"
+      },
+      "name": "GitHub - Post Comment",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        850,
+        300
+      ],
+      "credentials": {
+        "githubApi": {
+          "id": "1",
+          "name": "GitHub API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabel",
+        "owner": "={{$json[\"repository\"][\"owner\"][\"login\"]}}",
+        "repository": "={{$json[\"repository\"][\"name\"]}}",
+        "issueNumber": "={{$json[\"issue\"][\"number\"]}}",
+        "labels": "ai-responded,needs-triage"
+      },
+      "name": "GitHub - Add Labels",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        300
+      ],
+      "credentials": {
+        "githubApi": {
+          "id": "1",
+          "name": "GitHub API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "GitHub Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Filter New Issues/Discussions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter New Issues/Discussions": {
+      "main": [
+        [
+          {
+            "node": "Claude AI - Generate Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude AI - Generate Response": {
+      "main": [
+        [
+          {
+            "node": "GitHub - Post Comment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub - Post Comment": {
+      "main": [
+        [
+          {
+            "node": "GitHub - Add Labels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "id": "1",
+  "meta": {
+    "instanceId": "n8n-instance-id"
+  },
+  "tags": [
+    {
+      "name": "GitHub",
+      "id": "1"
+    },
+    {
+      "name": "AI",
+      "id": "2"
+    },
+    {
+      "name": "Automation",
+      "id": "3"
+    }
+  ]
+}
