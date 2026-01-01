@@ -1,0 +1,148 @@
+# GitHub Actions Workflow for n8n Integration
+# Automates deployment and synchronization with n8n VPS
+
+name: n8n Workflow Sync
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'workflows/**'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'workflows/**'
+  workflow_dispatch:
+
+env:
+  N8N_VPS_HOST: ${{ secrets.N8N_VPS_HOST }}
+  N8N_API_KEY: ${{ secrets.N8N_API_KEY }}
+
+jobs:
+  validate-workflows:
+    runs-on: ubuntu-latest
+    name: Validate n8n Workflow JSON
+    permissions:
+      contents: read
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Validate JSON structure
+      run: |
+        echo "Validating workflow JSON files..."
+        for file in workflows/*.json; do
+          if [ -f "$file" ]; then
+            echo "Checking $file..."
+            if jq empty "$file" 2>/dev/null; then
+              echo "✓ $file is valid JSON"
+            else
+              echo "✗ $file has invalid JSON syntax"
+              exit 1
+            fi
+          fi
+        done
+        
+    - name: Check required fields
+      run: |
+        echo "Checking for required n8n workflow fields..."
+        for file in workflows/*.json; do
+          if [ -f "$file" ]; then
+            if jq -e '.name and .nodes and .connections' "$file" > /dev/null; then
+              echo "✓ $file has required fields"
+            else
+              echo "✗ $file is missing required fields (name, nodes, or connections)"
+              exit 1
+            fi
+          fi
+        done
+
+  sync-to-n8n:
+    runs-on: ubuntu-latest
+    name: Sync Workflows to n8n VPS
+    needs: validate-workflows
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.N8N_VPS_SSH_KEY }}
+        
+    - name: Deploy workflows to n8n VPS
+      run: |
+        echo "Deploying workflows to n8n VPS..."
+        
+        # Create backup directory on VPS
+        ssh -o StrictHostKeyChecking=no ${{ secrets.N8N_VPS_USER }}@${{ secrets.N8N_VPS_HOST }} \
+          "mkdir -p ~/.n8n/workflows-backup/$(date +%Y%m%d-%H%M%S)"
+        
+        # Backup existing workflows
+        ssh -o StrictHostKeyChecking=no ${{ secrets.N8N_VPS_USER }}@${{ secrets.N8N_VPS_HOST }} \
+          "cp ~/.n8n/workflows/*.json ~/.n8n/workflows-backup/$(date +%Y%m%d-%H%M%S)/ || true"
+        
+        # Copy new workflows
+        scp -o StrictHostKeyChecking=no workflows/*.json \
+          ${{ secrets.N8N_VPS_USER }}@${{ secrets.N8N_VPS_HOST }}:~/.n8n/workflows/
+        
+        echo "✓ Workflows deployed successfully"
+        
+    - name: Restart n8n service
+      run: |
+        echo "Restarting n8n service..."
+        
+        # Try to restart n8n service and capture exit code
+        ssh -o StrictHostKeyChecking=no ${{ secrets.N8N_VPS_USER }}@${{ secrets.N8N_VPS_HOST }} \
+          "systemctl --user restart n8n 2>&1 || docker restart n8n 2>&1" && restart_success=true || restart_success=false
+        
+        if [ "$restart_success" = "true" ]; then
+          echo "✓ n8n service restarted successfully"
+        else
+          echo "⚠ Warning: Could not restart n8n service. Manual restart may be required."
+          exit 1
+        fi
+
+  notify-deployment:
+    runs-on: ubuntu-latest
+    name: Notify Deployment Status
+    needs: sync-to-n8n
+    if: always()
+    permissions:
+      statuses: write
+      pull-requests: write
+    
+    steps:
+    - name: Create deployment status
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const status = '${{ needs.sync-to-n8n.result }}';
+          const emoji = status === 'success' ? '✅' : '❌';
+          const message = status === 'success' 
+            ? 'n8n workflows deployed successfully to VPS' 
+            : 'n8n workflow deployment failed';
+          
+          github.rest.repos.createCommitStatus({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            sha: context.sha,
+            state: status === 'success' ? 'success' : 'failure',
+            context: 'n8n/deployment',
+            description: message
+          });
+          
+          // Post comment on PR if applicable
+          if (context.payload.pull_request) {
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: `${emoji} ${message}`
+            });
+          }

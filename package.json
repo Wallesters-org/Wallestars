@@ -1,0 +1,29 @@
+{
+  "name": "wallestars",
+  "version": "1.0.0",
+  "description": "Интелигентна екосистема от платформи и автоматизации с AI в центъра",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "automation",
+    "ai",
+    "eva",
+    "social-media",
+    "platforms"
+  ],
+  "author": "Wallesters-org",
+  "license": "ISC",
+  "workspaces": [
+    "eva-core",
+    "platforms/*",
+    "shared/*"
+  ],
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "devDependencies": {},
+  "dependencies": {}
+}

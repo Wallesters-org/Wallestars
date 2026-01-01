@@ -1,0 +1,441 @@
+{
+  "name": "DJ Workflow - Multi-Chain App Integration",
+  "nodes": [
+    {
+      "parameters": {
+        "events": [
+          "push",
+          "pull_request",
+          "release"
+        ],
+        "repository": "owner/repo",
+        "authentication": "oAuth2"
+      },
+      "name": "GitHub Events Trigger",
+      "type": "n8n-nodes-base.githubTrigger",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "dj-workflow-webhook",
+      "credentials": {
+        "githubOAuth2Api": {
+          "id": "1",
+          "name": "GitHub OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"ref\"]}}",
+              "operation": "contains",
+              "value2": "main"
+            }
+          ]
+        }
+      },
+      "name": "Filter Main Branch",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$credentials.apiKey}}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "claude-3-5-sonnet-20241022"
+            },
+            {
+              "name": "max_tokens",
+              "value": "2048"
+            },
+            {
+              "name": "messages",
+              "value": "=[{\"role\": \"user\", \"content\": \"Analyze this commit and determine which blockchain networks should be notified. Commit message: {{$json[\"head_commit\"][\"message\"]}}. Modified files: {{$json[\"head_commit\"][\"modified\"].join(', ')}}. Respond with a JSON array of blockchain networks: ['ethereum', 'polygon', 'solana', etc.]\"}]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Claude AI - Analyze Commit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        650,
+        300
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "2",
+          "name": "Claude AI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "try {\n  const response = $input.first().json;\n  if (!response || !response.content || !response.content[0]) {\n    // Default to ethereum if no response\n    return [{ json: { network: 'ethereum', commit: $('GitHub Events Trigger').first().json.head_commit, repository: $('GitHub Events Trigger').first().json.repository } }];\n  }\n  \n  const networks = JSON.parse(response.content[0].text);\n  \n  return networks.map(network => ({\n    json: {\n      network: network,\n      commit: $('GitHub Events Trigger').first().json.head_commit,\n      repository: $('GitHub Events Trigger').first().json.repository\n    }\n  }));\n} catch (error) {\n  // Default to ethereum on error\n  return [{ json: { network: 'ethereum', commit: $('GitHub Events Trigger').first().json.head_commit, repository: $('GitHub Events Trigger').first().json.repository } }];\n}"
+      },
+      "name": "Parse Networks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        850,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"network\"]}}",
+              "operation": "equals",
+              "value2": "ethereum"
+            }
+          ]
+        }
+      },
+      "name": "Route: Ethereum",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"network\"]}}",
+              "operation": "equals",
+              "value2": "polygon"
+            }
+          ]
+        }
+      },
+      "name": "Route: Polygon",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"network\"]}}",
+              "operation": "equals",
+              "value2": "solana"
+            }
+          ]
+        }
+      },
+      "name": "Route: Solana",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ethereum-rpc-endpoint.com/notify",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "event",
+              "value": "deployment"
+            },
+            {
+              "name": "commit_sha",
+              "value": "={{$json[\"commit\"][\"id\"]}}"
+            },
+            {
+              "name": "message",
+              "value": "={{$json[\"commit\"][\"message\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Notify Ethereum Network",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1250,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://polygon-rpc-endpoint.com/notify",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "event",
+              "value": "deployment"
+            },
+            {
+              "name": "commit_sha",
+              "value": "={{$json[\"commit\"][\"id\"]}}"
+            },
+            {
+              "name": "message",
+              "value": "={{$json[\"commit\"][\"message\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Notify Polygon Network",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://solana-rpc-endpoint.com/notify",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "event",
+              "value": "deployment"
+            },
+            {
+              "name": "commit_sha",
+              "value": "={{$json[\"commit\"][\"id\"]}}"
+            },
+            {
+              "name": "message",
+              "value": "={{$json[\"commit\"][\"message\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Notify Solana Network",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1250,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "createStatus",
+        "owner": "={{$json[\"repository\"][\"owner\"][\"login\"]}}",
+        "repository": "={{$json[\"repository\"][\"name\"]}}",
+        "sha": "={{$json[\"commit\"][\"id\"]}}",
+        "state": "success",
+        "context": "Multi-Chain Deployment",
+        "description": "Successfully notified blockchain networks"
+      },
+      "name": "GitHub - Update Status",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        1450,
+        300
+      ],
+      "credentials": {
+        "githubApi": {
+          "id": "1",
+          "name": "GitHub API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "GitHub Events Trigger": {
+      "main": [
+        [
+          {
+            "node": "Filter Main Branch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Main Branch": {
+      "main": [
+        [
+          {
+            "node": "Claude AI - Analyze Commit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude AI - Analyze Commit": {
+      "main": [
+        [
+          {
+            "node": "Parse Networks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Networks": {
+      "main": [
+        [
+          {
+            "node": "Route: Ethereum",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Route: Polygon",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Route: Solana",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route: Ethereum": {
+      "main": [
+        [
+          {
+            "node": "Notify Ethereum Network",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route: Polygon": {
+      "main": [
+        [
+          {
+            "node": "Notify Polygon Network",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route: Solana": {
+      "main": [
+        [
+          {
+            "node": "Notify Solana Network",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Ethereum Network": {
+      "main": [
+        [
+          {
+            "node": "GitHub - Update Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Polygon Network": {
+      "main": [
+        [
+          {
+            "node": "GitHub - Update Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Solana Network": {
+      "main": [
+        [
+          {
+            "node": "GitHub - Update Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "id": "2",
+  "meta": {
+    "instanceId": "n8n-instance-id"
+  },
+  "tags": [
+    {
+      "name": "GitHub",
+      "id": "1"
+    },
+    {
+      "name": "Blockchain",
+      "id": "2"
+    },
+    {
+      "name": "Multi-Chain",
+      "id": "3"
+    },
+    {
+      "name": "DJ Workflow",
+      "id": "4"
+    }
+  ]
+}
