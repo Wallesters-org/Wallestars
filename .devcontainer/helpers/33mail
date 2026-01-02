@@ -1,0 +1,17 @@
+#!/bin/bash
+# 33mail CLI Wrapper
+# Quick access to 33mail manager
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MANAGER_SCRIPT="$SCRIPT_DIR/../integrations/33mail/33mail-manager.py"
+
+if [ ! -f "$MANAGER_SCRIPT" ]; then
+    echo "❌ Error: 33mail manager not found at $MANAGER_SCRIPT" >&2
+    exit 1
+fi
+
+# Make sure it's executable
+chmod +x "$MANAGER_SCRIPT"
+
+# Pass all arguments to Python script
+python3 "$MANAGER_SCRIPT" "$@"

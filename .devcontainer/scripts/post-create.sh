@@ -285,7 +285,32 @@ alias pm2-restart-all="pm2 restart all"
 # KeePassXC quick access
 alias keepass-get="/workspaces/Wallestars/.devcontainer/helpers/keepass-get.sh"
 
+# 33mail email management
+alias 33mail="/workspaces/Wallestars/.devcontainer/helpers/33mail"
+alias email-create="33mail create"
+alias email-list="33mail list"
+alias email-get="33mail get"
+
+# VPS management
+alias vps="/workspaces/Wallestars/.devcontainer/helpers/vps"
+alias vps-health="/workspaces/Wallestars/.devcontainer/helpers/vps-health"
+alias vps-deploy="vps deploy"
+alias vps-logs="vps logs"
+alias vps-restart="vps restart"
+
+# Multi-agent AI
+alias agent-run="python3 /workspaces/Wallestars/.devcontainer/agents/multi-agent-orchestrator.py"
+alias agent-chat="python3 /workspaces/Wallestars/.devcontainer/agents/multi-agent-orchestrator.py --interactive"
+alias agent-stats="python3 /workspaces/Wallestars/.devcontainer/agents/multi-agent-orchestrator.py --stats"
+
 EOF
+
+# Make integration scripts executable
+echo -e "${YELLOW}🔧 Setting up integration tools...${NC}"
+chmod +x /workspaces/Wallestars/.devcontainer/integrations/33mail/33mail-manager.py 2>/dev/null || true
+chmod +x /workspaces/Wallestars/.devcontainer/integrations/hostinger/hostinger-vps-manager.py 2>/dev/null || true
+chmod +x /workspaces/Wallestars/.devcontainer/agents/multi-agent-orchestrator.py 2>/dev/null || true
+chmod +x /workspaces/Wallestars/.devcontainer/helpers/* 2>/dev/null || true
 
 echo -e "${GREEN}✅ Post-create setup complete!${NC}"
 echo ""
@@ -294,4 +319,9 @@ echo -e "  1. Configure your .env file with secrets"
 echo -e "  2. Configure eva-config.json"
 echo -e "  3. Start services: docker-compose up -d"
 echo -e "  4. Run Eva demo: eva-demo"
+echo ""
+echo -e "${BLUE}🆕 New commands available:${NC}"
+echo -e "  📧 Email: 33mail create <purpose>, email-list, email-get <purpose>"
+echo -e "  🖥️  VPS: vps-health, vps-deploy, vps-logs <service>"
+echo -e "  🤖 AI Agents: agent-run \"query\", agent-chat, agent-stats"
 echo ""

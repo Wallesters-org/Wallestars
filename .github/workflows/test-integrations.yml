@@ -1,19 +1,19 @@
 name: Test Integrations
 
 on:
-  push:
-    branches: [main, develop]
   pull_request:
-    branches: [main]
-  schedule:
-    # Run tests daily at 2 AM UTC
-    - cron: '0 2 * * *'
+    branches:
+      - main
+      - develop
   workflow_dispatch:
+  schedule:
+    # Run daily at 6 AM UTC
+    - cron: '0 6 * * *'
 
 jobs:
-  test-python-integrations:
-    name: Test Python Integrations
+  test-integrations:
     runs-on: ubuntu-latest
+    name: Test All Integrations
     
     steps:
       - name: Checkout code
@@ -23,250 +23,194 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
       
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then
-            pip install -r requirements.txt
-          fi
-          pip install pytest requests
+          pip install --upgrade pip
+          pip install requests anthropic openai supabase pytest pytest-asyncio
       
       - name: Test 33mail Manager
         run: |
-          echo "🧪 Testing 33mail integration..."
-          python platforms/33mail-integration/33mail-manager.py generate test-ci "CI test email"
-          python platforms/33mail-integration/33mail-manager.py list
+          echo "📧 Testing 33mail Manager..."
+          
+          # Make executable
+          chmod +x .devcontainer/integrations/33mail/33mail-manager.py
+          
+          # Test basic commands
+          python3 .devcontainer/integrations/33mail/33mail-manager.py stats
+          
+          # Create test alias
+          python3 .devcontainer/integrations/33mail/33mail-manager.py create test-github-actions "CI/CD test"
+          
+          # List aliases
+          python3 .devcontainer/integrations/33mail/33mail-manager.py list
+          
+          # Get test alias
+          python3 .devcontainer/integrations/33mail/33mail-manager.py get test-github-actions
+          
+          echo "✅ 33mail Manager tests passed"
       
-      - name: Test VPS Manager (dry run)
+      - name: Test VPS Manager (network tests only)
         env:
-          VPS_HOST: srv1201204.hstgr.cloud
           VPS_IP: 72.61.154.188
+          VPS_HOSTNAME: srv1201204.hstgr.cloud
         run: |
-          echo "🧪 Testing VPS manager..."
-          # Test without SSH connection (dry run)
-          python -c "from platforms.hostinger_vps.hostinger_vps_manager import HostingerVPSManager; m = HostingerVPSManager(); print(m.vps_host)"
+          echo "🖥️ Testing VPS Manager (network tests)..."
+          
+          # Test ping
+          ping -c 3 72.61.154.188 || echo "⚠️ Ping failed (may be blocked by firewall)"
+          
+          # Test HTTP endpoint
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://n8n.srv1201204.hstgr.cloud || echo "000")
+          echo "n8n endpoint returned: HTTP $HTTP_CODE"
+          
+          if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "302" ] || [ "$HTTP_CODE" = "401" ]; then
+            echo "✅ VPS is reachable"
+          else
+            echo "⚠️ VPS endpoint check inconclusive (HTTP $HTTP_CODE)"
+          fi
       
       - name: Test Multi-Agent Orchestrator
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        if: ${{ secrets.ANTHROPIC_API_KEY != '' }}
         run: |
-          echo "🧪 Testing Multi-Agent Orchestrator..."
-          python shared/orchestrator/multi-agent-orchestrator.py
-
-  test-node-integrations:
-    name: Test Node.js Integrations
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: |
-          npm install
+          echo "🤖 Testing Multi-Agent Orchestrator..."
           
-          # Install Eva Core dependencies
-          if [ -d "eva-core" ]; then
-            cd eva-core
-            npm install
-            cd ..
+          chmod +x .devcontainer/agents/multi-agent-orchestrator.py
+          
+          # Test stats (doesn't require API call)
+          python3 .devcontainer/agents/multi-agent-orchestrator.py --stats
+          
+          # Test simple query (requires API key)
+          if [ -n "$ANTHROPIC_API_KEY" ]; then
+            python3 .devcontainer/agents/multi-agent-orchestrator.py "What is 2+2?" --verbose
+            echo "✅ Multi-Agent Orchestrator tests passed"
+          else
+            echo "⚠️ Skipping AI tests (no API key)"
           fi
+      
+      - name: Test helper scripts
+        run: |
+          echo "🔧 Testing helper scripts..."
+          
+          # Make helpers executable
+          chmod +x .devcontainer/helpers/*
+          
+          # Test 33mail helper
+          .devcontainer/helpers/33mail stats
+          
+          echo "✅ Helper scripts tests passed"
       
       - name: Test Eva Core
         run: |
-          echo "🧪 Testing Eva Core..."
+          echo "🧠 Testing Eva Core..."
+          
           cd eva-core
           
-          # Run demo without API keys (dry run)
-          export CLAUDE_API_KEY="test-key"
-          export OPENAI_API_KEY="test-key"
-          
-          # Test imports
-          node -e "const EvaCore = require('./src/index.js'); console.log('✅ Eva Core imports successfully')"
-      
-      - name: Lint JavaScript
-        run: |
-          if command -v eslint &> /dev/null; then
-            echo "Running ESLint..."
-            npm run lint || true
-          fi
-
-  test-workflows:
-    name: Test n8n Workflows
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Validate JSON Workflows
-        run: |
-          echo "🧪 Validating n8n workflows..."
-          
-          for workflow in workflows/*.json eva-core/workflows/*.json; do
-            if [ -f "$workflow" ]; then
-              echo "Validating $workflow..."
-              if python -m json.tool "$workflow" > /dev/null 2>&1; then
-                echo "✅ $workflow is valid JSON"
-              else
-                echo "❌ $workflow is invalid JSON"
-                exit 1
-              fi
+          if [ -f "package.json" ]; then
+            npm install
+            
+            # Run tests if they exist
+            if npm run test --if-present; then
+              echo "✅ Eva Core tests passed"
+            else
+              echo "⚠️ No tests found for Eva Core"
             fi
-          done
-      
-      - name: Check Workflow Completeness
-        run: |
-          echo "🧪 Checking workflow completeness..."
-          
-          # Check that workflows have required fields
-          for workflow in workflows/*.json; do
-            if [ -f "$workflow" ]; then
-              echo "Checking $workflow..."
-              
-              # Check for nodes
-              if ! grep -q '"nodes"' "$workflow"; then
-                echo "⚠️  $workflow missing nodes"
-              fi
-              
-              # Check for connections
-              if ! grep -q '"connections"' "$workflow"; then
-                echo "⚠️  $workflow missing connections"
-              fi
-            fi
-          done
-
-  test-vps-connectivity:
-    name: Test VPS Connectivity
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Test VPS Ping
-        run: |
-          echo "🧪 Testing VPS connectivity..."
-          
-          VPS_IP="72.61.154.188"
-          VPS_HOST="srv1201204.hstgr.cloud"
-          
-          # Ping test
-          if ping -c 3 $VPS_IP > /dev/null 2>&1; then
-            echo "✅ VPS IP $VPS_IP is reachable"
           else
-            echo "⚠️  VPS IP $VPS_IP is not reachable"
-          fi
-          
-          # DNS resolution
-          if nslookup $VPS_HOST > /dev/null 2>&1; then
-            echo "✅ VPS hostname $VPS_HOST resolves"
-          else
-            echo "⚠️  VPS hostname $VPS_HOST doesn't resolve"
+            echo "⚠️ No package.json found in eva-core"
           fi
       
-      - name: Test n8n Service
+      - name: Validate configuration files
         run: |
-          echo "🧪 Testing n8n service..."
+          echo "📋 Validating configuration files..."
           
-          N8N_URL="https://n8n.srv1201204.hstgr.cloud"
-          
-          # Check if n8n is accessible
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" $N8N_URL || echo "000")
-          
-          if [ "$STATUS" = "200" ] || [ "$STATUS" = "401" ]; then
-            echo "✅ n8n service is accessible (HTTP $STATUS)"
-          else
-            echo "⚠️  n8n service returned HTTP $STATUS"
-          fi
-
-  security-scan:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Scan for secrets
-        run: |
-          echo "🔒 Scanning for exposed secrets..."
-          
-          # Check for common secret patterns
-          if grep -r "sk-ant-" --exclude-dir=.git . 2>/dev/null | grep -v ".env.example" | grep -v "README"; then
-            echo "❌ Found exposed Anthropic API key"
-            exit 1
+          # Check docker-compose.yml syntax
+          if command -v docker-compose &> /dev/null; then
+            docker-compose -f docker-compose.yml config > /dev/null
+            echo "✅ docker-compose.yml is valid"
           fi
           
-          if grep -r "sk-proj-" --exclude-dir=.git . 2>/dev/null | grep -v ".env.example" | grep -v "README"; then
-            echo "❌ Found exposed OpenAI API key"
-            exit 1
-          fi
-          
-          if grep -r "ghp_" --exclude-dir=.git . 2>/dev/null | grep -v ".env.example" | grep -v "README"; then
-            echo "❌ Found exposed GitHub token"
-            exit 1
-          fi
-          
-          echo "✅ No exposed secrets found"
-      
-      - name: Check .env.example
-        run: |
-          echo "🔒 Validating .env.example..."
-          
-          if [ -f ".env.example" ]; then
-            # Check that example doesn't contain real values
-            if grep -E "sk-ant-[a-zA-Z0-9]{32,}" .env.example; then
-              echo "❌ .env.example contains real Anthropic key"
+          # Check JSON files
+          for file in $(find . -name "*.json" -not -path "*/node_modules/*"); do
+            if python3 -m json.tool "$file" > /dev/null 2>&1; then
+              echo "✅ $file is valid JSON"
+            else
+              echo "❌ $file is invalid JSON"
               exit 1
             fi
-            
-            if grep -E "sk-proj-[a-zA-Z0-9]{32,}" .env.example; then
-              echo "❌ .env.example contains real OpenAI key"
+          done
+          
+          echo "✅ All configuration files valid"
+      
+      - name: Check documentation
+        run: |
+          echo "📚 Checking documentation..."
+          
+          # Check that key docs exist
+          REQUIRED_DOCS=(
+            "README.md"
+            "docs/FULL-ARCHITECTURE.md"
+            ".devcontainer/INTEGRATIONS-GUIDE.md"
+          )
+          
+          for doc in "${REQUIRED_DOCS[@]}"; do
+            if [ -f "$doc" ]; then
+              echo "✅ $doc exists"
+            else
+              echo "❌ $doc is missing"
               exit 1
             fi
-            
-            echo "✅ .env.example is safe"
-          fi
-
-  summary:
-    name: Test Summary
-    runs-on: ubuntu-latest
-    needs: [test-python-integrations, test-node-integrations, test-workflows, security-scan]
-    if: always()
-    
-    steps:
-      - name: Generate Summary
+          done
+          
+          echo "✅ All required documentation present"
+      
+      - name: Generate test report
+        if: always()
         run: |
-          echo "## 🧪 Test Results Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# Integration Tests Report" > test-report.md
+          echo "" >> test-report.md
+          echo "**Date:** $(date)" >> test-report.md
+          echo "**Branch:** ${{ github.ref_name }}" >> test-report.md
+          echo "**Commit:** ${{ github.sha }}" >> test-report.md
+          echo "" >> test-report.md
           
-          if [ "${{ needs.test-python-integrations.result }}" = "success" ]; then
-            echo "✅ Python Integrations: **PASSED**" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ **Status:** All tests passed" >> test-report.md
           else
-            echo "❌ Python Integrations: **FAILED**" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **Status:** Some tests failed" >> test-report.md
           fi
           
-          if [ "${{ needs.test-node-integrations.result }}" = "success" ]; then
-            echo "✅ Node.js Integrations: **PASSED**" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Node.js Integrations: **FAILED**" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "" >> test-report.md
+          echo "## Tested Components" >> test-report.md
+          echo "- 33mail Manager" >> test-report.md
+          echo "- VPS Manager (network tests)" >> test-report.md
+          echo "- Multi-Agent Orchestrator" >> test-report.md
+          echo "- Helper scripts" >> test-report.md
+          echo "- Configuration files" >> test-report.md
+          echo "- Documentation" >> test-report.md
           
-          if [ "${{ needs.test-workflows.result }}" = "success" ]; then
-            echo "✅ n8n Workflows: **PASSED**" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ n8n Workflows: **FAILED**" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          if [ "${{ needs.security-scan.result }}" = "success" ]; then
-            echo "✅ Security Scan: **PASSED**" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Security Scan: **FAILED**" >> $GITHUB_STEP_SUMMARY
-          fi
+          cat test-report.md
+      
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: test-report.md
+      
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('test-report.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });

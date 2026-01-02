@@ -813,6 +813,338 @@ graph LR
 
 ---
 
+## � 33mail Integration
+
+### Disposable Email Management
+
+**33mail** provides unlimited disposable email addresses in format: `krasavetsa1.<purpose>@33mail.com`
+
+### Quick Start
+
+```bash
+# Create new email alias
+33mail create github "GitHub account"
+# Output: krasavetsa1.github@33mail.com (copied to clipboard)
+
+# List all aliases
+33mail list
+
+# Get specific alias
+33mail get github
+# Output: krasavetsa1.github@33mail.com
+
+# Search aliases
+33mail search "social"
+
+# View statistics
+33mail stats
+
+# Deactivate alias (keeps history)
+33mail deactivate newsletter
+```
+
+### Common Use Cases
+
+```bash
+# Social Media
+33mail create instagram "Instagram account"
+33mail create facebook "Facebook profile"
+33mail create twitter "Twitter/X account"
+
+# Development
+33mail create npm "NPM packages"
+33mail create github "GitHub notifications"
+33mail create docker "Docker Hub"
+
+# Services
+33mail create netlify "Netlify deployments"
+33mail create vercel "Vercel projects"
+
+# Quick aliases
+email-create testing "Test account"
+email-list
+email-get testing
+```
+
+### Advanced Features
+
+```bash
+# Export aliases
+33mail export --format json > aliases.json
+33mail export --format csv > aliases.csv
+
+# Interactive help
+33mail --help
+```
+
+### Configuration
+
+Aliases stored in: `~/.config/33mail/aliases.json`
+
+```json
+{
+  "github": {
+    "email": "krasavetsa1.github@33mail.com",
+    "description": "GitHub account",
+    "created_at": "2026-01-02T12:00:00",
+    "active": true
+  }
+}
+```
+
+---
+
+## 🖥️ Hostinger VPS Management
+
+### VPS Details
+
+- **Hostname**: srv1201204.hstgr.cloud
+- **IPv4**: 72.61.154.188
+- **IPv6**: 2a02:4780:41:e7b1::1
+- **n8n URL**: https://n8n.srv1201204.hstgr.cloud
+
+### Quick Commands
+
+```bash
+# Comprehensive health check
+vps-health
+# Shows: SSH, disk, memory, CPU, Docker containers, n8n status
+
+# Quick VPS commands
+vps health              # Full health check
+vps status              # Service status
+vps status n8n          # Specific service
+vps logs n8n --lines 100  # View logs
+vps restart n8n         # Restart service
+vps info                # System information
+vps network             # Network connectivity test
+```
+
+### Deployment
+
+```bash
+# Deploy from main branch
+vps deploy main
+
+# Deploy from different branch
+vps deploy develop
+
+# Manual deployment
+vps-deploy production
+```
+
+### Database Backup
+
+```bash
+# Create backup
+vps backup
+# Output: /backups/n8n_backup_20260102_120000.sql
+
+# Automated backups run daily via cron
+```
+
+### Service Management
+
+```bash
+# List all Docker services
+vps status
+
+# View n8n logs (last 50 lines)
+vps logs n8n
+
+# View all logs (last 100 lines)
+vps logs n8n --lines 100
+
+# Restart specific service
+vps restart n8n
+vps restart postgres
+vps restart redis
+
+# Check individual services
+docker ps  # Via SSH
+```
+
+### Health Monitoring
+
+```bash
+# JSON output for automation
+vps health --json
+
+# Sample output:
+{
+  "timestamp": "2026-01-02T12:00:00",
+  "vps": {
+    "ip": "72.61.154.188",
+    "hostname": "srv1201204.hstgr.cloud"
+  },
+  "checks": {
+    "ssh": {"status": "ok"},
+    "disk": {"usage_percent": "45%"},
+    "memory": {"used": "2.1G", "total": "4.0G"},
+    "docker": {"status": "ok"},
+    "n8n": {"status": "ok", "status_code": 200}
+  },
+  "overall": "ok"
+}
+```
+
+### SSH Configuration
+
+Set environment variables in your `.env`:
+
+```bash
+VPS_IP=72.61.154.188
+VPS_HOSTNAME=srv1201204.hstgr.cloud
+VPS_USER=root
+VPS_SSH_KEY=~/.ssh/id_rsa
+N8N_URL=https://n8n.srv1201204.hstgr.cloud
+```
+
+### GitHub Actions Integration
+
+Automated deployment via GitHub Actions on push to main:
+
+```yaml
+# .github/workflows/deploy-to-vps.yml
+- Push to main/production branch
+- Runs tests
+- Deploys to VPS
+- Health check
+- Notification
+```
+
+---
+
+## 🤖 Multi-Agent AI System
+
+### OpenAI Agents Pattern Implementation
+
+Multi-agent orchestrator with specialized agents:
+
+1. **Router Agent** - Routes requests to appropriate specialist
+2. **Memory Agent** - Maintains context across conversations
+3. **Supervisor Agent** - Reviews quality and coordinates
+4. **Specialist Agents**:
+   - Code Specialist (implementation, debugging)
+   - Data Specialist (analysis, queries)
+   - DevOps Specialist (infrastructure, deployment)
+   - Documentation Specialist (writing, guides)
+
+### Quick Start
+
+```bash
+# Single query
+agent-run "How do I deploy to VPS?"
+
+# Verbose mode (see routing)
+agent-run "Implement a Python function" --verbose
+
+# Interactive chat
+agent-chat
+
+# View statistics
+agent-stats
+```
+
+### Usage Examples
+
+```bash
+# Code-related queries (routed to Code Specialist)
+agent-run "Review this Python code for bugs"
+agent-run "Implement JWT authentication"
+
+# Data queries (routed to Data Specialist)
+agent-run "Analyze user engagement data"
+agent-run "Write SQL query for top users"
+
+# DevOps queries (routed to DevOps Specialist)
+agent-run "Setup CI/CD pipeline"
+agent-run "Configure Docker multi-stage build"
+
+# Documentation (routed to Documentation Specialist)
+agent-run "Write API documentation for auth endpoint"
+```
+
+### Interactive Mode
+
+```bash
+agent-chat
+
+# Output:
+🤖 Multi-Agent Orchestrator - Interactive Mode
+Type 'exit' to quit, 'stats' for statistics
+
+You: How do I backup the database?
+🔀 Router Agent analyzing...
+   → Routed to: DEVOPS_SPECIALIST
+   → Priority: medium
+🧠 Memory Agent retrieving context...
+👨‍💼 DevOps Specialist working...
+👮 Supervisor Agent reviewing...
+   ✅ Approved: true
+
+💬 Response:
+[Detailed answer about database backup...]
+
+You: stats
+{
+  "active_specialists": 1,
+  "specialist_types": ["DEVOPS_SPECIALIST"],
+  "memory_items": 1,
+  "router_conversations": 2,
+  "supervisor_conversations": 1
+}
+
+You: exit
+Goodbye! 👋
+```
+
+### Configuration
+
+Set API key in environment:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-api03-..."
+
+# Or in .env
+ANTHROPIC_API_KEY=sk-ant-api03-...
+```
+
+### Architecture
+
+```
+User Query
+    ↓
+Router Agent (determines specialist)
+    ↓
+Memory Agent (retrieves context)
+    ↓
+Specialist Agent (processes request)
+    ↓
+Supervisor Agent (reviews quality)
+    ↓
+Final Response
+```
+
+### Advanced Usage
+
+```python
+# Programmatic usage
+from multi_agent_orchestrator import MultiAgentOrchestrator
+
+orchestrator = MultiAgentOrchestrator()
+
+result = await orchestrator.process_request(
+    "Implement user authentication",
+    verbose=True
+)
+
+print(result['specialist_response'])
+print(result['supervisor_review'])
+```
+
+---
+
 ## 📚 Additional Resources
 
 - [GitHub Sparks Docs](https://docs.github.com/enterprise)
@@ -825,11 +1157,71 @@ graph LR
 - [Azure CLI](https://docs.microsoft.com/cli/azure/)
 - [Hardhat](https://hardhat.org/)
 - [Solidity](https://docs.soliditylang.org/)
+- [33mail Service](https://33mail.com/)
+
+---
+
+## 🎯 Command Reference
+
+### Quick Access Commands
+
+```bash
+# Email Management
+33mail create <purpose> [description]
+33mail list [--all]
+33mail get <purpose>
+email-create <purpose>      # Alias
+email-list                  # Alias
+email-get <purpose>         # Alias
+
+# VPS Management
+vps health [--json]
+vps status [service]
+vps logs <service> [--lines N]
+vps restart <service>
+vps deploy [branch]
+vps backup
+vps info
+vps network
+vps-health                  # Quick alias
+vps-deploy [branch]         # Quick alias
+
+# AI Agents
+agent-run "query" [--verbose]
+agent-chat                  # Interactive mode
+agent-stats                 # Statistics
+
+# PM2 (Process Manager)
+pm2-n8n                     # Start n8n
+pm2-list                    # List processes
+pm2-logs                    # View logs
+pm2-stop-all                # Stop all
+pm2-restart-all             # Restart all
+
+# Azure VM
+azure-vm-list
+azure-vm-start <vm> <rg>
+azure-vm-stop <vm> <rg>
+azure-vm-status <vm> <rg>
+
+# KeePassXC
+keepass-get <entry-name>
+keepass-get <entry> --export
+
+# GitHub Sparks
+sparks status
+sparks generate <prompt>
+sparks review <file>
+
+# Eva Core
+eva-demo
+eva-test
+eva-run <workflow>
+```
 
 ---
 
 **Автор**: Wallestars Team  
-**Версия**: 2.1.0 (Enhanced with Cloud Agent improvements)  
+**Версия**: 2.2.0 (Added 33mail, VPS, Multi-Agent)  
 **Дата**: 2026-01-02  
-**Последна актуализация**: 2026-01-02  
-**Версия**: 2.0.0
+**Последна актуализация**: 2026-01-02

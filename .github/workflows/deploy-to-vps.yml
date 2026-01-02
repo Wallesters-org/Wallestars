@@ -1,128 +1,129 @@
-name: Deploy to VPS
+name: Deploy to Hostinger VPS
 
 on:
   push:
-    branches: [main]
-    paths:
-      - 'eva-core/**'
-      - 'platforms/**'
-      - 'shared/**'
-      - 'workflows/**'
-      - 'docker-compose.yml'
-      - '.github/workflows/deploy-to-vps.yml'
+    branches:
+      - main
+      - production
   workflow_dispatch:
-
-env:
-  VPS_HOST: srv1201204.hstgr.cloud
-  VPS_IP: 72.61.154.188
-  VPS_USER: root
-  DEPLOY_PATH: /opt/wallestars
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: false
+        default: 'main'
 
 jobs:
   deploy:
-    name: Deploy to Hostinger VPS
     runs-on: ubuntu-latest
+    name: Deploy to VPS
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
       
       - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+      
+      - name: Add VPS to known hosts
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ env.VPS_IP }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H 72.61.154.188 >> ~/.ssh/known_hosts
+          ssh-keyscan -H srv1201204.hstgr.cloud >> ~/.ssh/known_hosts
       
       - name: Test SSH Connection
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ env.VPS_USER }}@${{ env.VPS_IP }} "echo 'SSH connection successful'"
+          ssh -o StrictHostKeyChecking=no root@72.61.154.188 'echo "SSH connection successful"'
       
-      - name: Check VPS Health
+      - name: Pull latest changes on VPS
         run: |
-          echo "🔍 Checking VPS health..."
-          ssh ${{ env.VPS_USER }}@${{ env.VPS_IP }} "uptime && df -h / && free -h"
-      
-      - name: Backup Current Deployment
-        run: |
-          echo "💾 Creating backup..."
-          ssh ${{ env.VPS_USER }}@${{ env.VPS_IP }} << 'ENDSSH'
-            if [ -d "${{ env.DEPLOY_PATH }}" ]; then
-              BACKUP_NAME="wallestars-backup-$(date +%Y%m%d-%H%M%S)"
-              cp -r ${{ env.DEPLOY_PATH }} /opt/backups/$BACKUP_NAME
-              echo "✅ Backup created: $BACKUP_NAME"
-            else
-              echo "⚠️  No existing deployment to backup"
-            fi
-          ENDSSH
-      
-      - name: Deploy Application
-        run: |
-          echo "🚀 Deploying to VPS..."
-          ssh ${{ env.VPS_USER }}@${{ env.VPS_IP }} << 'ENDSSH'
-            # Navigate to deploy path
-            cd ${{ env.DEPLOY_PATH }} || exit 1
+          ssh root@72.61.154.188 << 'ENDSSH'
+            set -e
+            cd /opt/wallestars || exit 1
             
-            # Pull latest changes
+            echo "📥 Pulling latest changes..."
             git fetch origin
-            git reset --hard origin/main
+            git checkout ${{ github.event.inputs.branch || 'main' }}
+            git pull origin ${{ github.event.inputs.branch || 'main' }}
             
-            # Update dependencies
-            if [ -f "package.json" ]; then
-              npm install
-            fi
-            
-            # Pull Docker images
-            if [ -f "docker-compose.yml" ]; then
-              docker-compose pull
-            fi
-            
-            echo "✅ Deployment files updated"
+            echo "✅ Code updated successfully"
           ENDSSH
       
-      - name: Restart Services
+      - name: Update Docker containers
         run: |
-          echo "🔄 Restarting services..."
-          ssh ${{ env.VPS_USER }}@${{ env.VPS_IP }} << 'ENDSSH'
-            cd ${{ env.DEPLOY_PATH }}
+          ssh root@72.61.154.188 << 'ENDSSH'
+            set -e
+            cd /opt/wallestars
             
-            # Restart Docker Compose services
-            if [ -f "docker-compose.yml" ]; then
-              docker-compose down
-              docker-compose up -d
-            fi
+            echo "🐋 Updating Docker containers..."
+            docker-compose pull
+            docker-compose up -d --build
             
-            # Wait for services to be ready
-            sleep 10
-            
-            # Check service status
-            docker-compose ps
-            
-            echo "✅ Services restarted"
+            echo "✅ Containers updated"
           ENDSSH
       
-      - name: Verify Deployment
+      - name: Health check
         run: |
-          echo "✅ Verifying deployment..."
+          ssh root@72.61.154.188 << 'ENDSSH'
+            set -e
+            
+            echo "🏥 Running health check..."
+            sleep 10  # Wait for services to start
+            
+            # Check n8n
+            if docker ps | grep -q n8n; then
+              echo "✅ n8n is running"
+            else
+              echo "❌ n8n is not running"
+              exit 1
+            fi
+            
+            # Check postgres
+            if docker ps | grep -q postgres; then
+              echo "✅ PostgreSQL is running"
+            else
+              echo "❌ PostgreSQL is not running"
+              exit 1
+            fi
+            
+            echo "✅ All services healthy"
+          ENDSSH
+      
+      - name: Verify n8n endpoint
+        run: |
+          echo "🌐 Checking n8n endpoint..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://n8n.srv1201204.hstgr.cloud/healthz || echo "000")
           
-          # Check n8n
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://n8n.${{ env.VPS_HOST }} || echo "000")
-          if [ "$STATUS" = "200" ] || [ "$STATUS" = "401" ]; then
-            echo "✅ n8n is accessible"
+          if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "302" ]; then
+            echo "✅ n8n endpoint is accessible (HTTP $HTTP_CODE)"
           else
-            echo "⚠️  n8n returned status: $STATUS"
+            echo "⚠️ n8n endpoint returned HTTP $HTTP_CODE"
           fi
       
-      - name: Send Notification
+      - name: Send notification
         if: always()
         run: |
           if [ "${{ job.status }}" = "success" ]; then
-            echo "✅ Deployment successful to ${{ env.VPS_HOST }}"
+            STATUS_EMOJI="✅"
+            STATUS_TEXT="succeeded"
           else
-            echo "❌ Deployment failed"
+            STATUS_EMOJI="❌"
+            STATUS_TEXT="failed"
           fi
+          
+          echo "$STATUS_EMOJI Deployment $STATUS_TEXT"
+          echo "Branch: ${{ github.event.inputs.branch || github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Actor: ${{ github.actor }}"
       
-      - name: Cleanup
-        if: always()
+      - name: Cleanup old Docker images
+        if: success()
         run: |
-          rm -f ~/.ssh/id_rsa
+          ssh root@72.61.154.188 << 'ENDSSH'
+            echo "🧹 Cleaning up old Docker images..."
+            docker image prune -af --filter "until=72h"
+            echo "✅ Cleanup complete"
+          ENDSSH
