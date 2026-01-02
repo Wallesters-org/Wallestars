@@ -84,6 +84,57 @@ Self-hosted автоматизация на бизнес процеси:
 
 ### Инсталация
 
+#### Вариант А: Dev Container v2.0 - Enterprise (Препоръчително ⭐)
+
+**Най-бързият начин за старт с всички Enterprise features!**
+
+```bash
+# 1. Клониране на репозиторито
+git clone https://github.com/Wallesters-org/Wallestars.git
+cd Wallestars
+
+# 2. Отваряне в VS Code
+code .
+
+# 3. Reopen in Container
+# Command Palette (Ctrl+Shift+P): Dev Containers: Reopen in Container
+
+# 4. Изчакайте auto-setup (10-15 мин първия път)
+
+# 5. Готово! Всички services + Enterprise features стартирани
+eva-demo  # Test Eva Core
+sparks status  # GitHub Sparks
+supa start  # Supabase
+vms  # Ubuntu Pro VMs
+```
+
+**🆕 v2.0 Enterprise Features:**
+- ✅ **GitHub Sparks Enterprise** - AI code review, security scanning
+- ✅ **Supabase Full Stack** - Database, Realtime, Edge Functions
+- ✅ **Cline (1M context)** - Advanced AI assistant
+- ✅ **15 Ubuntu Pro VMs** - Production-ready infrastructure
+- ✅ **Enhanced Security** - KeePassXC + Tails OS integration
+- ✅ **50+ VS Code Extensions** - Complete tooling
+- ✅ **10 Docker Services** - Full development stack
+
+**Auto-installed:**
+- Node.js 22, Python 3.12, TypeScript, Zsh + Oh My Zsh
+- PostgreSQL + Redis + n8n + Supabase
+- pgAdmin, Redis Commander, Mailhog, Nginx
+- GitHub CLI, Docker, kubectl, Security tools
+- AI: Copilot, Claude Dev, Continue
+- Database schema + seed data
+
+📖 **Documentation**:
+- [Complete Guide](./.devcontainer/README.md)  
+- [What's New v2.0](./.devcontainer/WHATS-NEW-v2.md) ⭐  
+- [Integrations](./.devcontainer/INTEGRATIONS-GUIDE.md) ⭐  
+- [Secrets Management](./.devcontainer/SECRETS-MANAGEMENT.md)
+
+---
+
+#### Вариант Б: Ръчна Инсталация
+
 #### 1. Клониране на репозиторито
 ```bash
 git clone https://github.com/Wallesters-org/Wallestars.git
