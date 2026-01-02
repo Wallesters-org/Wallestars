@@ -1,0 +1,128 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'eva-core/**'
+      - 'platforms/**'
+      - 'shared/**'
+      - 'workflows/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/deploy-to-vps.yml'
+  workflow_dispatch:
+
+env:
+  VPS_HOST: srv1201204.hstgr.cloud
+  VPS_IP: 72.61.154.188
+  VPS_USER: root
+  DEPLOY_PATH: /opt/wallestars
+
+jobs:
+  deploy:
+    name: Deploy to Hostinger VPS
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ env.VPS_IP }} >> ~/.ssh/known_hosts
+      
+      - name: Test SSH Connection
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ env.VPS_USER }}@${{ env.VPS_IP }} "echo 'SSH connection successful'"
+      
+      - name: Check VPS Health
+        run: |
+          echo "🔍 Checking VPS health..."
+          ssh ${{ env.VPS_USER }}@${{ env.VPS_IP }} "uptime && df -h / && free -h"
+      
+      - name: Backup Current Deployment
+        run: |
+          echo "💾 Creating backup..."
+          ssh ${{ env.VPS_USER }}@${{ env.VPS_IP }} << 'ENDSSH'
+            if [ -d "${{ env.DEPLOY_PATH }}" ]; then
+              BACKUP_NAME="wallestars-backup-$(date +%Y%m%d-%H%M%S)"
+              cp -r ${{ env.DEPLOY_PATH }} /opt/backups/$BACKUP_NAME
+              echo "✅ Backup created: $BACKUP_NAME"
+            else
+              echo "⚠️  No existing deployment to backup"
+            fi
+          ENDSSH
+      
+      - name: Deploy Application
+        run: |
+          echo "🚀 Deploying to VPS..."
+          ssh ${{ env.VPS_USER }}@${{ env.VPS_IP }} << 'ENDSSH'
+            # Navigate to deploy path
+            cd ${{ env.DEPLOY_PATH }} || exit 1
+            
+            # Pull latest changes
+            git fetch origin
+            git reset --hard origin/main
+            
+            # Update dependencies
+            if [ -f "package.json" ]; then
+              npm install
+            fi
+            
+            # Pull Docker images
+            if [ -f "docker-compose.yml" ]; then
+              docker-compose pull
+            fi
+            
+            echo "✅ Deployment files updated"
+          ENDSSH
+      
+      - name: Restart Services
+        run: |
+          echo "🔄 Restarting services..."
+          ssh ${{ env.VPS_USER }}@${{ env.VPS_IP }} << 'ENDSSH'
+            cd ${{ env.DEPLOY_PATH }}
+            
+            # Restart Docker Compose services
+            if [ -f "docker-compose.yml" ]; then
+              docker-compose down
+              docker-compose up -d
+            fi
+            
+            # Wait for services to be ready
+            sleep 10
+            
+            # Check service status
+            docker-compose ps
+            
+            echo "✅ Services restarted"
+          ENDSSH
+      
+      - name: Verify Deployment
+        run: |
+          echo "✅ Verifying deployment..."
+          
+          # Check n8n
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://n8n.${{ env.VPS_HOST }} || echo "000")
+          if [ "$STATUS" = "200" ] || [ "$STATUS" = "401" ]; then
+            echo "✅ n8n is accessible"
+          else
+            echo "⚠️  n8n returned status: $STATUS"
+          fi
+      
+      - name: Send Notification
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ Deployment successful to ${{ env.VPS_HOST }}"
+          else
+            echo "❌ Deployment failed"
+          fi
+      
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f ~/.ssh/id_rsa
