@@ -1,0 +1,33 @@
+{
+  "name": "@wallestars/eva-core",
+  "version": "1.0.0",
+  "description": "Eva AI Core - Централен алгоритъм за персонализирани потребителски взаимодействия",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node --test test/*.test.js",
+    "demo": "node examples/demo.js"
+  },
+  "keywords": [
+    "eva",
+    "ai",
+    "automation",
+    "social-media"
+  ],
+  "author": "Wallesters-org",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "openai": "^4.77.0",
+    "@anthropic-ai/sdk": "^0.33.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  }
+}
