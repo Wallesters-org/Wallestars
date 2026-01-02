@@ -1,0 +1,420 @@
+{
+  "name": "Wallestars - Full Stack AI Platform",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
+  
+  // Допълнителен custom image build (optional)
+  // "build": {
+  //   "dockerfile": "Dockerfile",
+  //   "context": ".."
+  // },
+
+  // 🎯 Features - Автоматична инсталация на инструменти
+  "features": {
+    // === Core Development Tools ===
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "installOhMyZsh": true,
+      "installOhMyZshConfig": true,
+      "upgradePackages": true,
+      "username": "node",
+      "userUid": "automatic",
+      "userGid": "automatic"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "nodeGypDependencies": true,
+      "nvmVersion": "latest",
+      "version": "22"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12",
+      "installTools": true,
+      "installJupyterlab": true
+    },
+    "ghcr.io/devcontainers/features/git:1": {
+      "version": "latest",
+      "ppa": true
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "version": "latest",
+      "installDirectlyFromGitHubRelease": true
+    },
+    
+    // === Docker & Container Tools ===
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "dockerDashComposeVersion": "v2",
+      "enableNonRootDocker": true,
+      "moby": true
+    },
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+      "version": "latest",
+      "helm": "latest",
+      "minikube": "none"
+    },
+    
+    // === Database Tools ===
+    "ghcr.io/devcontainers-contrib/features/postgres-asdf:1": {
+      "version": "16"
+    },
+    "ghcr.io/devcontainers-contrib/features/redis-asdf:1": {
+      "version": "latest"
+    },
+    
+    // === Security & Secrets Management ===
+    "ghcr.io/devcontainers-contrib/features/age:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers-contrib/features/sops:1": {
+      "version": "latest"
+    },
+    
+    // === CLI Tools ===
+    "ghcr.io/devcontainers-contrib/features/curl-apt-get:1": {},
+    "ghcr.io/devcontainers-contrib/features/wget-apt-get:1": {},
+    "ghcr.io/devcontainers-contrib/features/jq-apt-get:1": {},
+    "ghcr.io/devcontainers-contrib/features/yq-apt-get:1": {},
+    
+    // === Cloud CLI ===
+    "ghcr.io/devcontainers/features/azure-cli:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/aws-cli:1": {
+      "version": "latest"
+    },
+    
+    // === Additional Tools ===
+    "ghcr.io/devcontainers-contrib/features/act:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers-contrib/features/pre-commit:2": {
+      "version": "latest"
+    }
+  },
+
+  // 🔧 Customizations for VS Code
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // === AI Assistants & Productivity ===
+        "github.copilot",
+        "github.copilot-chat",
+        "saoudrizwan.claude-dev",
+        "continue.continue",
+        
+        // === JavaScript/TypeScript Development ===
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "dsznajder.es7-react-js-snippets",
+        "xabikos.javascriptsnippets",
+        "ms-vscode.vscode-typescript-next",
+        
+        // === React & Frontend ===
+        "burkeholland.simple-react-snippets",
+        "formulahendry.auto-rename-tag",
+        "formulahendry.auto-close-tag",
+        "zignd.html-css-class-completion",
+        
+        // === Python ===
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.black-formatter",
+        
+        // === Database & API ===
+        "supabase.supabase",
+        "mtxr.sqltools",
+        "mtxr.sqltools-driver-pg",
+        "humao.rest-client",
+        "rangav.vscode-thunder-client",
+        
+        // === Docker & DevOps ===
+        "ms-azuretools.vscode-docker",
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        
+        // === Git & GitHub ===
+        "github.vscode-pull-request-github",
+        "github.vscode-github-actions",
+        "eamodio.gitlens",
+        "mhutchie.git-graph",
+        "donjayamanne.githistory",
+        
+        // === Workflow Automation ===
+        "n8n-io.n8n",
+        
+        // === JSON & YAML ===
+        "redhat.vscode-yaml",
+        "tamasfe.even-better-toml",
+        
+        // === Code Quality & Testing ===
+        "orta.vscode-jest",
+        "firsttris.vscode-jest-runner",
+        "streetsidesoftware.code-spell-checker",
+        
+        // === Security ===
+        "trunk.io",
+        "snyk-security.snyk-vulnerability-scanner",
+        
+        // === Markdown & Documentation ===
+        "yzhang.markdown-all-in-one",
+        "bierner.markdown-mermaid",
+        "davidanson.vscode-markdownlint",
+        "bierner.markdown-preview-github-styles",
+        
+        // === Utilities ===
+        "christian-kohler.path-intellisense",
+        "visualstudioexptteam.vscodeintellicode",
+        "usernamehw.errorlens",
+        "gruntfuggly.todo-tree",
+        "aaron-bond.better-comments",
+        "wayou.vscode-todo-highlight",
+        "mechatroner.rainbow-csv",
+        "oderwat.indent-rainbow",
+        
+        // === Live Server & Preview ===
+        "ritwickdey.liveserver",
+        "ms-vscode.live-server",
+        
+        // === Theme & Icons ===
+        "pkief.material-icon-theme",
+        "github.github-vscode-theme",
+      ],
+      
+      "settings": {
+        // === Editor ===
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit",
+          "source.organizeImports": "explicit"
+        },
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true,
+        "editor.wordWrap": "on",
+        "editor.rulers": [80, 120],
+        "editor.minimap.enabled": true,
+        "editor.bracketPairColorization.enabled": true,
+        "editor.guides.bracketPairs": true,
+        "editortrimTrailingWhitespace": true,
+        "files.insertFinalNewline": true,
+        "files..inlineSuggest.enabled": true,
+        "editor.suggestSelection": "first",
+        "editor.snippetSuggestions": "top",
+        
+        // === Files ===
+        "files.autoSave": "afterDelay",
+        "files.autoSaveDelay": 1000,
+        "files.exclude": {
+          "**/.git": true,
+          "**/.DS_Store": true,
+          "**/node_modules": true,
+          "**/.env": true,
+          "**/.env.local": true
+        },
+        zsh",
+        "terminal.integrated.fontSize": 14,
+        "terminal.integrated.fontFamily": "MesloLGS NF"
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "terminal.integrated.fontSize": 14,
+        
+        // === Git ===
+        "git.autofetch": true,
+        "git.confirmSync": false,
+        "gitlens.codeLens.enabled": true,
+        "git.enableSmartCommit": true,
+        
+        // === Security ===
+        
+        // === Prettier ===
+        "prettiClaude Dev (Cline) Settings ===
+        "claude-dev.apiKey": "${ANTHROPIC_API_KEY}",
+        "claude-dev.model": "claude-sonnet-4-20250514",
+        "claude-dev.maxTokens": 1000000,
+        "claude-dev.temperature": 0.7,
+        
+        // === Continue AI Settings ===
+        "continue.telemetryEnabled": false,
+        "continue.enableTabAutocomplete": true,
+        
+        // === GitHub Copilot ===
+        "github.copilot.enable": {
+          "*": true,
+          "yaml": true,
+          "plaintext": false,
+          "markdown": true,
+          "javascript": true,
+          "typescript": true,
+          "python": true
+        },
+        
+        // === Theme ===
+        "workbench.colorTheme": "GitHub Dark Default",
+        "workbench.iconTheme": "material-icon-theme",
+        
+        // === er.singleQuote": true,
+        "prettier.trailingComma": "es5",
+        "prettier.semi": true,
+        "prettier.tabWidth": 2,
+        
+        // === JavaScript/TypeScript ===
+        "javascript.updateImportsOnFileMove.enabled": "always",
+        "javascript.suggest.autoImports": true,
+        "typescript.updateImportsOnFileMove.enabled": "always",
+        "typescript.suggest.autoImports": true,
+        
+        // === ESLint ===
+        "eslint.validate": [
+          "javascript",
+          "javascriptreact",
+          "typescript",
+          "typescriptreact"
+        ],
+        "eslint.alwaysShowStatus": true,
+        "security.workspace.trust.enabled": false,
+        
+        // === Language Specific ===
+        "[javascript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[typescript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[json]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[jsonc]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[markdown]": {
+          "editor.defaultFormatter": "yzhang.markdown-all-in-one"
+        },
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.black-formatter"
+        }, / Frontend
+    5000,   // Backend API
+    5678,   // n8n
+    5432,   // PostgreSQL
+    6379,   // Redis
+    8000,   // Dev Servereneral.tags": [
+          "TODO",
+          "FIXME",
+          "HACK",
+          "XXX",
+          "NOTE",
+          "BUG",
+          "SECURITY"
+        ],
+        
+        // === Error Lens ===
+        "errorLens.enabledDiagnosticLevels": [
+          "error",
+          "warning",
+          "info"
+        ]
+      }
+    }
+  },
+
+  // 🌐 Port Forwarding - Всички необходими ports
+  "forwardPorts": [
+    3000,   // Main app
+    5678,   // n8n
+    5432,   // PostgreSQL
+    6379,   // Redis
+    8080,   // Alternative HTTP
+    9229    // Node debugger
+  ],
+  
+  "portsAttributFrontend / Main Application",
+      "onAutoForward": "notify"
+    },
+    "5000": {
+      "label": "Backend API",
+      "onAutoForward": "notify"
+    },
+    "5678": {
+      "label": "n8n Workflow Automation",
+      "onAutoForward": "openBrowser"
+    },
+    "5432": {
+      "label": "PostgreSQL Database",
+      "onAutoForward": "silent"
+    },
+    "6379": {
+      "label": "Redis Cache",
+      "onAutoForward": "silent"
+    },
+    "8000": {
+      "label": "Dev Server",
+      "onAutoForward": "silent"
+    },
+    "8080": {
+      "label": "Alternative HTTP
+    "6379": {
+      "label": "Redis Cache",
+      "onAutoForward": "silent"
+    }
+  },
+
+  // 🔐 Secrets & Mounts - KeePassXC integration
+  "mounts": [
+    // Mount KeePassXC database from host (read-only за безопасност)
+    // "source=${localEnv:HOME}/.keepassxc,target=/workspace/.keepass,type=bind,readonly",
+    
+    // Mount SSH keys (ако са необходими)
+    "source=${localEnv:HOME}/.ssh,target=/home/node/.ssh,type=bind,readonly",
+    
+    // Mount git config
+    "source=${localEnv:HOME}/.gitconfig,target=/home/node/.gitconfig,type=bind,readonly",
+    
+    // Persistent storage за node_modules (performance optimization)
+    "source=wallestars-node-modules,target=/workspaces/Wallestars/node_modules,type=volume"
+  ],
+
+  // 📝 Environment Variables - Safe defaults
+  "remoteEnv": {
+    "NODE_ENV": "development",
+    "LOG_LEVEL": "info",
+    "WALLESTARS_WORKSPACE": "/workspaces/Wallestars"
+  },
+
+  // 🚀 Lifecycle Scripts
+  "onCreateCommand": "bash .devcontainer/scripts/on-create.sh",
+  "postCreateCommand": "bash .devcontainer/scripts/post-create.sh",
+  "postStartCommand": "bash .devcontainer/scripts/post-start.sh",
+  "postAttachCommand": "bash .devcontainer/scripts/post-attach.sh",
+
+  // 👤 User Configuration
+  "remoteUser": "node",
+  "containerUser": "node",
+  
+  // 🔧 Additional Container Settings
+  "containerEnv": {
+    "TZ": "Europe/Sofia"
+  },
+  
+  "runArgs": [
+    "--name=wallestars-devcontainer",
+    "--hostname=wallestars-dev"
+  ],
+
+  // 🎯 Workspace Settings
+  "workspaceFolder": "/workspaces/Wallestars",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/Wallestars,type=bind,consistency=cached",
+
+  // 💡 Features Configuration Details
+  "overrideFeatureInstallOrder": [
+    "ghcr.io/devcontainers/features/common-utils",
+    "ghcr.io/devcontainers/features/git",
+    "ghcr.io/devcontainers/features/node",
+    "ghcr.io/devcontainers/features/docker-in-docker"
+  ],
+
+  // 🔌 Capabilities
+  "capAdd": [
+    "SYS_PTRACE"  // For debugging
+  ],
+
+  "securityOpt": [
+    "seccomp=unconfined"  // For advanced debugging
+  ]
+}

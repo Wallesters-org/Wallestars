@@ -1,0 +1,198 @@
+version: '3.8'
+
+# Wallestars Development Services
+# Docker Compose конфигурация за локална разработка
+
+services:
+  # === Main Application ===
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    container_name: wallestars-app
+    hostname: wallestars-dev
+    volumes:
+      - ..:/workspace:cached
+      - node-modules:/workspace/node_modules
+      - eva-modules:/workspace/eva-core/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=info
+    networks:
+      - wallestars-network
+    depends_on:
+      - postgres
+      - redis
+    command: sleep infinity
+
+  # === PostgreSQL Database (Supabase compatible) ===
+  postgres:
+    image: supabase/postgres:15.1.0.117
+    container_name: wallestars-postgres
+    hostname: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: wallestars
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_dev_password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../scripts/db:/docker-entrypoint-initdb.d
+    networks:
+      - wallestars-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # === Redis Cache ===
+  redis:
+    image: redis:7-alpine
+    container_name: wallestars-redis
+    hostname: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - wallestars-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    command: redis-server --appendonly yes --requirepass redis_dev_password
+
+  # === n8n Workflow Automation ===
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: wallestars-n8n
+    hostname: n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=admin
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - N8N_LOG_LEVEL=info
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=Europe/Sofia
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=postgres
+      - DB_POSTGRESDB_PASSWORD=postgres_dev_password
+    volumes:
+      - n8n-data:/home/node/.n8n
+      - ../workflows:/workflows:ro
+    networks:
+      - wallestars-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # === Supabase Studio (Database GUI) ===
+  supabase-studio:
+    image: supabase/studio:latest
+    container_name: wallestars-supabase-studio
+    hostname: supabase-studio
+    ports:
+      - "3001:3000"
+    environment:
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+      STUDIO_PG_META_URL: http://postgres:5432
+    networks:
+      - wallestars-network
+    depends_on:
+      - postgres
+
+  # === pgAdmin (Advanced Database Management) ===
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: wallestars-pgadmin
+    hostname: pgadmin
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@wallestars.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - wallestars-network
+    depends_on:
+      - postgres
+
+  # === Redis Commander (Redis GUI) ===
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: wallestars-redis-commander
+    hostname: redis-commander
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379:0:redis_dev_password
+    networks:
+      - wallestars-network
+    depends_on:
+      - redis
+
+  # === Mailhog (Email Testing) ===
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: wallestars-mailhog
+    hostname: mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - wallestars-network
+
+  # === Nginx (Reverse Proxy) ===
+  nginx:
+    image: nginx:alpine
+    container_name: wallestars-nginx
+    hostname: nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    networks:
+      - wallestars-network
+    depends_on:
+      - app
+      - n8n
+
+# === Networks ===
+networks:
+  wallestars-network:
+    name: wallestars-network
+    driver: bridge
+
+# === Volumes ===
+volumes:
+  postgres-data:
+    name: wallestars-postgres-data
+  redis-data:
+    name: wallestars-redis-data
+  n8n-data:
+    name: wallestars-n8n-data
+  pgadmin-data:
+    name: wallestars-pgadmin-data
+  node-modules:
+    name: wallestars-node-modules
+  eva-modules:
+    name: wallestars-eva-modules
