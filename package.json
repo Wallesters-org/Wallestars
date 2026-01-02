@@ -1,0 +1,23 @@
+{
+  "name": "wallestars",
+  "version": "1.0.0",
+  "description": "Wallestars SAAS Platform",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "saas",
+    "platform"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
