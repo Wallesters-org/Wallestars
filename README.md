@@ -54,12 +54,13 @@
 - **Navigation** - Home, Back, Power buttons
 - **Device Info** - Model, Android version, battery level
 
-### ✨ Prompt Generator
+### ✨ Prompt Generator & Templates
 - **Spark App Prompts** - Generate prompts for creating Spark visual applications
+- **AI Prompt Templates** - Structured templates for defining AI roles, goals, context, and tools
 - **Bilingual Support** - Available in English and Bulgarian
 - **Copy & Download** - Easy clipboard copy and markdown file export
 - **Quick Links** - Direct access to Anthropic Console Workbench
-- **Comprehensive Templates** - Detailed specifications for AI-powered apps
+- **Comprehensive Templates** - Detailed specifications for AI-powered apps and assistants
 
 ### 🎨 Professional UI/UX
 - **Modern Design** - Tailwind CSS with custom components
@@ -144,7 +145,7 @@
 4. Take screenshots to view device screen
 5. Use Navigation controls or Quick Actions
 
-### Prompt Generator
+### Prompt Generator & Templates
 1. Navigate to "Prompt Generator"
 2. Choose your preferred language (English or Bulgarian)
 3. Click "Copy to Clipboard" to copy the prompt
@@ -152,7 +153,11 @@
 5. Paste the prompt to generate your Spark app specification
 6. Optionally download the prompt as a markdown file
 
-📚 **For detailed documentation, see [PROMPT_GENERATOR_DOCS.md](PROMPT_GENERATOR_DOCS.md)**
+📚 **For detailed documentation, see:**
+- [PROMPT_GENERATOR_DOCS.md](PROMPT_GENERATOR_DOCS.md) - Spark app prompt generator
+- [prompts/README.md](prompts/README.md) - AI prompt templates guide
+- [prompts/ai-prompt-template.md](prompts/ai-prompt-template.md) - English AI prompt template
+- [prompts/ai-prompt-template-bg.md](prompts/ai-prompt-template-bg.md) - Bulgarian AI prompt template
 
 ---
 
