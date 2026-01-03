@@ -10,6 +10,13 @@ import { setupSocketHandlers } from './socket/handlers.js';
 
 dotenv.config();
 
+// Helper function to validate API key
+const isValidApiKey = (key) => {
+  return key && 
+         key !== 'your_api_key_here' && 
+         key.startsWith('sk-ant-');
+};
+
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
@@ -32,7 +39,7 @@ app.get('/api/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     services: {
-      claude: !!process.env.ANTHROPIC_API_KEY,
+      claude: isValidApiKey(process.env.ANTHROPIC_API_KEY),
       computerUse: process.env.ENABLE_COMPUTER_USE === 'true',
       android: process.env.ENABLE_ANDROID === 'true'
     }
@@ -59,6 +66,8 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3000;
 
 httpServer.listen(PORT, () => {
+  const hasValidApiKey = isValidApiKey(process.env.ANTHROPIC_API_KEY);
+  
   console.log(`
 ╔═══════════════════════════════════════════════════════╗
 ║                                                       ║
@@ -68,12 +77,20 @@ httpServer.listen(PORT, () => {
 ║   WebSocket ready on: ws://localhost:${PORT}          ║
 ║                                                       ║
 ║   Services Status:                                    ║
-║   ${process.env.ANTHROPIC_API_KEY ? '✅' : '❌'} Claude API                                ║
+║   ${hasValidApiKey ? '✅' : '❌'} Claude API                                ║
 ║   ${process.env.ENABLE_COMPUTER_USE === 'true' ? '✅' : '❌'} Computer Use (Linux)                     ║
 ║   ${process.env.ENABLE_ANDROID === 'true' ? '✅' : '❌'} Android Control                            ║
 ║                                                       ║
 ╚═══════════════════════════════════════════════════════╝
   `);
+  
+  if (!hasValidApiKey) {
+    console.log(`
+⚠️  WARNING: Claude API key not configured!
+   Edit your .env file and add a valid API key.
+   Get one at: https://console.anthropic.com
+`);
+  }
 });
 
 export { io };
