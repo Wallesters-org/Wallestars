@@ -59,7 +59,8 @@ if ([string]::IsNullOrWhiteSpace($API_KEY)) {
         $content = Get-Content $envFile
         $apiKeyLine = $content | Where-Object { $_ -match "^ANTHROPIC_API_KEY=" }
         if ($apiKeyLine) {
-            $API_KEY = $apiKeyLine.Split('=')[1].Trim()
+            # Split only on first '=' and remove quotes
+            $API_KEY = ($apiKeyLine -split '=', 2)[1].Trim().Trim('"').Trim("'")
             Write-Host "✅ Using API key from .env file" -ForegroundColor Green
         }
     }

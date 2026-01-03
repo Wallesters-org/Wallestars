@@ -69,7 +69,7 @@ read -r API_KEY
 
 if [ -z "$API_KEY" ]; then
     if [ -f "$WALLESTARS_PATH/.env" ]; then
-        API_KEY=$(grep ANTHROPIC_API_KEY "$WALLESTARS_PATH/.env" | cut -d '=' -f2)
+        API_KEY=$(grep "^ANTHROPIC_API_KEY=" "$WALLESTARS_PATH/.env" | cut -d '=' -f2- | sed 's/^["'\'']//' | sed 's/["'\'']$//')
         echo "✅ Using API key from .env file"
     else
         echo "⚠️  No API key provided and .env file not found"
