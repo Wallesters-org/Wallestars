@@ -1,3 +1,20 @@
+# Task Status Tracking Configuration
+
+This file tracks the status of all tasks in the chain. It is automatically updated by tasks as they progress.
+
+## Status Definitions
+
+- **WAITING**: Task is waiting for dependencies to complete
+- **READY**: All dependencies are met, task can start
+- **IN_PROGRESS**: Task is currently being executed
+- **REVIEW**: Task completed, awaiting validation
+- **COMPLETED**: Task finished and validated
+- **BLOCKED**: Task cannot proceed due to an issue
+- **SKIPPED**: Task was skipped (marked optional and not needed)
+
+## Task Chain Status
+
+```json
 {
   "project": {
     "name": "Project Name",
@@ -184,3 +201,60 @@
     "version": "1.0.0"
   }
 }
+```
+
+## How to Update Status
+
+### When Starting a Task
+```json
+{
+  "id": "task-001",
+  "status": "IN_PROGRESS",
+  "started_at": "2026-01-03T10:30:00Z"
+}
+```
+
+### When Completing a Task
+```json
+{
+  "id": "task-001",
+  "status": "COMPLETED",
+  "completed_at": "2026-01-03T13:30:00Z",
+  "actual_hours": 3,
+  "outputs": ["requirements-analysis.md", "requirements-summary.json"]
+}
+```
+
+### When Blocking a Task
+```json
+{
+  "id": "task-004",
+  "status": "BLOCKED",
+  "notes": "Waiting for clarification on database schema from stakeholder"
+}
+```
+
+## Automatic Status Updates
+
+The orchestrator automatically:
+1. Changes tasks from WAITING → READY when dependencies complete
+2. Calculates overall progress percentage
+3. Updates phase statuses
+4. Triggers notifications when tasks are ready
+5. Validates task completion before marking COMPLETED
+
+## Progress Calculation
+
+```
+Progress = (Completed Tasks / Total Tasks) × 100
+Phase Progress = (Completed Tasks in Phase / Total Tasks in Phase) × 100
+```
+
+## Dashboard View
+
+Use this JSON with visualization tools to create dashboards showing:
+- Task progress bars
+- Dependency graphs
+- Timeline views
+- Resource allocation
+- Bottleneck identification

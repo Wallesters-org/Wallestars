@@ -44,7 +44,8 @@ See [examples/usage-guide.md](examples/usage-guide.md) for detailed usage instru
 │   └── usage-guide.md            # How to use the agent
 └── templates/                     # Reusable templates
     ├── task-template.md          # Template for task files
-    ├── task-chain-status.json    # Status tracking template
+    ├── task-chain-status.json    # Status tracking (JSON)
+    ├── task-chain-status-template.md # Status tracking (documented)
     └── early-orchestrator-template.md # Orchestrator template
 ```
 
@@ -69,7 +70,7 @@ See [examples/usage-guide.md](examples/usage-guide.md) for comprehensive instruc
 Use [templates/task-template.md](templates/task-template.md) as a starting point for creating new task files.
 
 ### Status Tracking
-Use [templates/task-chain-status.json](templates/task-chain-status.json) to track task progress and dependencies.
+Use [templates/task-chain-status.json](templates/task-chain-status.json) for pure JSON tracking, or [templates/task-chain-status-template.md](templates/task-chain-status-template.md) for documented version with explanations.
 
 ### Orchestrator Template
 Use [templates/early-orchestrator-template.md](templates/early-orchestrator-template.md) for orchestration setup.
