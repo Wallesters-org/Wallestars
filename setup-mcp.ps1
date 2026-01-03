@@ -97,7 +97,7 @@ $serverPath = Join-Path $WALLESTARS_PATH "server\index.js"
 $serverPathJson = $serverPath.Replace('\', '/')
 
 # Find node.exe path
-$nodePath = (Get-Command node).Source
+$nodePath = (Get-Command node -ErrorAction SilentlyContinue)?.Source
 if ([string]::IsNullOrWhiteSpace($nodePath)) {
     $nodePath = "node"
 }
