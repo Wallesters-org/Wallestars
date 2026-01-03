@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "wallestars-control": {
+      "command": "node",
+      "args": [
+        "/absolute/path/to/Wallestars/server/index.js"
+      ],
+      "env": {
+        "ANTHROPIC_API_KEY": "sk-ant-your-api-key-here",
+        "PORT": "3000",
+        "NODE_ENV": "production",
+        "ENABLE_COMPUTER_USE": "true",
+        "ENABLE_ANDROID": "false",
+        "SCREENSHOT_INTERVAL": "2000",
+        "ADB_HOST": "localhost",
+        "ADB_PORT": "5037",
+        "WS_PORT": "3001"
+      }
+    }
+  }
+}

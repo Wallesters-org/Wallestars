@@ -7,12 +7,13 @@
 [![React](https://img.shields.io/badge/React-18.2-61dafb?style=flat-square&logo=react)](https://reactjs.org/)
 [![Claude AI](https://img.shields.io/badge/Claude-Sonnet_4.5-8b5cf6?style=flat-square)](https://anthropic.com/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
+[![MCP](https://img.shields.io/badge/MCP-Compatible-orange?style=flat-square)](MCP_SETUP.md)
 
 **Professional platform for Claude AI automation on Linux and Android**
 
-*Beautiful real-time visualization • Computer Use • Device Control*
+*Beautiful real-time visualization • Computer Use • Device Control • MCP Support*
 
-[Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [API](#-api-documentation)
+[Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [MCP Setup](#-mcp-model-context-protocol)
 
 </div>
 
@@ -135,6 +136,48 @@
 3. Select your device from the dropdown
 4. Take screenshots to view device screen
 5. Use Navigation controls or Quick Actions
+
+---
+
+## 🔌 MCP (Model Context Protocol)
+
+Wallestars Control Center supports the **Model Context Protocol (MCP)**, enabling integration with Claude Desktop and other MCP-compatible AI clients. This allows Claude to directly access and control your computer through natural language commands.
+
+### What is MCP?
+
+MCP is an open protocol that standardizes how AI applications interact with local services and tools. With MCP support, you can:
+
+- 🤖 **Use Claude Desktop** to control your computer naturally
+- 🔗 **Connect AI assistants** to Wallestars capabilities
+- 🛠️ **Extend Claude's abilities** with computer and Android control
+- 🔒 **Maintain security** with controlled, permission-based access
+
+### Quick MCP Setup
+
+1. **Copy the example configuration:**
+   ```bash
+   cp claude_desktop_config.json.example ~/Library/Application\ Support/Claude/claude_desktop_config.json
+   ```
+
+2. **Edit the configuration** with your API key and absolute path:
+   ```json
+   {
+     "mcpServers": {
+       "wallestars-control": {
+         "command": "node",
+         "args": ["/absolute/path/to/Wallestars/server/index.js"],
+         "env": {
+           "ANTHROPIC_API_KEY": "sk-ant-your-key-here",
+           "ENABLE_COMPUTER_USE": "true"
+         }
+       }
+     }
+   }
+   ```
+
+3. **Restart Claude Desktop** and start using Wallestars!
+
+📚 **For detailed setup instructions, see [MCP_SETUP.md](MCP_SETUP.md)**
 
 ---
 
