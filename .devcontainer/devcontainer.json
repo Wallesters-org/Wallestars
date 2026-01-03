@@ -282,6 +282,10 @@
     "8080": {
       "label": "Alternative HTTP Server",
       "onAutoForward": "silent"
+    },
+    "9229": {
+      "label": "Node.js Debugger",
+      "onAutoForward": "silent"
     }
   },
 
