@@ -70,19 +70,48 @@
 
 ---
 
-## 🚀 Installation
+## 🚀 Installation & Launch
+
+### 🎯 Automated Launch (Easiest!)
+
+Use our automated launch scripts that handle everything for you:
+
+**Linux/Mac:**
+```bash
+git clone https://github.com/Wallesters-org/Wallestars.git
+cd Wallestars
+./launch.sh
+```
+
+**Windows:**
+```cmd
+git clone https://github.com/Wallesters-org/Wallestars.git
+cd Wallestars
+launch.bat
+```
+
+The script will:
+- ✅ Check prerequisites
+- ✅ Install dependencies automatically
+- ✅ Create `.env` file from template
+- ✅ Guide you through API key setup
+- ✅ Launch both server and client
+
+📚 **For detailed instructions, see [LAUNCH_GUIDE.md](LAUNCH_GUIDE.md)**
 
 ### Prerequisites
 
-- **Node.js** 20.x or higher
-- **npm** or **yarn**
+- **Node.js** 20.x or higher ([Download here](https://nodejs.org/))
+- **npm** (comes with Node.js)
 - **Anthropic API Key** ([Get one here](https://console.anthropic.com))
-- **Linux** (for Computer Use features)
-  - `xdotool` installed: `sudo apt install xdotool`
-- **Android SDK Platform Tools** (for Android control)
-  - `adb` available in PATH
 
-### Quick Start
+**Optional for full functionality:**
+- **Linux** (for Computer Use features): `sudo apt install xdotool`
+- **Android SDK Platform Tools** (for Android control): `adb` in PATH
+
+### Manual Setup
+
+If you prefer manual setup:
 
 1. **Clone the repository:**
    ```bash
@@ -103,7 +132,7 @@
    ```env
    ANTHROPIC_API_KEY=sk-ant-your-key-here
    ENABLE_COMPUTER_USE=true
-   ENABLE_ANDROID=true
+   ENABLE_ANDROID=false
    ```
 
 4. **Start development server:**
