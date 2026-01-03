@@ -61,6 +61,16 @@
 - **Quick Links** - Direct access to Anthropic Console Workbench
 - **Comprehensive Templates** - Detailed specifications for AI-powered apps
 
+### 🤖 GitHub Copilot Agent
+- **Task Orchestrator & Analyzer** - Custom agent for breaking down complex problems
+- **Content Analysis** - Analyze Claude chats, documents, and requirements
+- **Task Generation** - Create structured, executable task breakdowns
+- **Workflow Orchestration** - Chain-based synchronization and management
+- **Visual Schemas** - Generate Mermaid diagrams and ASCII visualizations
+- **Multi-Platform Support** - Works with Claude, ChatGPT, Gemini, and more
+
+📚 **See [.github/agents/README.md](.github/agents/README.md) for agent documentation**
+
 ### 🎨 Professional UI/UX
 - **Modern Design** - Tailwind CSS with custom components
 - **Smooth Animations** - Framer Motion for fluid transitions
