@@ -6,15 +6,21 @@ const Anthropic = require('@anthropic-ai/sdk');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const CLAUDE_MODEL = 'claude-3-5-sonnet-20241022';
 
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Validate API key on startup
+if (!process.env.ANTHROPIC_API_KEY) {
+  console.warn('⚠️  WARNING: ANTHROPIC_API_KEY not set. API endpoints will not work.');
+}
+
 // Initialize Anthropic client
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
+  apiKey: process.env.ANTHROPIC_API_KEY || 'dummy-key-for-startup',
 });
 
 // Health check endpoint
@@ -56,7 +62,7 @@ app.post('/api/chat', async (req, res) => {
     ];
 
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: CLAUDE_MODEL,
       max_tokens: 4096,
       messages: messages
     });
@@ -101,7 +107,7 @@ app.post('/api/skills', async (req, res) => {
     const systemPrompt = skillPrompts[skill] || skillPrompts.general;
 
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: CLAUDE_MODEL,
       max_tokens: 4096,
       system: systemPrompt,
       messages: [
