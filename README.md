@@ -84,6 +84,16 @@
 
 ### Quick Start
 
+#### 🚀 One-Command Setup (Recommended)
+
+```bash
+git clone https://github.com/Wallesters-org/Wallestars.git
+cd Wallestars
+./start.sh  # Interactive setup wizard
+```
+
+#### 📝 Manual Setup
+
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/Wallesters-org/Wallestars.git
@@ -105,13 +115,20 @@
    ENABLE_COMPUTER_USE=true
    ENABLE_ANDROID=true
    ```
+   
+   > 🇧🇬 **За български потребители:** Пълно ръководство за настройка → [docs/НАСТРОЙКА_BG.md](./docs/НАСТРОЙКА_BG.md)
 
-4. **Start development server:**
+4. **Check ports (optional):**
+   ```bash
+   npm run check-ports  # Diagnose and fix port conflicts
+   ```
+
+5. **Start development server:**
    ```bash
    npm run dev
    ```
 
-5. **Open your browser:**
+6. **Open your browser:**
    ```
    http://localhost:5173
    ```
@@ -214,7 +231,28 @@ npm start            # Start production server
 
 ## 🚢 Deployment
 
-The project includes GitHub Actions workflow for Azure Web Apps deployment.
+### 📚 Comprehensive Deployment Documentation
+
+This project includes complete deployment guides for multiple platforms:
+
+- **[Azure Web Apps](./docs/AZURE_DEPLOYMENT.md)** - PaaS deployment with GitHub Actions
+- **[Docker + VPS](./docs/DOCKER_VPS_DEPLOYMENT.md)** - Self-hosted on Ubuntu Pro
+- **[Architecture](./docs/ARCHITECTURE_DIAGRAMS.md)** - System diagrams and flows
+
+### 🚀 Quick Deploy
+
+**Azure Web Apps:**
+```bash
+# Setup GitHub secret AZURE_WEBAPP_PUBLISH_PROFILE
+git push origin main  # Auto-deploys via GitHub Actions
+```
+
+**Docker on VPS:**
+```bash
+docker compose up -d --build
+```
+
+See [docs/README.md](./docs/README.md) for detailed instructions.
 
 ---
 

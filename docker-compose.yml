@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  wallestars:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wallestars-control-center
+    restart: unless-stopped
+    
+    # Environment variables
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - WS_PORT=3001
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - ENABLE_COMPUTER_USE=${ENABLE_COMPUTER_USE:-false}
+      - ENABLE_ANDROID=${ENABLE_ANDROID:-false}
+      - ADB_HOST=${ADB_HOST:-localhost}
+      - ADB_PORT=${ADB_PORT:-5037}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+    
+    # Ports mapping
+    ports:
+      - "3000:3000"  # HTTP Server
+      - "3001:3001"  # WebSocket Server
+    
+    # Volume mounts
+    volumes:
+      - ./logs:/app/logs
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw  # X11 socket for Computer Use
+    
+    # Network configuration
+    networks:
+      - wallestars-network
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 512M
+    
+    # Display environment for X11
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+    
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  wallestars-network:
+    driver: bridge
