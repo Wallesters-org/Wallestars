@@ -1,0 +1,129 @@
+name: Deploy to Hostinger VPS
+
+on:
+  push:
+    branches:
+      - main
+      - production
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: false
+        default: 'main'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy to VPS
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+      
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+      
+      - name: Add VPS to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H 72.61.154.188 >> ~/.ssh/known_hosts
+          ssh-keyscan -H srv1201204.hstgr.cloud >> ~/.ssh/known_hosts
+      
+      - name: Test SSH Connection
+        run: |
+          ssh -o StrictHostKeyChecking=no root@72.61.154.188 'echo "SSH connection successful"'
+      
+      - name: Pull latest changes on VPS
+        run: |
+          ssh root@72.61.154.188 << 'ENDSSH'
+            set -e
+            cd /opt/wallestars || exit 1
+            
+            echo "📥 Pulling latest changes..."
+            git fetch origin
+            git checkout ${{ github.event.inputs.branch || 'main' }}
+            git pull origin ${{ github.event.inputs.branch || 'main' }}
+            
+            echo "✅ Code updated successfully"
+          ENDSSH
+      
+      - name: Update Docker containers
+        run: |
+          ssh root@72.61.154.188 << 'ENDSSH'
+            set -e
+            cd /opt/wallestars
+            
+            echo "🐋 Updating Docker containers..."
+            docker-compose pull
+            docker-compose up -d --build
+            
+            echo "✅ Containers updated"
+          ENDSSH
+      
+      - name: Health check
+        run: |
+          ssh root@72.61.154.188 << 'ENDSSH'
+            set -e
+            
+            echo "🏥 Running health check..."
+            sleep 10  # Wait for services to start
+            
+            # Check n8n
+            if docker ps | grep -q n8n; then
+              echo "✅ n8n is running"
+            else
+              echo "❌ n8n is not running"
+              exit 1
+            fi
+            
+            # Check postgres
+            if docker ps | grep -q postgres; then
+              echo "✅ PostgreSQL is running"
+            else
+              echo "❌ PostgreSQL is not running"
+              exit 1
+            fi
+            
+            echo "✅ All services healthy"
+          ENDSSH
+      
+      - name: Verify n8n endpoint
+        run: |
+          echo "🌐 Checking n8n endpoint..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://n8n.srv1201204.hstgr.cloud/healthz || echo "000")
+          
+          if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "302" ]; then
+            echo "✅ n8n endpoint is accessible (HTTP $HTTP_CODE)"
+          else
+            echo "⚠️ n8n endpoint returned HTTP $HTTP_CODE"
+          fi
+      
+      - name: Send notification
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            STATUS_EMOJI="✅"
+            STATUS_TEXT="succeeded"
+          else
+            STATUS_EMOJI="❌"
+            STATUS_TEXT="failed"
+          fi
+          
+          echo "$STATUS_EMOJI Deployment $STATUS_TEXT"
+          echo "Branch: ${{ github.event.inputs.branch || github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Actor: ${{ github.actor }}"
+      
+      - name: Cleanup old Docker images
+        if: success()
+        run: |
+          ssh root@72.61.154.188 << 'ENDSSH'
+            echo "🧹 Cleaning up old Docker images..."
+            docker image prune -af --filter "until=72h"
+            echo "✅ Cleanup complete"
+          ENDSSH

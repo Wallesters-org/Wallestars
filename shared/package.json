@@ -1,0 +1,20 @@
+{
+  "name": "@wallestars/shared",
+  "version": "1.0.0",
+  "description": "Shared utilities and integrations for Wallestars platform",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "keywords": [
+    "shared",
+    "utilities",
+    "integrations"
+  ],
+  "author": "Wallesters-org",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  }
+}
