@@ -39,7 +39,22 @@ export default function QRScanner() {
   // Save scans to localStorage whenever they change
   useEffect(() => {
     if (scans.length > 0) {
-      localStorage.setItem('qr_scans', JSON.stringify(scans));
+      try {
+        // Check localStorage size and warn if getting full
+        const scanData = JSON.stringify(scans);
+        const sizeInMB = new Blob([scanData]).size / (1024 * 1024);
+        
+        if (sizeInMB > 4) {
+          console.warn('localStorage approaching size limit. Consider deleting old scans.');
+        }
+        
+        localStorage.setItem('qr_scans', scanData);
+      } catch (e) {
+        if (e.name === 'QuotaExceededError') {
+          showError('Storage limit reached. Please delete some scans.');
+          console.error('localStorage quota exceeded:', e);
+        }
+      }
     }
   }, [scans]);
 
@@ -70,8 +85,16 @@ export default function QRScanner() {
   };
 
   const handleFileUpload = async (file) => {
+    // File size limit: 10MB
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    
     if (!file.type.startsWith('image/')) {
       showError('Please upload an image file');
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      showError('File size exceeds 10MB limit');
       return;
     }
 
@@ -114,7 +137,10 @@ export default function QRScanner() {
 
   const analyzeImage = async (base64Image, filename) => {
     try {
-      const response = await fetch('http://localhost:3001/api/claude/vision', {
+      // Use environment variable or default to localhost
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      
+      const response = await fetch(`${apiUrl}/api/claude/vision`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
