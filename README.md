@@ -8,12 +8,14 @@
 [![Claude AI](https://img.shields.io/badge/Claude-Sonnet_4.5-8b5cf6?style=flat-square)](https://anthropic.com/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-orange?style=flat-square)](MCP_SETUP.md)
+[![VPS Ready](https://img.shields.io/badge/Hostinger-VPS_Ready-purple?style=flat-square)](DEPLOYMENT_HOSTINGER.md)
+[![n8n](https://img.shields.io/badge/n8n-Integration-pink?style=flat-square)](N8N_INTEGRATION.md)
 
 **Professional platform for Claude AI automation on Linux and Android**
 
-*Beautiful real-time visualization • Computer Use • Device Control • MCP Support*
+*Beautiful real-time visualization • Computer Use • Device Control • MCP Support • VPS Ready • n8n Integration*
 
-[Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [MCP Setup](#-mcp-model-context-protocol)
+[Features](#-features) • [Installation](#-installation) • [VPS Deployment](#-deployment) • [n8n Integration](#-n8n-workflow-automation) • [MCP Setup](#-mcp-model-context-protocol)
 
 </div>
 
@@ -214,7 +216,115 @@ npm start            # Start production server
 
 ## 🚢 Deployment
 
+### Hostinger VPS Deployment
+
+Deploy Wallestars to a Hostinger VPS with one command:
+
+```bash
+wget -O - https://raw.githubusercontent.com/Wallesters-org/Wallestars/main/deploy-vps.sh | bash
+```
+
+Or manually:
+
+```bash
+git clone https://github.com/Wallesters-org/Wallestars.git
+cd Wallestars
+chmod +x deploy-vps.sh
+./deploy-vps.sh
+```
+
+The script will:
+- ✅ Install Node.js 20.x and dependencies
+- ✅ Build and configure Wallestars
+- ✅ Setup PM2 process manager
+- ✅ Optionally install n8n automation
+- ✅ Configure firewall and Nginx
+- ✅ Setup SSL with Let's Encrypt
+
+**📚 Full Guide**: [DEPLOYMENT_HOSTINGER.md](DEPLOYMENT_HOSTINGER.md)  
+**⚡ Quick Start**: [QUICKSTART_VPS.md](QUICKSTART_VPS.md)
+
+### Docker Deployment
+
+```bash
+# Using Docker Compose
+docker-compose up -d
+
+# This will start:
+# - Wallestars Control Center (port 3000)
+# - n8n Automation Platform (port 5678)
+# - Optional: Nginx reverse proxy (ports 80/443)
+```
+
+### Azure Web Apps
+
 The project includes GitHub Actions workflow for Azure Web Apps deployment.
+
+---
+
+## 🔗 n8n Workflow Automation
+
+Integrate Wallestars with **n8n** to create powerful automation workflows:
+
+- 🤖 **Automate Claude AI** - Schedule AI interactions
+- 📸 **Scheduled Screenshots** - Capture desktop periodically
+- 🔄 **Multi-Service Integration** - Connect with 100+ apps
+- 📊 **Build Dashboards** - Monitor system metrics
+- ⚡ **Event-Driven Actions** - React to external triggers
+
+### Quick n8n Setup
+
+1. **Install n8n**:
+   ```bash
+   npm install -g n8n
+   pm2 start n8n --name "n8n"
+   ```
+
+2. **Access n8n**: Open `http://localhost:5678`
+
+3. **Create Workflow**: Add HTTP Request node to Wallestars API
+   - URL: `http://localhost:3000/api/computer/screenshot`
+   - Method: GET
+
+4. **Use Claude Console**: Connect to [https://console.anthropic.com/claude-code](https://console.anthropic.com/claude-code)
+
+**📚 Complete Guide**: [N8N_INTEGRATION.md](N8N_INTEGRATION.md)
+
+### Example n8n Workflows
+
+- **Screenshot Bot**: Capture desktop every hour → Save to Google Drive
+- **Claude Webhook**: Expose Claude AI via webhook for external apps
+- **System Monitor**: Check system health → Alert via Slack/Email
+- **Automation Chain**: Click → Type → Wait → Verify with AI
+
+---
+
+## 📚 Documentation
+
+### Quick Start
+- **[QUICKSTART.md](QUICKSTART.md)** - 5-minute local setup
+- **[QUICKSTART_VPS.md](QUICKSTART_VPS.md)** - VPS deployment quick reference
+
+### Deployment
+- **[DEPLOYMENT_HOSTINGER.md](DEPLOYMENT_HOSTINGER.md)** - Complete VPS deployment guide
+- **[INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md)** - Full integration overview (Claude + VPS + n8n)
+- **[docker-compose.yml](docker-compose.yml)** - Docker deployment
+
+### Integration & Automation
+- **[N8N_INTEGRATION.md](N8N_INTEGRATION.md)** - n8n workflow automation
+- **[MCP_SETUP.md](MCP_SETUP.md)** - Claude Desktop integration
+- **[MCP_INTEGRATION_SUMMARY.md](MCP_INTEGRATION_SUMMARY.md)** - MCP features overview
+
+### Architecture & Development
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture
+- **[PROMPT_GENERATOR_DOCS.md](PROMPT_GENERATOR_DOCS.md)** - Prompt generator guide
+- **[HOW_TO_USE_PROMPT_GENERATOR.md](HOW_TO_USE_PROMPT_GENERATOR.md)** - Usage instructions
+
+### Configuration Examples
+- **[.env.example](.env.example)** - Environment variables template
+- **[claude_desktop_config.json.example](claude_desktop_config.json.example)** - Claude Desktop config
+- **[n8n-workflows.json](n8n-workflows.json)** - Ready-to-use n8n workflows
+- **[nginx/wallestars.conf](nginx/wallestars.conf)** - Nginx configuration
 
 ---
 
