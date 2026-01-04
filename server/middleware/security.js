@@ -1,4 +1,7 @@
 import helmet from 'helmet';
+import createDOMPurify from 'isomorphic-dompurify';
+
+const DOMPurify = createDOMPurify();
 
 // Security middleware configuration
 export const securityMiddleware = helmet({
@@ -56,19 +59,28 @@ export const securityMiddleware = helmet({
 
 // Input sanitization middleware
 export const sanitizeInput = (req, res, next) => {
-  // Sanitize common injection patterns
+  // Sanitize strings using DOMPurify
   const sanitize = (obj) => {
     if (typeof obj === 'string') {
-      // Remove potential script tags
-      return obj
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-        .replace(/javascript:/gi, '')
-        .replace(/on\w+\s*=/gi, ''); // Remove event handlers
+      // Use DOMPurify to clean HTML and remove dangerous content
+      // RETURN_DOM_FRAGMENT: false to return a string
+      // ALLOWED_TAGS: [] to strip all HTML tags
+      return DOMPurify.sanitize(obj, { 
+        ALLOWED_TAGS: [], 
+        ALLOWED_ATTR: [],
+        RETURN_DOM: false,
+        RETURN_DOM_FRAGMENT: false
+      });
+    }
+    if (Array.isArray(obj)) {
+      return obj.map(item => sanitize(item));
     }
     if (typeof obj === 'object' && obj !== null) {
+      const sanitized = {};
       Object.keys(obj).forEach(key => {
-        obj[key] = sanitize(obj[key]);
+        sanitized[key] = sanitize(obj[key]);
       });
+      return sanitized;
     }
     return obj;
   };
