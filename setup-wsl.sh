@@ -64,8 +64,9 @@ fi
 # Windows user detection
 echo "Detecting Windows username..."
 if [ -d "/mnt/c/Users" ]; then
-    # Try to find Windows username
-    WIN_USERS=($(ls /mnt/c/Users/ | grep -v -E "Public|Default|All Users|desktop.ini"))
+    # Try to find Windows username, excluding system directories
+    # Using proper quoting for directories with spaces
+    WIN_USERS=($(ls /mnt/c/Users/ | grep -v -E "^(Public|Default|All Users|Default User|desktop\.ini)$"))
     if [ ${#WIN_USERS[@]} -eq 1 ]; then
         WIN_USER="${WIN_USERS[0]}"
         echo "✅ Windows username detected: $WIN_USER"
@@ -122,8 +123,11 @@ if [ -f "$CLAUDE_CONFIG_FILE" ]; then
     echo ""
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         BACKUP_FILE="${CLAUDE_CONFIG_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
-        cp "$CLAUDE_CONFIG_FILE" "$BACKUP_FILE"
-        echo "✅ Backup created: $BACKUP_FILE"
+        if cp "$CLAUDE_CONFIG_FILE" "$BACKUP_FILE" 2>/dev/null; then
+            echo "✅ Backup created: $BACKUP_FILE"
+        else
+            echo "⚠️  Failed to create backup, but continuing..."
+        fi
         echo ""
     fi
 fi
@@ -146,20 +150,39 @@ if [ ${#MISSING_DEPS[@]} -gt 0 ]; then
     read -p "Would you like to install them now? (y/n) " -n 1 -r
     echo ""
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        sudo apt update
+        echo "Updating package list..."
+        if ! sudo apt update; then
+            echo "❌ Failed to update package list. Please check your network connection."
+            exit 1
+        fi
         
+        INSTALL_FAILED=()
         for dep in "${MISSING_DEPS[@]}"; do
             if [ "$dep" = "nodejs" ]; then
                 echo "Installing Node.js 20.x..."
-                curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-                sudo apt install -y nodejs
+                if curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt install -y nodejs; then
+                    echo "✅ Node.js installed successfully"
+                else
+                    echo "❌ Failed to install Node.js"
+                    INSTALL_FAILED+=("nodejs")
+                fi
             else
                 echo "Installing $dep..."
-                sudo apt install -y "$dep"
+                if sudo apt install -y "$dep"; then
+                    echo "✅ $dep installed successfully"
+                else
+                    echo "❌ Failed to install $dep"
+                    INSTALL_FAILED+=("$dep")
+                fi
             fi
         done
         
-        echo "✅ Dependencies installed"
+        if [ ${#INSTALL_FAILED[@]} -eq 0 ]; then
+            echo "✅ All dependencies installed successfully"
+        else
+            echo "⚠️  Some dependencies failed to install: ${INSTALL_FAILED[*]}"
+            echo "   Please install them manually before running Wallestars"
+        fi
         echo ""
     else
         echo "⚠️  Warning: Missing dependencies may cause issues"
@@ -177,7 +200,8 @@ read -p "Enter your Anthropic API Key (or press Enter to use .env file): " API_K
 
 if [ -z "$API_KEY" ]; then
     if [ -f "$WALLESTARS_PATH/.env" ]; then
-        # Extract API key from .env file
+        # Extract API key from .env file and remove surrounding quotes
+        # First get the value after '=', then strip leading/trailing quotes (both single and double)
         API_KEY=$(grep "^ANTHROPIC_API_KEY=" "$WALLESTARS_PATH/.env" | cut -d '=' -f2- | sed 's/^["'"'"']//' | sed 's/["'"'"']$//')
         if [ -n "$API_KEY" ]; then
             echo "✅ Using API key from .env file"
@@ -284,8 +308,13 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "🪟 WSL-Specific Information"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
+
+# Detect actual WSL distribution name
+WSL_DISTRO=$(cat /etc/os-release | grep '^ID=' | cut -d'=' -f2 | tr -d '"')
+WSL_DISTRO_NAME=$(wsl.exe -l -q 2>/dev/null | grep -i "$WSL_DISTRO" | head -1 | tr -d '\r' || echo "Ubuntu")
+
 echo "Accessing project from Windows:"
-echo "  File Explorer: \\\\wsl.localhost\\Ubuntu$WSL_HOME\\Wallestars"
+echo "  File Explorer: \\\\wsl.localhost\\$WSL_DISTRO_NAME$WSL_HOME\\Wallestars"
 echo "  VS Code: code $WALLESTARS_PATH"
 echo ""
 echo "Starting server manually:"
