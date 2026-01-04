@@ -201,8 +201,14 @@ read -p "Enter your Anthropic API Key (or press Enter to use .env file): " API_K
 if [ -z "$API_KEY" ]; then
     if [ -f "$WALLESTARS_PATH/.env" ]; then
         # Extract API key from .env file and remove surrounding quotes
-        # First get the value after '=', then strip leading/trailing quotes (both single and double)
-        API_KEY=$(grep "^ANTHROPIC_API_KEY=" "$WALLESTARS_PATH/.env" | cut -d '=' -f2- | sed 's/^["'"'"']//' | sed 's/["'"'"']$//')
+        # Step 1: Get line with ANTHROPIC_API_KEY=
+        # Step 2: Get everything after '=' (handles values with = in them)
+        # Step 3: Remove leading quote (single or double)
+        # Step 4: Remove trailing quote (single or double)
+        API_KEY=$(grep "^ANTHROPIC_API_KEY=" "$WALLESTARS_PATH/.env" | \
+                  cut -d '=' -f2- | \
+                  sed 's/^["'"'"']//' | \
+                  sed 's/["'"'"']$//')
         if [ -n "$API_KEY" ]; then
             echo "✅ Using API key from .env file"
         else
@@ -310,7 +316,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # Detect actual WSL distribution name
-WSL_DISTRO=$(cat /etc/os-release | grep '^ID=' | cut -d'=' -f2 | tr -d '"')
+WSL_DISTRO=$(grep '^ID=' /etc/os-release | cut -d'=' -f2 | tr -d '"')
 WSL_DISTRO_NAME=$(wsl.exe -l -q 2>/dev/null | grep -i "$WSL_DISTRO" | head -1 | tr -d '\r' || echo "Ubuntu")
 
 echo "Accessing project from Windows:"
