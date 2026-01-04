@@ -22,9 +22,9 @@ This repository contains **Wallestars Control Center**, a professional platform 
 ### Technology Stack
 
 **Frontend:**
-- React 18.2 with Vite 5.x
+- React 18.2 with Vite 5.0
 - Tailwind CSS 3.4 for styling
-- Framer Motion for animations
+- Framer Motion 11.0 for animations
 
 **Backend:**
 - Express.js REST API
@@ -382,7 +382,28 @@ export default router;
    };
    ```
 
-3. **Handle responses with error states**
+3. **Handle responses with error states**:
+   ```jsx
+   const [loading, setLoading] = useState(false);
+   const [error, setError] = useState(null);
+   
+   const handleAIRequest = async () => {
+     try {
+       setLoading(true);
+       setError(null);
+       const result = await callAIFeature(prompt);
+       // Handle success
+     } catch (err) {
+       setError(err.message);
+     } finally {
+       setLoading(false);
+     }
+   };
+   
+   // In render:
+   {loading && <LoadingSpinner />}
+   {error && <ErrorMessage message={error} />}
+   ```
 
 ### Adding MCP Tools
 
