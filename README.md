@@ -214,7 +214,86 @@ npm start            # Start production server
 
 ## 🚢 Deployment
 
+### Hostinger VPS Deployment
+
+Deploy Wallestars to a Hostinger VPS with one command:
+
+```bash
+wget -O - https://raw.githubusercontent.com/Wallesters-org/Wallestars/main/deploy-vps.sh | bash
+```
+
+Or manually:
+
+```bash
+git clone https://github.com/Wallesters-org/Wallestars.git
+cd Wallestars
+chmod +x deploy-vps.sh
+./deploy-vps.sh
+```
+
+The script will:
+- ✅ Install Node.js 20.x and dependencies
+- ✅ Build and configure Wallestars
+- ✅ Setup PM2 process manager
+- ✅ Optionally install n8n automation
+- ✅ Configure firewall and Nginx
+- ✅ Setup SSL with Let's Encrypt
+
+**📚 Full Guide**: [DEPLOYMENT_HOSTINGER.md](DEPLOYMENT_HOSTINGER.md)  
+**⚡ Quick Start**: [QUICKSTART_VPS.md](QUICKSTART_VPS.md)
+
+### Docker Deployment
+
+```bash
+# Using Docker Compose
+docker-compose up -d
+
+# This will start:
+# - Wallestars Control Center (port 3000)
+# - n8n Automation Platform (port 5678)
+# - Optional: Nginx reverse proxy (ports 80/443)
+```
+
+### Azure Web Apps
+
 The project includes GitHub Actions workflow for Azure Web Apps deployment.
+
+---
+
+## 🔗 n8n Workflow Automation
+
+Integrate Wallestars with **n8n** to create powerful automation workflows:
+
+- 🤖 **Automate Claude AI** - Schedule AI interactions
+- 📸 **Scheduled Screenshots** - Capture desktop periodically
+- 🔄 **Multi-Service Integration** - Connect with 100+ apps
+- 📊 **Build Dashboards** - Monitor system metrics
+- ⚡ **Event-Driven Actions** - React to external triggers
+
+### Quick n8n Setup
+
+1. **Install n8n**:
+   ```bash
+   npm install -g n8n
+   pm2 start n8n --name "n8n"
+   ```
+
+2. **Access n8n**: Open `http://localhost:5678`
+
+3. **Create Workflow**: Add HTTP Request node to Wallestars API
+   - URL: `http://localhost:3000/api/computer/screenshot`
+   - Method: GET
+
+4. **Use Claude Console**: Connect to [https://console.anthropic.com/claude-code](https://console.anthropic.com/claude-code)
+
+**📚 Complete Guide**: [N8N_INTEGRATION.md](N8N_INTEGRATION.md)
+
+### Example n8n Workflows
+
+- **Screenshot Bot**: Capture desktop every hour → Save to Google Drive
+- **Claude Webhook**: Expose Claude AI via webhook for external apps
+- **System Monitor**: Check system health → Alert via Slack/Email
+- **Automation Chain**: Click → Type → Wait → Verify with AI
 
 ---
 

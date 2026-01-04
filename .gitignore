@@ -8,6 +8,7 @@ pnpm-lock.yaml
 .env
 .env.local
 .env.production
+.env.*.local
 
 # Claude Desktop config (keep examples, ignore actual configs)
 claude_desktop_config.json
@@ -24,6 +25,12 @@ logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# PM2
+.pm2/
+pids/
+*.pid
+*.seed
 
 # OS files
 .DS_Store
@@ -46,3 +53,17 @@ screenshots/
 *.jpg
 !public/*.png
 !public/*.jpg
+
+# VPS & Deployment
+nginx/ssl/
+nginx/conf.d/*.local
+*.key
+*.pem
+*.crt
+*.csr
+backup/
+.htpasswd
+
+# n8n data
+.n8n/
+n8n_data/

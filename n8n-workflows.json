@@ -1,0 +1,423 @@
+{
+  "name": "Wallestars n8n Workflow Examples",
+  "version": "1.0.0",
+  "description": "Ready-to-use n8n workflows for Wallestars Control Center integration",
+  "workflows": [
+    {
+      "name": "Screenshot Capture & Save",
+      "description": "Capture screenshot every hour and save to Google Drive",
+      "trigger": "Schedule",
+      "nodes": [
+        {
+          "type": "Schedule Trigger",
+          "config": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "hours",
+                  "hoursInterval": 1
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "HTTP Request",
+          "name": "Get Screenshot",
+          "config": {
+            "method": "GET",
+            "url": "http://localhost:3000/api/computer/screenshot",
+            "responseFormat": "json"
+          }
+        },
+        {
+          "type": "Code",
+          "name": "Process Base64",
+          "code": "const base64Data = $json.screenshot;\nconst binaryData = Buffer.from(base64Data, 'base64');\nconst fileName = `screenshot-${new Date().toISOString()}.png`;\n\nreturn {\n  json: {\n    fileName: fileName,\n    timestamp: new Date().toISOString()\n  },\n  binary: {\n    data: binaryData,\n    mimeType: 'image/png',\n    fileName: fileName\n  }\n};"
+        },
+        {
+          "type": "Google Drive",
+          "name": "Upload to Drive",
+          "config": {
+            "operation": "upload",
+            "folderId": "YOUR_FOLDER_ID",
+            "fileName": "={{$json.fileName}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Claude Chat Webhook",
+      "description": "Expose webhook endpoint to chat with Claude AI",
+      "trigger": "Webhook",
+      "nodes": [
+        {
+          "type": "Webhook",
+          "config": {
+            "httpMethod": "POST",
+            "path": "claude-chat",
+            "responseMode": "responseNode"
+          }
+        },
+        {
+          "type": "HTTP Request",
+          "name": "Chat with Claude",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:3000/api/claude/chat",
+            "sendBody": true,
+            "bodyParameters": {
+              "message": "={{$json.body.message}}",
+              "conversationHistory": "={{$json.body.conversationHistory || []}}"
+            },
+            "options": {
+              "response": {
+                "fullResponse": false,
+                "responseFormat": "json"
+              }
+            }
+          }
+        },
+        {
+          "type": "Respond to Webhook",
+          "config": {
+            "respondWith": "json",
+            "responseBody": "={{$json}}"
+          }
+        }
+      ],
+      "testCurl": "curl -X POST https://your-n8n-url/webhook/claude-chat -H 'Content-Type: application/json' -d '{\"message\": \"Hello Claude!\"}'"
+    },
+    {
+      "name": "System Monitor with AI Analysis",
+      "description": "Monitor system health every 15 minutes, let Claude analyze and alert on issues",
+      "trigger": "Schedule",
+      "nodes": [
+        {
+          "type": "Schedule Trigger",
+          "config": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "minutes",
+                  "minutesInterval": 15
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "HTTP Request",
+          "name": "Get System Info",
+          "config": {
+            "method": "GET",
+            "url": "http://localhost:3000/api/computer/info",
+            "responseFormat": "json"
+          }
+        },
+        {
+          "type": "HTTP Request",
+          "name": "Get Screenshot",
+          "config": {
+            "method": "GET",
+            "url": "http://localhost:3000/api/computer/screenshot",
+            "responseFormat": "json"
+          }
+        },
+        {
+          "type": "Code",
+          "name": "Merge Data",
+          "code": "return {\n  systemInfo: $node['Get System Info'].json,\n  hasScreenshot: !!$node['Get Screenshot'].json.screenshot,\n  timestamp: new Date().toISOString()\n};"
+        },
+        {
+          "type": "HTTP Request",
+          "name": "Ask Claude to Analyze",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:3000/api/claude/chat",
+            "sendBody": true,
+            "bodyParameters": {
+              "message": "Analyze this system state and alert if anything looks wrong: Memory: {{$json.systemInfo.memory.free}}/{{$json.systemInfo.memory.total}}, Uptime: {{$json.systemInfo.uptime}}s. Reply with 'OK' if everything is fine, or describe the issue.",
+              "conversationHistory": []
+            }
+          }
+        },
+        {
+          "type": "IF",
+          "name": "Check for Issues",
+          "config": {
+            "conditions": {
+              "string": [
+                {
+                  "value1": "={{$json.response}}",
+                  "operation": "notContains",
+                  "value2": "OK"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Send Email",
+          "name": "Alert Admin",
+          "config": {
+            "fromEmail": "alerts@your-domain.com",
+            "toEmail": "admin@your-domain.com",
+            "subject": "🚨 System Issue Detected",
+            "text": "Claude AI detected an issue:\n\n{{$json.response}}\n\nTimestamp: {{$json.timestamp}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Slack Command Integration",
+      "description": "Control computer from Slack with /screenshot, /click, /ask commands",
+      "trigger": "Webhook",
+      "nodes": [
+        {
+          "type": "Webhook",
+          "name": "Slack Command",
+          "config": {
+            "httpMethod": "POST",
+            "path": "slack-command",
+            "responseMode": "responseNode"
+          }
+        },
+        {
+          "type": "Code",
+          "name": "Parse Command",
+          "code": "const command = $json.body.command;\nconst text = $json.body.text;\n\nreturn {\n  command: command,\n  args: text.split(' '),\n  fullText: text,\n  userId: $json.body.user_id,\n  channelId: $json.body.channel_id\n};"
+        },
+        {
+          "type": "Switch",
+          "name": "Route Command",
+          "config": {
+            "rules": [
+              {
+                "operation": "equal",
+                "value": "/screenshot"
+              },
+              {
+                "operation": "equal",
+                "value": "/click"
+              },
+              {
+                "operation": "equal",
+                "value": "/ask"
+              }
+            ]
+          }
+        },
+        {
+          "type": "HTTP Request",
+          "name": "Take Screenshot",
+          "config": {
+            "method": "GET",
+            "url": "http://localhost:3000/api/computer/screenshot"
+          }
+        },
+        {
+          "type": "HTTP Request",
+          "name": "Click Mouse",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:3000/api/computer/click",
+            "sendBody": true,
+            "bodyParameters": {
+              "x": "={{$json.args[0]}}",
+              "y": "={{$json.args[1]}}"
+            }
+          }
+        },
+        {
+          "type": "HTTP Request",
+          "name": "Ask Claude",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:3000/api/claude/chat",
+            "sendBody": true,
+            "bodyParameters": {
+              "message": "={{$json.fullText}}",
+              "conversationHistory": []
+            }
+          }
+        },
+        {
+          "type": "Respond to Webhook",
+          "config": {
+            "respondWith": "text",
+            "responseBody": "={{$json.response || 'Command executed successfully'}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Automated Desktop Testing",
+      "description": "Perform automated UI testing with screenshots at each step",
+      "trigger": "Manual/Webhook",
+      "nodes": [
+        {
+          "type": "Manual Trigger"
+        },
+        {
+          "type": "HTTP Request",
+          "name": "Screenshot - Before",
+          "config": {
+            "method": "GET",
+            "url": "http://localhost:3000/api/computer/screenshot"
+          }
+        },
+        {
+          "type": "HTTP Request",
+          "name": "Click Action",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:3000/api/computer/click",
+            "sendBody": true,
+            "bodyParameters": {
+              "x": 500,
+              "y": 300
+            }
+          }
+        },
+        {
+          "type": "Wait",
+          "config": {
+            "amount": 2,
+            "unit": "seconds"
+          }
+        },
+        {
+          "type": "HTTP Request",
+          "name": "Type Text",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:3000/api/computer/type",
+            "sendBody": true,
+            "bodyParameters": {
+              "text": "Test input"
+            }
+          }
+        },
+        {
+          "type": "Wait",
+          "config": {
+            "amount": 1,
+            "unit": "seconds"
+          }
+        },
+        {
+          "type": "HTTP Request",
+          "name": "Screenshot - After",
+          "config": {
+            "method": "GET",
+            "url": "http://localhost:3000/api/computer/screenshot"
+          }
+        },
+        {
+          "type": "HTTP Request",
+          "name": "Ask Claude to Verify",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:3000/api/claude/chat",
+            "sendBody": true,
+            "bodyParameters": {
+              "message": "Compare these two screenshots. Did the action succeed? What changed?",
+              "conversationHistory": []
+            }
+          }
+        },
+        {
+          "type": "Send Email",
+          "name": "Send Test Report",
+          "config": {
+            "subject": "Automated Test Results",
+            "text": "Test completed. Claude's analysis:\n\n{{$json.response}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Multi-Service Workflow",
+      "description": "Combine Wallestars with Telegram, Database, and Notifications",
+      "trigger": "Telegram Bot",
+      "nodes": [
+        {
+          "type": "Telegram Trigger",
+          "config": {
+            "updates": ["message"]
+          }
+        },
+        {
+          "type": "Code",
+          "name": "Parse Command",
+          "code": "const text = $json.message.text;\nconst command = text.split(' ')[0];\nconst args = text.split(' ').slice(1);\n\nreturn {\n  command: command,\n  args: args,\n  userId: $json.message.from.id,\n  userName: $json.message.from.first_name\n};"
+        },
+        {
+          "type": "HTTP Request",
+          "name": "Execute on Wallestars",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:3000/api/claude/chat",
+            "sendBody": true,
+            "bodyParameters": {
+              "message": "={{$json.args.join(' ')}}",
+              "conversationHistory": []
+            }
+          }
+        },
+        {
+          "type": "Postgres",
+          "name": "Log to Database",
+          "config": {
+            "operation": "insert",
+            "table": "command_logs",
+            "columns": "user_id,command,response,timestamp"
+          }
+        },
+        {
+          "type": "Telegram",
+          "name": "Reply to User",
+          "config": {
+            "operation": "sendMessage",
+            "chatId": "={{$json.userId}}",
+            "text": "={{$node['Execute on Wallestars'].json.response}}"
+          }
+        },
+        {
+          "type": "Google Sheets",
+          "name": "Log to Sheet",
+          "config": {
+            "operation": "append",
+            "sheetId": "YOUR_SHEET_ID",
+            "range": "Logs!A:D"
+          }
+        },
+        {
+          "type": "Discord",
+          "name": "Notify Discord",
+          "config": {
+            "webhookUrl": "YOUR_DISCORD_WEBHOOK",
+            "text": "Command executed by {{$json.userName}}"
+          }
+        }
+      ]
+    }
+  ],
+  "setup_instructions": {
+    "step1": "Import these workflows into n8n",
+    "step2": "Replace placeholder values (YOUR_FOLDER_ID, YOUR_SHEET_ID, etc.)",
+    "step3": "Configure credentials for external services (Google Drive, Email, etc.)",
+    "step4": "Test each workflow individually",
+    "step5": "Activate workflows you want to use"
+  },
+  "api_endpoints": {
+    "health": "GET http://localhost:3000/api/health",
+    "claude_chat": "POST http://localhost:3000/api/claude/chat",
+    "screenshot": "GET http://localhost:3000/api/computer/screenshot",
+    "click": "POST http://localhost:3000/api/computer/click",
+    "type": "POST http://localhost:3000/api/computer/type",
+    "system_info": "GET http://localhost:3000/api/computer/info"
+  },
+  "notes": "Replace 'localhost' with your VPS IP or domain when deploying to production"
+}
