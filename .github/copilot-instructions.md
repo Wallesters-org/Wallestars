@@ -108,6 +108,11 @@ export default function MyComponent({ title, onAction }) {
   const [data, setData] = useState(null);
   
   useEffect(() => {
+    const fetchData = async () => {
+      const response = await fetch('/api/data');
+      const result = await response.json();
+      setData(result);
+    };
     fetchData();
   }, []);
   
@@ -118,6 +123,7 @@ export default function MyComponent({ title, onAction }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <h1>{title}</h1>
+      <button onClick={handleClick}>Action</button>
     </motion.div>
   );
 }
