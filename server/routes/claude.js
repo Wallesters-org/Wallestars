@@ -119,4 +119,70 @@ router.get('/capabilities', (req, res) => {
   });
 });
 
+// Vision API - Analyze images
+router.post('/vision', async (req, res) => {
+  try {
+    const { image, prompt } = req.body;
+
+    if (!image) {
+      return res.status(400).json({
+        success: false,
+        error: 'Image data is required'
+      });
+    }
+
+    // Extract base64 data if it includes data URL prefix
+    let base64Data = image;
+    if (image.startsWith('data:')) {
+      base64Data = image.split(',')[1];
+    }
+
+    // Determine media type from data URL or default to jpeg
+    let mediaType = 'image/jpeg';
+    if (image.startsWith('data:image/png')) {
+      mediaType = 'image/png';
+    } else if (image.startsWith('data:image/gif')) {
+      mediaType = 'image/gif';
+    } else if (image.startsWith('data:image/webp')) {
+      mediaType = 'image/webp';
+    }
+
+    const messages = [{
+      role: 'user',
+      content: [
+        {
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: mediaType,
+            data: base64Data,
+          },
+        },
+        {
+          type: 'text',
+          text: prompt || 'Please analyze this image and provide a detailed description.'
+        }
+      ]
+    }];
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 2048,
+      messages: messages,
+    });
+
+    res.json({
+      success: true,
+      analysis: response.content[0].text,
+      usage: response.usage
+    });
+  } catch (error) {
+    console.error('Vision API Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 export { router as claudeRouter };
