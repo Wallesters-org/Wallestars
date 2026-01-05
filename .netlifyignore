@@ -2,8 +2,15 @@
 node_modules
 
 # Development files
+# Ignore local/dev/test env files; production env should normally be set via Netlify UI
 .env
-.env.*
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production.local
+# Allow committed example env (documented, non-secret)
 !.env.example
 
 # Build artifacts
