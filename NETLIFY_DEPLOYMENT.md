@@ -64,11 +64,9 @@ Directory for Netlify Functions (serverless functions)
 
 5. **Add environment variables**
    - Go to Site settings → Environment variables
-   - Add:
-     ```
-     ANTHROPIC_API_KEY=your_anthropic_api_key
-     NODE_ENV=production
-     ```
+   - Add the following environment variables:
+     - `ANTHROPIC_API_KEY` = `your_anthropic_api_key`
+     - `NODE_ENV` = `production`
 
 6. **Deploy**
    - Click "Deploy site"

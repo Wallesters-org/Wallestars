@@ -240,11 +240,9 @@ The project is configured for easy deployment on Netlify:
 
 4. **Set environment variables:**
    - Go to Site settings → Environment variables
-   - Add the following:
-     ```
-     ANTHROPIC_API_KEY=your_api_key_here
-     NODE_ENV=production
-     ```
+   - Add the following environment variables:
+     - `ANTHROPIC_API_KEY` = `your_api_key_here`
+     - `NODE_ENV` = `production`
 
 5. **Deploy:**
    - Click "Deploy site"

@@ -44,7 +44,11 @@ You can deploy the frontend to Netlify while hosting the backend separately:
 
 ## Future: Netlify Functions Support
 
-If you want to add limited API functionality using Netlify Functions, create serverless function files here. Example:
+If you want to add limited API functionality using Netlify Functions, create serverless function files here. 
+
+**Note on Module Format:** Netlify Functions support both CommonJS and ES Modules (ESM). The example below uses ES Module syntax (`export`), which works with Node.js 14+ and requires `"type": "module"` in package.json (already configured in this project). Alternatively, you can use CommonJS syntax (`exports.handler = ...`).
+
+### ES Module Example (Current Project Format)
 
 ```javascript
 // netlify/functions/health.js
@@ -57,6 +61,21 @@ export async function handler(event, context) {
     })
   };
 }
+```
+
+### CommonJS Alternative
+
+```javascript
+// netlify/functions/health.js
+exports.handler = async function(event, context) {
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      status: 'healthy',
+      timestamp: new Date().toISOString()
+    })
+  };
+};
 ```
 
 Note: This would only support basic API endpoints, not the full Computer Use or Android control features.
