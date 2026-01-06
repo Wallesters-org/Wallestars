@@ -50,9 +50,14 @@ To integrate with Claude Desktop:
 
 1. Copy the `claude_desktop_config.json` to your Claude Desktop config directory:
    
-   **macOS/Linux:**
+   **macOS:**
    ```bash
    cp claude_desktop_config.json ~/Library/Application\ Support/Claude/claude_desktop_config.json
+   ```
+   
+   **Linux:**
+   ```bash
+   cp claude_desktop_config.json ~/.config/claude/claude_desktop_config.json
    ```
    
    **Windows:**
@@ -67,7 +72,7 @@ To integrate with Claude Desktop:
 ## 🔧 Configuration Details
 
 ### Features Enabled
-- ✅ Claude API (Anthropic Sonnet 4.5)
+- ✅ Claude API (Anthropic Claude 3.5 Sonnet)
 - ✅ Computer Use (Linux desktop control)
 - ❌ Android Control (disabled by default)
 
