@@ -1,8 +1,7 @@
 import express from 'express';
 import nodemailer from 'nodemailer';
-import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname } from 'path';
 
 const router = express.Router();
 const __filename = fileURLToPath(import.meta.url);

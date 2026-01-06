@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Send, Eye, Download, CheckCircle, AlertCircle } from 'lucide-react';
+import { Mail, Send, Eye, CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function EmailPreview() {
   const [emailData, setEmailData] = useState({
