@@ -131,7 +131,7 @@ Configure these in your `.env` file or in the MCP configuration:
 ### Getting an Anthropic API Key
 
 1. Sign up at [console.anthropic.com](https://console.anthropic.com)
-2. Navigate to API Keys section
+2. Navigate to [API Keys section](https://console.anthropic.com/settings/keys)
 3. Create a new API key
 4. Copy the key (starts with `sk-ant-`)
 

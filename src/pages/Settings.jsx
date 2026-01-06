@@ -76,12 +76,12 @@ export default function Settings() {
             <p className="text-xs text-dark-500 mt-2">
               Get your API key from{' '}
               <a
-                href="https://console.anthropic.com"
+                href="https://console.anthropic.com/settings/keys"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary-400 hover:underline"
               >
-                console.anthropic.com
+                console.anthropic.com/settings/keys
               </a>
             </p>
           </div>

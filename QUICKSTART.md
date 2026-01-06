@@ -5,7 +5,7 @@ Get up and running with Wallestars Model Context Protocol integration in under 5
 ## Prerequisites Checklist
 
 - [ ] Node.js 20.x or higher installed
-- [ ] Anthropic API key ([Get one](https://console.anthropic.com))
+- [ ] Anthropic API key ([Get one](https://console.anthropic.com/settings/keys))
 - [ ] Claude Desktop installed (optional, for MCP integration)
 - [ ] Linux: `xdotool` installed (`sudo apt install xdotool`)
 - [ ] Android: `adb` in PATH (if using Android control)
