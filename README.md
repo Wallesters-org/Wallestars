@@ -61,6 +61,13 @@
 - **Quick Links** - Direct access to Anthropic Console Workbench
 - **Comprehensive Templates** - Detailed specifications for AI-powered apps
 
+### 📧 Email Notifications
+- **Email Preview** - Preview email notifications before sending
+- **System Updates** - Send email notifications about system updates
+- **Configurable Templates** - Customizable email templates
+- **Test Mode** - Test email functionality with Ethereal email
+- **SMTP Support** - Full SMTP configuration for production use
+
 ### 🎨 Professional UI/UX
 - **Modern Design** - Tailwind CSS with custom components
 - **Smooth Animations** - Framer Motion for fluid transitions
@@ -154,6 +161,14 @@
 
 📚 **For detailed documentation, see [PROMPT_GENERATOR_DOCS.md](PROMPT_GENERATOR_DOCS.md)**
 
+### Email Preview
+1. Navigate to "Email Preview"
+2. Configure email details (recipient, subject, content)
+3. Add system changes or updates to notify about
+4. Click "Preview" to see how the email will look
+5. Click "Send Email" to send the notification
+6. Use "Load System Summary" for automated content generation
+
 ---
 
 ## 🔌 MCP (Model Context Protocol)
@@ -208,6 +223,7 @@ npm run server       # Start backend only
 npm run client       # Start frontend only
 npm run build        # Build for production
 npm start            # Start production server
+npm run deploy:vps   # Deploy to VPS (requires configuration)
 ```
 
 ---
@@ -262,6 +278,25 @@ netlify deploy --prod
 ```
 
 **Note:** For full functionality including Computer Use and Android Control features, consider using a VPS or dedicated server deployment, as these features require system-level access that is not available on Netlify's serverless platform.
+
+📚 **For VPS deployment instructions, see [VPS_DEPLOYMENT.md](VPS_DEPLOYMENT.md)**
+
+### VPS Deployment
+
+For full backend functionality, deploy to a VPS:
+
+```bash
+# Configure VPS settings in .env
+VPS_HOST=your.vps.host.com
+VPS_USER=your_username
+VPS_PORT=22
+VPS_PATH=/var/www/wallestars
+
+# Deploy to VPS
+npm run deploy:vps
+```
+
+📚 **For detailed VPS deployment guide, see [VPS_DEPLOYMENT.md](VPS_DEPLOYMENT.md)**
 
 ### Azure Web Apps Deployment
 

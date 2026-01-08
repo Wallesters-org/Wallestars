@@ -8,6 +8,7 @@ import ComputerControl from './pages/ComputerControl';
 import AndroidControl from './pages/AndroidControl';
 import Settings from './pages/Settings';
 import PromptGenerator from './pages/PromptGenerator';
+import EmailPreview from './pages/EmailPreview';
 import { SocketProvider } from './context/SocketContext';
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
     computer: <ComputerControl />,
     android: <AndroidControl />,
     promptgen: <PromptGenerator />,
+    email: <EmailPreview />,
     settings: <Settings />
   };
 
