@@ -11,7 +11,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "node server/index.js",
-    "test": "echo \"Tests will be added\" && exit 0"
+    "test": "echo \"Tests will be added\" && exit 0",
+    "analyze": "node scripts/analyze-repository.js"
   },
   "keywords": [
     "claude",

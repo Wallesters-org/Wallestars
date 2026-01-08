@@ -46,3 +46,6 @@ screenshots/
 *.jpg
 !public/*.png
 !public/*.jpg
+
+# Repository analysis output (optional - can be committed if desired)
+repository-analysis.json

@@ -208,7 +208,27 @@ npm run server       # Start backend only
 npm run client       # Start frontend only
 npm run build        # Build for production
 npm start            # Start production server
+npm run analyze      # Analyze and export repository structure
 ```
+
+### 📊 Repository Analysis
+
+Generate a comprehensive analysis of the repository structure:
+
+```bash
+npm run analyze
+```
+
+This will:
+- Analyze all branches, commits, and git history
+- Document all API routes and endpoints
+- List UI components and pages
+- Map WebSocket events and handlers
+- Export MCP configuration
+- Document chat system and agent sessions
+- Generate `repository-analysis.json` and `REPOSITORY_ANALYSIS.md`
+
+See [scripts/README.md](scripts/README.md) for more details.
 
 ---
 
