@@ -8,21 +8,30 @@ This directory contains tasks that can be delegated to Claude Code, Cursor agent
 
 ## 📋 Task List
 
-### Priority P1 (High) - Ready for Delegation
+### Priority P0 (Critical) - Immediate Action Required
 
 | Task | File | Status | Time |
 |------|------|--------|------|
-| 001 | ADD-TESTING-INFRASTRUCTURE | 🔴 Not Started | 2-4h |
-| 002 | CREATE-SECURITY-MD | 🔴 Not Started | 30min |
-| 003 | ADD-LICENSE-FILE | 🔴 Not Started | 5min |
-| 004 | ADD-CONTRIBUTING-MD | 🔴 Not Started | 1h |
-| 006 | SETUP-CI-CD-TESTING | 🔴 Not Started | 1-2h |
+| Security Cleanup | PR #78 | 🔴 Pending | 1h |
+| VPS Deployment | PR #87 | 🔴 Pending | 2h |
 
-### Priority P2 (Medium)
+### Priority P1 (High) - Completed ✅
+
+| Task | File | Status | Time |
+|------|------|--------|------|
+| 001 | ADD-TESTING-INFRASTRUCTURE | ✅ DONE | 00:36-00:40 |
+| 002 | CREATE-SECURITY-MD | ✅ DONE | 00:36-00:37 |
+| 003 | ADD-LICENSE-FILE | ✅ DONE | 00:36-00:37 |
+| 004 | ADD-CONTRIBUTING-MD | ✅ DONE | 00:36-00:37 |
+| 006 | SETUP-CI-CD-TESTING | ✅ DONE | 00:37-00:38 |
+
+### Priority P2 (Medium) - Pending
 
 | Task | File | Status | Time |
 |------|------|--------|------|
 | 005 | CREATE-GITHUB-TEMPLATES | 🔴 Not Started | 1h |
+| QR Scanner | PR #65 | 🔴 Not Started | 4h |
+| n8n Integration | PR #67 | 🔴 Not Started | 3h |
 
 ---
 
