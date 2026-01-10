@@ -229,7 +229,7 @@ Repository administrators should regularly check:
 - [GitHub Branch Protection Documentation](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
 - [ARCHITECTURE.md](../ARCHITECTURE.md) - Security considerations
 - [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines (if exists)
-- [CI Workflow](.github/workflows/ci.yml) - Automated checks
+- [CI Workflow](./workflows/ci.yml) - Automated checks
 
 ## Questions?
 

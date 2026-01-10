@@ -35,4 +35,3 @@ jobs:
     
     - name: Check for security vulnerabilities
       run: npm audit --audit-level=high
-      continue-on-error: true
