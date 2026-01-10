@@ -34,39 +34,109 @@
 ## ✨ Features
 
 ### 🤖 Claude AI Integration
-- **Claude Sonnet 4.5** - Latest AI model with advanced reasoning
-- **Chat Interface** - Beautiful conversational UI
-- **Computer Use** - AI-powered desktop automation
-- **Vision Capabilities** - Screenshot analysis and action planning
+- **Claude Sonnet 4.5** - Latest AI model (claude-sonnet-4-5-20250929) with advanced reasoning
+- **Chat Interface** - Beautiful conversational UI with session management
+- **Conversation History** - Maintain context across multiple messages
+- **Session Management** - Save, load, and organize chat sessions with titles and descriptions
+- **Computer Use API** - AI-powered desktop automation with vision capabilities
+- **Vision Capabilities** - Screenshot analysis and intelligent action planning
+- **Streaming Responses** - Real-time AI responses with token usage tracking
+- **REST API Endpoints** - `/api/claude/chat` and `/api/claude/computer-use`
 
 ### 🖥️ Linux Computer Use
-- **Screen Streaming** - Real-time desktop visualization
-- **Mouse Control** - Click, drag, and interact via `xdotool`
-- **Keyboard Input** - Type text and press keys
-- **System Information** - Monitor hostname, uptime, memory
-- **Safe Command Execution** - Whitelisted shell commands
+- **Screen Streaming** - Real-time desktop visualization with configurable intervals
+- **Screenshot Capture** - High-quality PNG screenshots via `screenshot-desktop`
+- **Mouse Control** - Precise click, drag, and movement via `xdotool`
+  - Left, right, and middle button clicks
+  - Coordinate-based positioning
+  - Drag operations
+- **Keyboard Input** - Type text and simulate key presses
+  - Text input with special character support
+  - Individual key events (Enter, Escape, Arrow keys, etc.)
+  - Keyboard shortcuts
+- **System Information** - Monitor hostname, OS version, uptime, memory, CPU
+- **Safe Command Execution** - Whitelisted shell commands for system control
+- **API Endpoints** - `/api/computer/screenshot`, `/api/computer/click`, `/api/computer/type`, `/api/computer/key`, `/api/computer/info`, `/api/computer/execute`
 
-### 📱 Android Control
-- **ADB Integration** - Control devices via Android Debug Bridge
-- **Screenshot Capture** - View device screen in real-time
-- **Touch Simulation** - Tap, swipe, and interact
-- **Text Input** - Type on device keyboard
-- **Navigation** - Home, Back, Power buttons
-- **Device Info** - Model, Android version, battery level
+### 📱 Android Control (ADB)
+- **ADB Integration** - Full Android Debug Bridge support
+- **Device Management** - List, select, and manage multiple connected devices
+- **Screenshot Capture** - Real-time device screen capture with base64 encoding
+- **Touch Simulation** - Precise tap and swipe gestures
+  - Coordinate-based taps
+  - Swipe gestures with customizable paths
+- **Text Input** - Type on device keyboard via ADB
+- **Navigation Controls** - Home, Back, Power, Recent Apps buttons
+- **Device Information** - Model name, Android version, battery level, screen resolution
+- **App Management** - Install APK files, launch apps, manage packages
+- **API Endpoints** - `/api/android/devices`, `/api/android/screenshot`, `/api/android/tap`, `/api/android/swipe`, `/api/android/type`, `/api/android/key`, `/api/android/info`, `/api/android/install`
 
 ### ✨ Prompt Generator
-- **Spark App Prompts** - Generate prompts for creating Spark visual applications
-- **Bilingual Support** - Available in English and Bulgarian
-- **Copy & Download** - Easy clipboard copy and markdown file export
+- **Spark App Prompts** - Generate comprehensive prompts for Spark visual applications
+- **Bilingual Support** - Full interface in English and Bulgarian
+  - Language toggle with instant switching
+  - Culturally appropriate translations
+- **Template System** - Detailed specifications for AI-powered decision-making apps
+  - Multi-input type support (URLs, files, sessions, issues)
+  - Visual presentation components (cards, charts, timelines, mind maps)
+  - Interactive decision-making buttons
+  - State management and progress tracking
+- **Copy & Download** - One-click clipboard copy and markdown file export
+  - Visual feedback with success animations
+  - Automatic filename generation
 - **Quick Links** - Direct access to Anthropic Console Workbench
-- **Comprehensive Templates** - Detailed specifications for AI-powered apps
+- **Usage Instructions** - Built-in step-by-step guide
+
+### 📊 Dashboard & Monitoring
+- **System Metrics** - Real-time statistics display
+  - Total actions counter
+  - Claude API requests tracking
+  - System uptime monitoring
+  - Success rate calculation
+- **Platform Integration** - Quick access to connected services
+  - Microsoft 365 integration showcase
+  - License management overview
+  - Application quick links
+- **Activity Logs** - Real-time event tracking and visualization
+- **Quick Actions** - One-click shortcuts for common tasks
+- **Status Indicators** - Live connection status for services
+
+### ⚙️ Settings & Configuration
+- **Environment Variables** - Comprehensive configuration management
+  - API key configuration
+  - Server port settings
+  - Feature toggles (Computer Use, Android)
+  - Performance tuning (screenshot intervals)
+- **Theme Customization** - Dark mode with glassmorphism effects
+- **System Preferences** - Customize behavior and defaults
+
+### 🔌 MCP (Model Context Protocol) Server
+- **Claude Desktop Integration** - First-class MCP server support
+- **Tool Exposure** - All Wallestars capabilities accessible via MCP
+- **JSON-RPC Protocol** - Standard MCP communication over stdio
+- **Environment Configuration** - Flexible setup via Claude Desktop config
+- **Automatic Lifecycle** - Starts/stops with Claude Desktop
+- **Security** - Localhost-only binding, controlled access
+
+### 🌐 Real-time Communication
+- **Socket.io Integration** - WebSocket-based real-time updates
+- **Live Streaming** - Desktop screen streaming at configurable intervals
+- **Event Broadcasting** - System events pushed to connected clients
+- **Connection Management** - Automatic reconnection and status tracking
+- **Multi-client Support** - Multiple browsers can connect simultaneously
 
 ### 🎨 Professional UI/UX
-- **Modern Design** - Tailwind CSS with custom components
-- **Smooth Animations** - Framer Motion for fluid transitions
-- **Responsive Layout** - Works on all screen sizes
-- **Dark Theme** - Easy on the eyes with glassmorphism effects
-- **Real-time Updates** - WebSocket for live data streaming
+- **Modern Design** - Tailwind CSS 3.4 with custom components
+- **Smooth Animations** - Framer Motion 11.0 for fluid transitions
+  - Page transitions
+  - Hover effects
+  - Loading states
+  - Success/error feedback
+- **Responsive Layout** - Optimized for all screen sizes (mobile, tablet, desktop)
+- **Dark Theme** - Eye-friendly dark mode with glassmorphism effects
+- **Accessibility** - Keyboard navigation and screen reader support
+- **Icon System** - Lucide React icons throughout
+- **Sidebar Navigation** - Collapsible menu with active page indicators
 
 ---
 
@@ -153,6 +223,262 @@
 6. Optionally download the prompt as a markdown file
 
 📚 **For detailed documentation, see [PROMPT_GENERATOR_DOCS.md](PROMPT_GENERATOR_DOCS.md)**
+
+---
+
+## 🔧 API Reference
+
+Wallestars provides a comprehensive REST API for programmatic access to all features.
+
+### Base URL
+```
+http://localhost:3000/api
+```
+
+### Claude AI Endpoints
+
+#### POST `/claude/chat`
+Chat with Claude Sonnet 4.5 model.
+
+**Request Body:**
+```json
+{
+  "message": "Hello, Claude!",
+  "conversationHistory": []
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "response": "Hello! How can I help you?",
+  "usage": {
+    "input_tokens": 10,
+    "output_tokens": 15
+  },
+  "conversationHistory": [...]
+}
+```
+
+#### POST `/claude/computer-use`
+Use Claude's Computer Use API for desktop automation.
+
+**Request Body:**
+```json
+{
+  "task": "Click on the Firefox icon",
+  "screenshot": "base64_encoded_image"
+}
+```
+
+### Computer Control Endpoints
+
+#### GET `/computer/screenshot`
+Capture a screenshot of the desktop.
+
+**Response:**
+```json
+{
+  "success": true,
+  "screenshot": "base64_encoded_png",
+  "timestamp": "2024-01-03T12:00:00.000Z"
+}
+```
+
+#### POST `/computer/click`
+Simulate a mouse click at specific coordinates.
+
+**Request Body:**
+```json
+{
+  "x": 500,
+  "y": 300,
+  "button": 1
+}
+```
+
+#### POST `/computer/type`
+Type text using the keyboard.
+
+**Request Body:**
+```json
+{
+  "text": "Hello, World!"
+}
+```
+
+#### POST `/computer/key`
+Press a specific keyboard key.
+
+**Request Body:**
+```json
+{
+  "key": "Return"
+}
+```
+
+#### GET `/computer/info`
+Get system information.
+
+**Response:**
+```json
+{
+  "success": true,
+  "hostname": "my-computer",
+  "platform": "linux",
+  "uptime": 123456,
+  "memory": {...}
+}
+```
+
+#### POST `/computer/execute`
+Execute a whitelisted shell command.
+
+**Request Body:**
+```json
+{
+  "command": "ls -la"
+}
+```
+
+### Android Control Endpoints
+
+#### GET `/android/devices`
+List connected Android devices.
+
+**Response:**
+```json
+{
+  "success": true,
+  "devices": [
+    {
+      "id": "emulator-5554",
+      "status": "device",
+      "info": "..."
+    }
+  ],
+  "count": 1
+}
+```
+
+#### POST `/android/screenshot`
+Capture Android device screenshot.
+
+**Request Body:**
+```json
+{
+  "deviceId": "emulator-5554"
+}
+```
+
+#### POST `/android/tap`
+Simulate a tap on the device screen.
+
+**Request Body:**
+```json
+{
+  "deviceId": "emulator-5554",
+  "x": 500,
+  "y": 300
+}
+```
+
+#### POST `/android/swipe`
+Simulate a swipe gesture.
+
+**Request Body:**
+```json
+{
+  "deviceId": "emulator-5554",
+  "x1": 500,
+  "y1": 800,
+  "x2": 500,
+  "y2": 200,
+  "duration": 300
+}
+```
+
+#### POST `/android/type`
+Type text on the device.
+
+**Request Body:**
+```json
+{
+  "deviceId": "emulator-5554",
+  "text": "Hello"
+}
+```
+
+#### POST `/android/key`
+Press a hardware key (KEYCODE_HOME, KEYCODE_BACK, etc.).
+
+**Request Body:**
+```json
+{
+  "deviceId": "emulator-5554",
+  "key": "KEYCODE_HOME"
+}
+```
+
+#### GET `/android/info`
+Get device information.
+
+**Request Body:**
+```json
+{
+  "deviceId": "emulator-5554"
+}
+```
+
+#### POST `/android/install`
+Install an APK on the device.
+
+**Request Body:**
+```json
+{
+  "deviceId": "emulator-5554",
+  "apkPath": "/path/to/app.apk"
+}
+```
+
+### Health Check
+
+#### GET `/health`
+Check server health status.
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "timestamp": "2024-01-03T12:00:00.000Z"
+}
+```
+
+### cURL Examples
+
+```bash
+# Chat with Claude
+curl -X POST http://localhost:3000/api/claude/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What is 2+2?"}'
+
+# Take screenshot
+curl http://localhost:3000/api/computer/screenshot
+
+# Click at coordinates
+curl -X POST http://localhost:3000/api/computer/click \
+  -H "Content-Type: application/json" \
+  -d '{"x": 500, "y": 300, "button": 1}'
+
+# List Android devices
+curl http://localhost:3000/api/android/devices
+
+# Tap on Android screen
+curl -X POST http://localhost:3000/api/android/tap \
+  -H "Content-Type: application/json" \
+  -d '{"deviceId": "emulator-5554", "x": 500, "y": 300}'
+```
 
 ---
 
