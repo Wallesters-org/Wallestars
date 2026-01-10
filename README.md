@@ -3,6 +3,7 @@
 <div align="center">
 
 ![Wallestars Banner](https://img.shields.io/badge/Wallestars-Control_Center-0ea5e9?style=for-the-badge)
+[![CI](https://github.com/Wallesters-org/Wallestars/actions/workflows/ci.yml/badge.svg)](https://github.com/Wallesters-org/Wallestars/actions/workflows/ci.yml)
 [![Node.js](https://img.shields.io/badge/Node.js-20.x-43853d?style=flat-square&logo=node.js)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-18.2-61dafb?style=flat-square&logo=react)](https://reactjs.org/)
 [![Claude AI](https://img.shields.io/badge/Claude-Sonnet_4.5-8b5cf6?style=flat-square)](https://anthropic.com/)
