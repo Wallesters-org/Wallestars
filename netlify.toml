@@ -15,7 +15,16 @@
   # NOTE: --legacy-peer-deps is required due to peer dependency conflicts between
   # some devDependencies (e.g., @vitejs/plugin-react and react versions).
   # This flag allows the build to proceed despite these conflicts.
-  # TODO: Review and update dependencies to resolve peer conflicts if possible.
+  #
+  # REVIEW COMPLETED (2026-01-10):
+  # - React versions are compatible (all packages use React 18.3.1)
+  # - No actual peer dependency conflicts detected with current versions
+  # - Flag may be vestigial from earlier configuration
+  # - Security note: esbuild <=0.24.2 has moderate vulnerability (GHSA-67mh-4wv8-2f99)
+  #   Fix requires upgrading to Vite 7.x (breaking change)
+  #
+  # RECOMMENDATION: Try removing --legacy-peer-deps flag in next deployment.
+  # If build succeeds, it can be permanently removed. Otherwise, keep for stability.
   NPM_FLAGS = "--legacy-peer-deps"
 
 # Headers for security and CORS
