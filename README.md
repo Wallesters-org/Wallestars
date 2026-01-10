@@ -56,7 +56,7 @@
   - Keyboard shortcuts
 - **System Information** - Monitor hostname, OS version, uptime, memory, CPU
 - **Safe Command Execution** - Whitelisted shell commands for system control
-- **API Endpoints** - `/api/computer/screenshot`, `/api/computer/click`, `/api/computer/type`, `/api/computer/key`, `/api/computer/info`, `/api/computer/execute`
+- **API Endpoints** - `/api/computer/screenshot`, `/api/computer/click`, `/api/computer/mousemove`, `/api/computer/type`, `/api/computer/key`, `/api/computer/info`, `/api/computer/execute`
 
 ### 📱 Android Control (ADB)
 - **ADB Integration** - Full Android Debug Bridge support
@@ -69,7 +69,7 @@
 - **Navigation Controls** - Home, Back, Power, Recent Apps buttons
 - **Device Information** - Model name, Android version, battery level, screen resolution
 - **App Management** - Install APK files, launch apps, manage packages
-- **API Endpoints** - `/api/android/devices`, `/api/android/screenshot`, `/api/android/tap`, `/api/android/swipe`, `/api/android/type`, `/api/android/key`, `/api/android/info`, `/api/android/install`
+- **API Endpoints** - `/api/android/devices`, `/api/android/screenshot`, `/api/android/tap`, `/api/android/swipe`, `/api/android/type`, `/api/android/key`, `/api/android/info`, `/api/android/install`, `/api/android/launch`
 
 ### ✨ Prompt Generator
 - **Spark App Prompts** - Generate comprehensive prompts for Spark visual applications
