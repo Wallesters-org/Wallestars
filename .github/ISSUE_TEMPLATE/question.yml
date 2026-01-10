@@ -1,0 +1,63 @@
+name: ❓ Question
+description: Ask a question about using Wallestars
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question about using Wallestars? We're here to help!
+        
+        **Tip:** Check our [Documentation](https://github.com/Wallesters-org/Wallestars#readme) and [Discussions](https://github.com/Wallesters-org/Wallestars/discussions) first!
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: What would you like to know?
+      placeholder: How do I...?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: topic
+    attributes:
+      label: Topic
+      description: What is your question about?
+      options:
+        - Installation & Setup
+        - Configuration
+        - Claude AI Integration
+        - Computer Use (Linux)
+        - Android Control
+        - MCP Setup
+        - Deployment
+        - Development
+        - Troubleshooting
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: What Have You Tried?
+      description: What steps have you already taken to solve this?
+      placeholder: I tried...
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any other information that might help us answer your question
+      placeholder: I'm trying to...
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have checked the documentation
+          required: true
+        - label: I have searched existing issues and discussions
+          required: true

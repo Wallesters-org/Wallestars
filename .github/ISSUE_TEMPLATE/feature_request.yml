@@ -1,0 +1,95 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to suggest a new feature! Please describe your idea in detail.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: Is your feature request related to a problem? Please describe.
+      placeholder: I'm always frustrated when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like to see implemented.
+      placeholder: I would like to see...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Solutions
+      description: Have you considered any alternative solutions or features?
+      placeholder: Alternatively, we could...
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      description: Which part of the application would this feature affect?
+      options:
+        - Dashboard
+        - Claude Chat
+        - Computer Use (Linux)
+        - Android Control
+        - Prompt Generator
+        - Settings
+        - MCP Integration
+        - Backend API
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Low - Nice to have
+        - Medium - Would improve workflow
+        - High - Critical for my use case
+    validations:
+      required: true
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples
+      description: Are there any similar features in other projects we could reference?
+      placeholder: This feature exists in...
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: Mockups or Designs
+      description: If applicable, add any mockups, wireframes, or design ideas
+      placeholder: Drag and drop images here or paste image URLs
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context or information about the feature request.
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing issues and feature requests to avoid duplicates
+          required: true
+        - label: I am willing to help implement this feature
+          required: false
