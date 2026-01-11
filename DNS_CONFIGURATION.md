@@ -89,9 +89,11 @@ TTL: 3600
 ```
 Type: CNAME
 Name: www
-Value: <username>.github.io
+Value: wallesters-org.github.io (or your-github-username.github.io)
 TTL: 3600
 ```
+
+**Note**: Replace `wallesters-org.github.io` with your actual GitHub username or organization name followed by `.github.io`
 
 ---
 
@@ -201,7 +203,7 @@ If A records are not resolving:
 
 ---
 
-**Last Updated**: January 2026  
+**Last Updated**: January 11, 2026  
 **Maintained by**: Wallestars Development Team
 
 ---
