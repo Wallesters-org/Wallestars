@@ -74,8 +74,8 @@ Translation: Accept links to AI chats, MD files, agent sessions, etc., and creat
 ## Support
 
 For more details, see:
-- `PROMPT_GENERATOR_DOCS.md` - Full technical documentation
-- `README.md` - General project documentation
+- `PROMPT_GENERATOR_DOCS.md` - Full technical documentation (in this directory)
+- `../README.md` - General project documentation
 - GitHub Issues - For questions or feature requests
 
 ---

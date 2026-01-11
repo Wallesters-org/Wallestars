@@ -152,7 +152,7 @@
 5. Paste the prompt to generate your Spark app specification
 6. Optionally download the prompt as a markdown file
 
-📚 **For detailed documentation, see [PROMPT_GENERATOR_DOCS.md](PROMPT_GENERATOR_DOCS.md)**
+📚 **For detailed documentation, see [PROMPT_GENERATOR_DOCS.md](docs/PROMPT_GENERATOR_DOCS.md)**
 
 ---
 
@@ -194,7 +194,20 @@ MCP is an open protocol that standardizes how AI applications interact with loca
 
 3. **Restart Claude Desktop** and start using Wallestars!
 
-📚 **For detailed setup instructions, see [MCP_SETUP.md](MCP_SETUP.md)**
+📚 **For detailed setup instructions, see [MCP_SETUP.md](docs/MCP_SETUP.md)**
+
+---
+
+## 📚 Documentation
+
+Comprehensive documentation is available in the [`docs/`](docs/) directory:
+
+- **[QUICKSTART.md](docs/QUICKSTART.md)** - Get started in under 5 minutes
+- **[MCP_SETUP.md](docs/MCP_SETUP.md)** - Complete MCP integration guide
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System architecture and design
+- **[PROMPT_GENERATOR_DOCS.md](docs/PROMPT_GENERATOR_DOCS.md)** - Prompt Generator feature documentation
+- **[HOW_TO_USE_PROMPT_GENERATOR.md](docs/HOW_TO_USE_PROMPT_GENERATOR.md)** - Step-by-step usage guide
+- **[MCP_INTEGRATION_SUMMARY.md](docs/MCP_INTEGRATION_SUMMARY.md)** - Summary of MCP integration
 
 ---
 
