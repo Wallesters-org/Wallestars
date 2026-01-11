@@ -179,6 +179,64 @@ This document explains how Wallestars integrates with the Model Context Protocol
 - Temporary files cleaned up
 - No persistent storage by default
 
+### 6. Repository Security
+
+#### Branch Protection
+To maintain code quality and prevent unauthorized changes, the `main` branch is protected with:
+
+- **Force Push Protection**: Prevents rewriting commit history
+  - Protects against accidental data loss
+  - Prevents malicious history tampering
+  - Maintains audit trail of all changes
+
+- **Required Status Checks**: All code must pass CI before merging
+  - Automated build verification
+  - Test suite execution
+  - Security vulnerability scanning
+  - Ensures code quality standards
+
+- **Pull Request Reviews**: Changes require peer review
+  - Minimum 1 approval required
+  - Stale reviews dismissed on new commits
+  - Conversation resolution required
+  - Promotes knowledge sharing
+
+- **Linear History**: Maintains clean commit history
+  - Requires rebase or squash merging
+  - Prevents complex merge commit graphs
+  - Easier to track and revert changes
+
+- **Restricted Push Access**: Direct pushes blocked
+  - All changes via pull requests
+  - Administrators-only exceptions
+  - Documented emergency procedures
+
+#### Commit Signing
+For enhanced security, consider:
+- **GPG Signed Commits**: Verify commit authenticity
+- **Verified Badge**: Shows trusted contributors
+- **Non-repudiation**: Legal proof of authorship
+
+#### Access Control
+- **Least Privilege Principle**: Minimum necessary permissions
+- **Regular Access Reviews**: Audit team permissions quarterly
+- **MFA Required**: Multi-factor authentication for all contributors
+- **Personal Access Tokens**: Time-limited, scope-restricted
+
+#### Dependency Security
+- **Automated Scanning**: GitHub Dependabot alerts
+- **Regular Updates**: Monthly dependency reviews
+- **Audit Checks**: CI workflow includes `npm audit`
+- **Version Pinning**: Lock file committed to repo
+
+#### Secrets Management
+- **GitHub Secrets**: Store sensitive credentials
+- **Environment Isolation**: Separate dev/prod keys
+- **Rotation Policy**: Quarterly key rotation
+- **No Hardcoding**: Never commit secrets to code
+
+For detailed branch protection setup instructions, see [.github/BRANCH_PROTECTION.md](.github/BRANCH_PROTECTION.md)
+
 ## Configuration Files
 
 ### `.mcp.json`
