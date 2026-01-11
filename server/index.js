@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import { claudeRouter } from './routes/claude.js';
 import { computerUseRouter } from './routes/computerUse.js';
 import { androidRouter } from './routes/android.js';
+import { documentScannerRouter } from './routes/documentScanner.js';
 import { setupSocketHandlers } from './socket/handlers.js';
 
 dotenv.config();
@@ -34,7 +35,8 @@ app.get('/api/health', (req, res) => {
     services: {
       claude: !!process.env.ANTHROPIC_API_KEY,
       computerUse: process.env.ENABLE_COMPUTER_USE === 'true',
-      android: process.env.ENABLE_ANDROID === 'true'
+      android: process.env.ENABLE_ANDROID === 'true',
+      documentScanner: !!process.env.ANTHROPIC_API_KEY
     }
   });
 });
@@ -43,6 +45,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/claude', claudeRouter);
 app.use('/api/computer', computerUseRouter);
 app.use('/api/android', androidRouter);
+app.use('/api/document-scanner', documentScannerRouter);
 
 // Socket.IO setup
 setupSocketHandlers(io);
