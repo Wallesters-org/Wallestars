@@ -17,6 +17,10 @@ pnpm-lock.yaml
 claude_desktop_config.json
 !claude_desktop_config.json.example
 
+# WSL config (keep example, ignore actual config)
+.wslconfig
+!.wslconfig.example
+
 # Build output
 dist/
 build/

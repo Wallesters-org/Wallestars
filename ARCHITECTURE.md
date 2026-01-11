@@ -243,6 +243,7 @@ Potential improvements to the architecture:
 2. **Multi-platform Support**
    - Windows automation (PowerShell)
    - macOS automation (AppleScript)
+   - **WSL integration** - Native Linux environment on Windows
 
 3. **Advanced Computer Use**
    - OCR text extraction
