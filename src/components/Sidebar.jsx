@@ -7,7 +7,8 @@ import {
   Smartphone,
   Settings,
   Zap,
-  Sparkles
+  Sparkles,
+  Mail
 } from 'lucide-react';
 
 const menuItems = [
@@ -15,6 +16,7 @@ const menuItems = [
   { id: 'chat', name: 'Claude Chat', icon: MessageSquare },
   { id: 'computer', name: 'Computer Use', icon: Monitor },
   { id: 'android', name: 'Android Control', icon: Smartphone },
+  { id: 'telegram', name: 'Telegram Analysis', icon: Mail },
   { id: 'promptgen', name: 'Prompt Generator', icon: Sparkles },
   { id: 'settings', name: 'Settings', icon: Settings },
 ];

@@ -8,6 +8,7 @@ import ComputerControl from './pages/ComputerControl';
 import AndroidControl from './pages/AndroidControl';
 import Settings from './pages/Settings';
 import PromptGenerator from './pages/PromptGenerator';
+import TelegramAnalysis from './pages/TelegramAnalysis';
 import { SocketProvider } from './context/SocketContext';
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
     chat: <ClaudeChat />,
     computer: <ComputerControl />,
     android: <AndroidControl />,
+    telegram: <TelegramAnalysis />,
     promptgen: <PromptGenerator />,
     settings: <Settings />
   };

@@ -1,0 +1,92 @@
+[
+  {
+    "id": 1,
+    "content": "Check out this amazing GitHub repository: https://github.com/Wallesters-org/Wallestars - it has Claude AI integration!",
+    "timestamp": "2024-01-01T10:00:00.000Z",
+    "sender": "tech_enthusiast"
+  },
+  {
+    "id": 2,
+    "content": "TODO: Review PR #95 for delegation order. This is critical for the project workflow.",
+    "timestamp": "2024-01-01T11:30:00.000Z",
+    "sender": "project_manager"
+  },
+  {
+    "id": 3,
+    "content": "Meeting notes from standup:\n- Completed Android control feature\n- Working on MCP integration\n- Need to fix screenshot timeout issue",
+    "timestamp": "2024-01-01T14:00:00.000Z",
+    "sender": "team_lead"
+  },
+  {
+    "id": 4,
+    "content": "Forwarded message from DevChannel: New Claude Sonnet 4.5 model is available! Upgrade recommended.",
+    "timestamp": "2024-01-02T09:00:00.000Z",
+    "sender": "DevChannel"
+  },
+  {
+    "id": 5,
+    "content": "Contact: John Smith - john.smith@example.com - +1-555-0123",
+    "timestamp": "2024-01-02T10:15:00.000Z",
+    "sender": "hr_department"
+  },
+  {
+    "id": 6,
+    "content": "Configuration example for MCP:\n```json\n{\n  \"mcpServers\": {\n    \"wallestars\": {\n      \"command\": \"node\",\n      \"args\": [\"server/index.js\"]\n    }\n  }\n}\n```",
+    "timestamp": "2024-01-02T12:00:00.000Z",
+    "sender": "dev_team"
+  },
+  {
+    "id": 7,
+    "content": "Project folder structure:\n/server\n  /routes\n  /socket\n/src\n  /pages\n  /components\n/prompts",
+    "timestamp": "2024-01-02T13:30:00.000Z",
+    "sender": "architect"
+  },
+  {
+    "id": 8,
+    "content": "Useful resources:\n- Anthropic API Docs: https://docs.anthropic.com/\n- MCP Protocol: https://modelcontextprotocol.io/\n- React Docs: https://react.dev/",
+    "timestamp": "2024-01-02T15:00:00.000Z",
+    "sender": "documentation_team"
+  },
+  {
+    "id": 9,
+    "content": "Reminder: Deploy to production on Friday. Check all environment variables are set correctly.",
+    "timestamp": "2024-01-03T08:00:00.000Z",
+    "sender": "devops"
+  },
+  {
+    "id": 10,
+    "content": "Old note: Initial prototype used Python backend. Deprecated and replaced with Node.js + Express.",
+    "timestamp": "2023-12-15T10:00:00.000Z",
+    "sender": "legacy_system"
+  },
+  {
+    "id": 11,
+    "content": "Bug report: Screenshot capture failing on Ubuntu 22.04. Issue #94 tracks this.",
+    "timestamp": "2024-01-03T10:30:00.000Z",
+    "sender": "qa_team"
+  },
+  {
+    "id": 12,
+    "content": "Feature request: Add Telegram message analysis capability. See issue #96",
+    "timestamp": "2024-01-03T11:00:00.000Z",
+    "sender": "product_owner"
+  },
+  {
+    "id": 13,
+    "content": "Wallestars v1.0 released! 🎉\nNew features:\n- Claude Sonnet 4.5\n- Computer Use on Linux\n- Android Control\n- Prompt Generator",
+    "timestamp": "2024-01-03T14:00:00.000Z",
+    "sender": "release_manager"
+  },
+  {
+    "id": 14,
+    "content": "Security update: Ensure API keys are not committed to git. Use .env files.",
+    "timestamp": "2024-01-03T15:30:00.000Z",
+    "sender": "security_team"
+  },
+  {
+    "id": 15,
+    "content": "Discussion: Should we add email analysis next? Thoughts?",
+    "timestamp": "2024-01-03T16:00:00.000Z",
+    "sender": "brainstorming"
+  }
+]
