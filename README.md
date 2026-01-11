@@ -54,6 +54,16 @@
 - **Navigation** - Home, Back, Power buttons
 - **Device Info** - Model, Android version, battery level
 
+### 📄 Smart Scan
+- **AI Document Classification** - Automatically identify invoices, receipts, notes, and more
+- **Intelligent Data Extraction** - Extract structured data using Claude Vision API
+- **Invoice Processing** - Extract vendor info, line items, totals, and tax details
+- **Validation System** - Automatic validation with human-in-the-loop checkpoints
+- **Microsoft Delta BG Export** - Generate CSV files for Bulgarian accounting software
+- **Microsoft TRZ Export** - Generate XML files for financial data import
+- **USB Transfer Ready** - Files validated for seamless cross-computer transfer
+- **Edit & Correct** - Manual correction mode for extracted data
+
 ### ✨ Prompt Generator
 - **Spark App Prompts** - Generate prompts for creating Spark visual applications
 - **Bilingual Support** - Available in English and Bulgarian
@@ -143,6 +153,17 @@
 3. Select your device from the dropdown
 4. Take screenshots to view device screen
 5. Use Navigation controls or Quick Actions
+
+### Smart Scan
+1. Navigate to "Smart Scan"
+2. Click "Upload Document" or drag & drop an image
+3. Click "Classify Document" to identify the document type
+4. Click "Extract Data" to extract structured information
+5. Review validation results and edit if needed
+6. Choose export format (Delta BG CSV or TRZ XML)
+7. Click "Export & Download" to save the validated file
+
+📚 **For detailed documentation, see [SMART_SCAN_DOCS.md](SMART_SCAN_DOCS.md)**
 
 ### Prompt Generator
 1. Navigate to "Prompt Generator"
