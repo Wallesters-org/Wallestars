@@ -16,7 +16,20 @@ This document provides DNS configuration details for Wallestars Control Center d
 
 To enable GitHub Pages with a custom domain, the following DNS records must be configured:
 
-### Required TXT Record for GitHub Pages Verification
+### ⚠️ Important Note
+
+**DO NOT** try to access the verification subdomain directly:
+- ❌ `github-pages-challenge-didi-ivanov-1.workmail.pro` - This is NOT the website URL
+- ❌ `_github-pages-challenge-DIDI-IVANOV-1.workmail.pro` - This is only for DNS verification
+
+**Correct URLs to access the site:**
+- ✅ `https://workmail.pro` - Main custom domain
+- ✅ `https://www.workmail.pro` - WWW subdomain
+- ✅ `https://wallesters-org.github.io/Wallestars` - Default GitHub Pages URL
+
+### Required DNS Records
+
+#### 1. TXT Record for GitHub Pages Verification
 
 **Hostname**: `_github-pages-challenge-DIDI-IVANOV-1.workmail.pro`  
 **Type**: `TXT`  
