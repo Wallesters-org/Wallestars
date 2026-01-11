@@ -298,6 +298,16 @@ Security is a top priority for Wallestars Control Center. We follow industry bes
 
 For security concerns, see our [Security Policy](SECURITY.md).
 
+📚 **For detailed deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md)**
+
+### Quick Deploy
+
+1. **Install dependencies**: `npm install`
+2. **Build**: `npm run build`
+3. **Start**: `npm start`
+
+For Azure deployment, configure the GitHub Actions workflow with your Azure credentials.
+
 ---
 
 ## 📄 License
