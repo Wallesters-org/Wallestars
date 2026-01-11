@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import ClaudeChat from './pages/ClaudeChat';
 import ComputerControl from './pages/ComputerControl';
 import AndroidControl from './pages/AndroidControl';
+import AnalysisApp from './pages/AnalysisApp';
 import Settings from './pages/Settings';
 import PromptGenerator from './pages/PromptGenerator';
 import { SocketProvider } from './context/SocketContext';
@@ -19,6 +20,7 @@ function App() {
     chat: <ClaudeChat />,
     computer: <ComputerControl />,
     android: <AndroidControl />,
+    analysis: <AnalysisApp />,
     promptgen: <PromptGenerator />,
     settings: <Settings />
   };
