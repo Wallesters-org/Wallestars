@@ -76,7 +76,7 @@
 
 - **Node.js** 20.x or higher
 - **npm** or **yarn**
-- **Anthropic API Key** ([Get one here](https://console.anthropic.com))
+- **Anthropic API Key** ([Get one here](https://console.anthropic.com/settings/keys))
 - **Linux** (for Computer Use features)
   - `xdotool` installed: `sudo apt install xdotool`
 - **Android SDK Platform Tools** (for Android control)
