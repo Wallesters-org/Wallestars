@@ -1,0 +1,82 @@
+# Dockerfile.claude - Custom Dev Container with Claude Code Integration
+ARG BASE_IMAGE=mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm
+FROM ${BASE_IMAGE}
+
+# Build arguments
+ARG TZ=Europe/Sofia
+ARG CLAUDE_CODE_VERSION=latest
+ARG GIT_DELTA_VERSION=0.18.2
+ARG ZSH_IN_DOCKER_VERSION=1.2.0
+
+# Set timezone
+ENV TZ=${TZ}
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# Install system dependencies
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && apt-get -y install --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    curl \
+    git \
+    gnupg \
+    lsb-release \
+    software-properties-common \
+    sudo \
+    wget \
+    vim \
+    less \
+    man-db \
+    iptables \
+    net-tools \
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+# Install git-delta for better git diffs
+RUN ARCH=$(dpkg --print-architecture) \
+    && wget -q "https://github.com/dandavison/delta/releases/download/${GIT_DELTA_VERSION}/git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb" -O /tmp/git-delta.deb \
+    && dpkg -i /tmp/git-delta.deb \
+    && rm /tmp/git-delta.deb
+
+# Configure git to use delta
+RUN git config --global core.pager delta \
+    && git config --global interactive.diffFilter "delta --color-only" \
+    && git config --global delta.navigate true \
+    && git config --global delta.side-by-side true \
+    && git config --global merge.conflictstyle diff3 \
+    && git config --global diff.colorMoved default
+
+# Install additional development tools
+RUN npm install -g \
+    npm@latest \
+    typescript \
+    ts-node \
+    nodemon \
+    pm2 \
+    @anthropic-ai/sdk
+
+# Set up firewall init script
+COPY .devcontainer/scripts/init-firewall.sh /usr/local/bin/init-firewall.sh
+RUN chmod +x /usr/local/bin/init-firewall.sh
+
+# Create workspace directory
+RUN mkdir -p /workspaces/Wallestars && chown -R node:node /workspaces
+
+# Switch to node user
+USER node
+
+# Set up zsh configuration for node user
+RUN if [ -d "/home/node/.oh-my-zsh" ]; then \
+    echo 'export ZSH="/home/node/.oh-my-zsh"' >> /home/node/.zshrc; \
+    echo 'ZSH_THEME="robbyrussell"' >> /home/node/.zshrc; \
+    echo 'plugins=(git node npm docker kubectl)' >> /home/node/.zshrc; \
+    echo 'source $ZSH/oh-my-zsh.sh' >> /home/node/.zshrc; \
+    fi
+
+# Set up bash history persistence
+RUN mkdir -p /home/node/.bash_history_persistent
+
+# Set working directory
+WORKDIR /workspaces/Wallestars
+
+# Default command
+CMD ["/bin/zsh"]
