@@ -7,6 +7,7 @@ import { claudeRouter } from './routes/claude.js';
 import { computerUseRouter } from './routes/computerUse.js';
 import { androidRouter } from './routes/android.js';
 import telegramRouter from './routes/telegram.js';
+import emailRouter from './routes/email.js';
 import { setupSocketHandlers } from './socket/handlers.js';
 
 dotenv.config();
@@ -45,6 +46,7 @@ app.use('/api/claude', claudeRouter);
 app.use('/api/computer', computerUseRouter);
 app.use('/api/android', androidRouter);
 app.use('/api/telegram', telegramRouter);
+app.use('/api/email', emailRouter);
 
 // Socket.IO setup
 setupSocketHandlers(io);

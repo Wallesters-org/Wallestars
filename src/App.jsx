@@ -9,6 +9,7 @@ import AndroidControl from './pages/AndroidControl';
 import Settings from './pages/Settings';
 import PromptGenerator from './pages/PromptGenerator';
 import TelegramAnalysis from './pages/TelegramAnalysis';
+import EmailIntegration from './pages/EmailIntegration';
 import { SocketProvider } from './context/SocketContext';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
     computer: <ComputerControl />,
     android: <AndroidControl />,
     telegram: <TelegramAnalysis />,
+    email: <EmailIntegration />,
     promptgen: <PromptGenerator />,
     settings: <Settings />
   };
