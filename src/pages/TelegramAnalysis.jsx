@@ -26,6 +26,9 @@ export default function TelegramAnalysis() {
   const [progress, setProgress] = useState(0);
   const [reportMarkdown, setReportMarkdown] = useState('');
   const [activeTab, setActiveTab] = useState('upload');
+  const [error, setError] = useState(null);
+  const [showMessageForm, setShowMessageForm] = useState(false);
+  const [newMessageContent, setNewMessageContent] = useState('');
 
   // Fetch categories and priorities on mount
   useEffect(() => {
@@ -59,18 +62,30 @@ export default function TelegramAnalysis() {
         const data = JSON.parse(text);
         parsedMessages = Array.isArray(data) ? data : [data];
       } else if (file.name.endsWith('.csv')) {
-        // Simple CSV parsing
-        const lines = text.split('\n');
-        const headers = lines[0].split(',');
-        parsedMessages = lines.slice(1).map((line, index) => {
-          const values = line.split(',');
-          return {
-            id: index + 1,
-            content: values[0] || '',
-            timestamp: values[1] || new Date().toISOString(),
-            sender: values[2] || 'unknown'
-          };
-        });
+        // Parse CSV properly - skip header and handle quoted values
+        const lines = text.split('\n').filter(line => line.trim());
+        if (lines.length > 1) {
+          parsedMessages = lines.slice(1).map((line, index) => {
+            // Simple CSV parsing - for production, consider a proper CSV library
+            const match = line.match(/^"([^"]*)","([^"]*)","([^"]*)"$/);
+            if (match) {
+              return {
+                id: index + 1,
+                content: match[1],
+                timestamp: match[2] || new Date().toISOString(),
+                sender: match[3] || 'unknown'
+              };
+            }
+            // Fallback for unquoted CSV
+            const values = line.split(',');
+            return {
+              id: index + 1,
+              content: values[0] || '',
+              timestamp: values[1] || new Date().toISOString(),
+              sender: values[2] || 'unknown'
+            };
+          });
+        }
       } else {
         // Treat as plain text - one message
         parsedMessages = [{
@@ -85,7 +100,13 @@ export default function TelegramAnalysis() {
       setActiveTab('messages');
     } catch (error) {
       console.error('Error parsing file:', error);
-      alert('Error parsing file: ' + error.message);
+      setMessages([{
+        id: 'error',
+        content: `Error parsing file: ${error.message}. Please check the file format.`,
+        timestamp: new Date().toISOString(),
+        sender: 'system_error',
+        isError: true
+      }]);
     } finally {
       setLoading(false);
     }
@@ -93,27 +114,34 @@ export default function TelegramAnalysis() {
 
   // Handle manual message input
   const handleManualInput = () => {
-    const content = prompt('Enter message content:');
-    if (content) {
+    setShowMessageForm(true);
+  };
+
+  const submitManualMessage = () => {
+    if (newMessageContent.trim()) {
       const newMessage = {
         id: messages.length + 1,
-        content,
+        content: newMessageContent,
         timestamp: new Date().toISOString(),
         sender: 'manual'
       };
       setMessages([...messages, newMessage]);
+      setNewMessageContent('');
+      setShowMessageForm(false);
+      setError(null);
     }
   };
 
   // Analyze messages
   const analyzeMessages = async () => {
     if (messages.length === 0) {
-      alert('Please upload or add messages first');
+      setError('Please upload or add messages first');
       return;
     }
 
     setAnalyzing(true);
     setProgress(0);
+    setError(null);
     const results = [];
 
     try {
@@ -156,7 +184,7 @@ export default function TelegramAnalysis() {
       setActiveTab('results');
     } catch (error) {
       console.error('Error analyzing messages:', error);
-      alert('Error analyzing messages: ' + error.message);
+      setError(`Error analyzing messages: ${error.message}. Please check your API key and connection.`);
     } finally {
       setAnalyzing(false);
       setProgress(0);
@@ -166,10 +194,11 @@ export default function TelegramAnalysis() {
   // Export data
   const exportData = async (format) => {
     if (!statistics) {
-      alert('No analysis results to export');
+      setError('No analysis results to export');
       return;
     }
 
+    setError(null);
     try {
       const response = await fetch('/api/telegram/export', {
         method: 'POST',
@@ -195,7 +224,7 @@ export default function TelegramAnalysis() {
       document.body.removeChild(a);
     } catch (error) {
       console.error('Error exporting data:', error);
-      alert('Error exporting data: ' + error.message);
+      setError(`Error exporting data: ${error.message}. Please try again.`);
     }
   };
 
@@ -236,6 +265,27 @@ export default function TelegramAnalysis() {
           ))}
         </div>
 
+        {/* Error Display */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 bg-red-500/20 border border-red-500/30 rounded-lg p-4 flex items-start gap-3"
+          >
+            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-red-400 font-medium">Error</p>
+              <p className="text-red-300 text-sm mt-1">{error}</p>
+            </div>
+            <button
+              onClick={() => setError(null)}
+              className="ml-auto text-red-400 hover:text-red-300"
+            >
+              ×
+            </button>
+          </motion.div>
+        )}
+
         {/* Upload Tab */}
         {activeTab === 'upload' && (
           <motion.div
@@ -267,13 +317,45 @@ export default function TelegramAnalysis() {
 
               {/* Manual input */}
               <div>
-                <button
-                  onClick={handleManualInput}
-                  className="w-full bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg flex items-center justify-center gap-2"
-                >
-                  <FileText className="w-5 h-5" />
-                  Add Message Manually
-                </button>
+                {!showMessageForm ? (
+                  <button
+                    onClick={handleManualInput}
+                    className="w-full bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg flex items-center justify-center gap-2"
+                  >
+                    <FileText className="w-5 h-5" />
+                    Add Message Manually
+                  </button>
+                ) : (
+                  <div className="bg-gray-700 rounded-lg p-4 space-y-3">
+                    <label className="block">
+                      <span className="text-sm text-gray-400 mb-2 block">Message Content:</span>
+                      <textarea
+                        value={newMessageContent}
+                        onChange={(e) => setNewMessageContent(e.target.value)}
+                        placeholder="Enter message content..."
+                        className="w-full bg-gray-800 text-white rounded-lg p-3 border border-gray-600 focus:border-blue-500 focus:outline-none min-h-[100px]"
+                      />
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={submitManualMessage}
+                        disabled={!newMessageContent.trim()}
+                        className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg"
+                      >
+                        Add Message
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowMessageForm(false);
+                          setNewMessageContent('');
+                        }}
+                        className="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Stats */}

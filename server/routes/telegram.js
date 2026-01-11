@@ -97,17 +97,14 @@ router.get('/categories', (req, res) => {
   });
 });
 
-// POST analyze message endpoint - classify a single message using Claude AI
-router.post('/analyze-message', async (req, res) => {
-  try {
-    const { message, content, timestamp, sender } = req.body;
+// Helper function to analyze a single message (extracted for reuse)
+async function analyzeSingleMessage(message, content, timestamp, sender) {
+  if (!content) {
+    throw new Error('Message content is required');
+  }
 
-    if (!content) {
-      return res.status(400).json({ error: 'Message content is required' });
-    }
-
-    // Use Claude AI to classify the message
-    const classificationPrompt = `You are a message classification expert. Analyze the following Telegram message and classify it into one of these categories:
+  // Use Claude AI to classify the message
+  const classificationPrompt = `You are a message classification expert. Analyze the following Telegram message and classify it into one of these categories:
 
 ${Object.entries(MESSAGE_CATEGORIES).map(([key, cat]) => 
   `- ${key}: ${cat.description}`
@@ -138,50 +135,58 @@ Respond in JSON format with this exact structure:
   "summary": "Brief summary of the message"
 }`;
 
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2048,
-      messages: [{
-        role: 'user',
-        content: classificationPrompt
-      }]
-    });
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 2048,
+    messages: [{
+      role: 'user',
+      content: classificationPrompt
+    }]
+  });
 
-    // Parse Claude's response
-    const analysisText = response.content[0].text;
-    let analysis;
-    
-    try {
-      // Try to extract JSON from the response
-      const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        analysis = JSON.parse(jsonMatch[0]);
-      } else {
-        analysis = JSON.parse(analysisText);
-      }
-    } catch (parseError) {
-      // Fallback to basic classification
-      analysis = {
-        category: 'OTHER',
-        priority: 'MEDIUM',
-        confidence: 0.5,
-        tags: [],
-        github_references: [],
-        action_items: [],
-        urls: [],
-        contacts: [],
-        summary: 'Could not parse AI response',
-        raw_response: analysisText
-      };
+  // Parse Claude's response
+  const analysisText = response.content[0].text;
+  let analysis;
+  
+  try {
+    // Try to extract JSON from the response
+    const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      analysis = JSON.parse(jsonMatch[0]);
+    } else {
+      analysis = JSON.parse(analysisText);
     }
+  } catch (parseError) {
+    // Fallback to basic classification
+    analysis = {
+      category: 'OTHER',
+      priority: 'MEDIUM',
+      confidence: 0.5,
+      tags: [],
+      github_references: [],
+      action_items: [],
+      urls: [],
+      contacts: [],
+      summary: 'Could not parse AI response',
+      raw_response: analysisText
+    };
+  }
 
-    res.json({
-      success: true,
-      message_id: message?.id || null,
-      timestamp: timestamp || new Date().toISOString(),
-      sender: sender || 'unknown',
-      analysis
-    });
+  return {
+    success: true,
+    message_id: message?.id || null,
+    timestamp: timestamp || new Date().toISOString(),
+    sender: sender || 'unknown',
+    analysis
+  };
+}
+
+// POST analyze message endpoint - classify a single message using Claude AI
+router.post('/analyze-message', async (req, res) => {
+  try {
+    const { message, content, timestamp, sender } = req.body;
+    const result = await analyzeSingleMessage(message, content, timestamp, sender);
+    res.json(result);
 
   } catch (error) {
     console.error('Error analyzing message:', error);
@@ -207,12 +212,18 @@ router.post('/analyze-batch', async (req, res) => {
     for (let i = 0; i < messages.length; i += batchSize) {
       const batch = messages.slice(i, i + batchSize);
       
+      // Process batch in parallel by calling the analyze function directly
       const batchPromises = batch.map(msg => 
-        fetch(`http://localhost:${process.env.PORT || 3000}/api/telegram/analyze-message`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(msg)
-        }).then(r => r.json())
+        analyzeSingleMessage(
+          { id: msg.id },
+          msg.content,
+          msg.timestamp,
+          msg.sender
+        ).catch(error => ({
+          success: false,
+          message_id: msg.id,
+          error: error.message
+        }))
       );
 
       const batchResults = await Promise.all(batchPromises);
