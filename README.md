@@ -54,6 +54,24 @@
 - **Navigation** - Home, Back, Power buttons
 - **Device Info** - Model, Android version, battery level
 
+### 📱 Telegram Message Analysis
+- **AI-Powered Classification** - Claude Sonnet 4.5 analyzes and categorizes messages
+- **10 Categories** - GitHub content, project updates, URLs, contacts, and more
+- **Priority Levels** - CRITICAL, HIGH, MEDIUM, LOW classifications
+- **Data Extraction** - Automatic extraction of GitHub refs, action items, URLs, contacts
+- **Multiple Formats** - Import/export JSON, CSV, Markdown
+- **Statistical Reports** - Comprehensive analysis with visualizations
+- **Batch Processing** - Handle large message sets efficiently
+
+### 📧 Email Integration (Hostinger IMAP/SMTP)
+- **IMAP Support** - Fetch emails from Hostinger mailboxes
+- **SMTP Sending** - Send emails via Hostinger SMTP
+- **Message Analysis** - Integrate with Telegram analysis system
+- **n8n Workflow** - Automate email processing with workflows
+- **Multi-mailbox** - Access INBOX, Sent, and other folders
+- **Secure Connection** - SSL/TLS encrypted connections
+- **Export Capability** - Download emails as JSON
+
 ### ✨ Prompt Generator
 - **Spark App Prompts** - Generate prompts for creating Spark visual applications
 - **Bilingual Support** - Available in English and Bulgarian
@@ -143,6 +161,25 @@
 3. Select your device from the dropdown
 4. Take screenshots to view device screen
 5. Use Navigation controls or Quick Actions
+
+### Telegram Message Analysis
+1. Navigate to "Telegram Analysis"
+2. Upload messages (JSON, CSV, or TXT format)
+3. Click "Analyze with Claude AI"
+4. View results, statistics, and extracted insights
+5. Export reports in JSON, CSV, or Markdown format
+
+📚 **For detailed guide, see [TELEGRAM_ANALYSIS_README.md](TELEGRAM_ANALYSIS_README.md)**
+
+### Email Integration
+1. Navigate to "Email Integration"
+2. Configure Hostinger email credentials (IMAP/SMTP)
+3. Click "Test Connection" to verify settings
+4. Fetch emails from your mailbox
+5. Use "Fetch for Analysis" to send emails to Telegram Analysis
+6. Integrate with n8n workflows for automation
+
+📚 **For detailed guide, see [EMAIL_INTEGRATION_DOCS.md](EMAIL_INTEGRATION_DOCS.md)**
 
 ### Prompt Generator
 1. Navigate to "Prompt Generator"
