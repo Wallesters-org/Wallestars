@@ -58,6 +58,7 @@ The repository includes a `.mcp.json` file with the recommended configuration. T
 
 2. **Add Wallestars to your Claude Desktop configuration:**
 
+   **Standard Configuration (macOS/Linux):**
    ```json
    {
      "mcpServers": {
@@ -82,7 +83,39 @@ The repository includes a `.mcp.json` file with the recommended configuration. T
    }
    ```
 
-   **Important**: Replace `/absolute/path/to/Wallestars` with the actual absolute path to your Wallestars installation.
+   **WSL Configuration (Windows):**
+   ```json
+   {
+     "mcpServers": {
+       "wallestars-control": {
+         "command": "wsl",
+         "args": [
+           "bash",
+           "-c",
+           "cd /home/username/Wallestars && node server/index.js"
+         ],
+         "env": {
+           "ANTHROPIC_API_KEY": "sk-ant-your-key-here",
+           "PORT": "3000",
+           "NODE_ENV": "production",
+           "ENABLE_COMPUTER_USE": "true",
+           "ENABLE_ANDROID": "false",
+           "SCREENSHOT_INTERVAL": "2000",
+           "ADB_HOST": "localhost",
+           "ADB_PORT": "5037",
+           "WS_PORT": "3001"
+         }
+       }
+     }
+   }
+   ```
+
+   **Important**: 
+   - Replace `/absolute/path/to/Wallestars` with the actual absolute path to your Wallestars installation
+   - For WSL, replace `username` with your actual Linux username
+   - Ensure Node.js is installed in WSL: `node --version`
+
+   📚 **Running on Windows?** See [WSL Networking Setup Guide](WSL_NETWORKING_SETUP.md) for detailed configuration
 
 3. **Restart Claude Desktop** to load the new configuration
 
@@ -260,6 +293,29 @@ sudo apt install android-tools-adb
 ```bash
 xhost +local:
 ```
+
+### WSL-specific issues
+
+**Issue**: Cannot access Wallestars from Windows browser
+**Solution**:
+1. Verify server is running in WSL: `curl http://localhost:3000/api/health`
+2. Check Windows Firewall isn't blocking connections
+3. Restart WSL: `wsl --shutdown` (run from PowerShell)
+4. Verify localhost forwarding is working
+
+**Issue**: Claude Desktop can't connect to WSL
+**Solution**:
+1. Use `wsl` command in `claude_desktop_config.json` (see configuration above)
+2. Verify absolute path in WSL: `cd /home/username/Wallestars && pwd`
+3. Check Node.js is in WSL: `which node`
+4. Set WSL 2 as default: `wsl --set-default-version 2`
+
+**Issue**: Port forwarding not working
+**Solution**:
+1. Check WSL IP: `wsl.exe hostname -I`
+2. Update portproxy rules with current IP
+3. Verify Windows Firewall rules allow the ports
+4. See [WSL Networking Setup](WSL_NETWORKING_SETUP.md) for detailed guide
 
 ## 🛡️ Security Considerations
 
