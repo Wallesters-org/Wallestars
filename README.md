@@ -269,6 +269,25 @@ The project also includes GitHub Actions workflow for Azure Web Apps deployment.
 
 ---
 
+## 🔒 Security
+
+Security is a top priority for Wallestars Control Center. We follow industry best practices to protect your data and credentials.
+
+### Security Documentation
+- **[SECURITY.md](SECURITY.md)** - Security policy and vulnerability reporting
+- **[SECURITY_CHECKLIST.md](SECURITY_CHECKLIST.md)** - Pre-deployment security checklist
+- **[VPS_DEPLOYMENT.md](VPS_DEPLOYMENT.md)** - Secure deployment guide
+
+### Quick Security Tips
+- Never commit `.env` files or API keys
+- Use `npm run validate-env` before deployment
+- Rotate credentials if exposed
+- Keep dependencies updated with `npm audit`
+
+For security concerns, see our [Security Policy](SECURITY.md).
+
+---
+
 ## 📄 License
 
 MIT License

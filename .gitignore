@@ -8,6 +8,10 @@ pnpm-lock.yaml
 .env
 .env.local
 .env.production
+.env.*.local
+.env.development
+.env.test
+*.env
 
 # Claude Desktop config (keep examples, ignore actual configs)
 claude_desktop_config.json
@@ -46,3 +50,22 @@ screenshots/
 *.jpg
 !public/*.png
 !public/*.jpg
+
+# Security & Secrets
+*secret*
+*password*
+*token*
+*.pem
+*.key
+*.cert
+*.crt
+id_rsa
+id_rsa.pub
+*.gpg
+.ssh/
+
+# Backup files
+*.bak
+*.backup
+*.old
+*~
