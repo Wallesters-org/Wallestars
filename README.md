@@ -61,6 +61,21 @@
 - **Quick Links** - Direct access to Anthropic Console Workbench
 - **Comprehensive Templates** - Detailed specifications for AI-powered apps
 
+### 📷 QR Scanner & AI Analysis
+- **Image Upload** - Drag-and-drop or click to upload images
+- **AI Vision Analysis** - Powered by Claude's vision capabilities
+- **QR Code Generation** - Automatically generates QR codes with scan metadata
+- **Local Storage** - Save and manage your scans locally
+- **Batch Management** - View, download, and delete scans
+- **Toast Notifications** - Real-time feedback on operations
+
+### 🔒 Security Features
+- **Rate Limiting** - Intelligent request throttling per endpoint
+- **Input Sanitization** - XSS and injection protection
+- **Security Headers** - Helmet.js with CSP, HSTS, and more
+- **Request Timeouts** - Automatic timeout handling
+- **Error Recovery** - Smart retry suggestions
+
 ### 🎨 Professional UI/UX
 - **Modern Design** - Tailwind CSS with custom components
 - **Smooth Animations** - Framer Motion for fluid transitions
@@ -143,6 +158,14 @@
 3. Select your device from the dropdown
 4. Take screenshots to view device screen
 5. Use Navigation controls or Quick Actions
+
+### QR Scanner
+1. Navigate to "QR Scanner"
+2. Drag and drop an image or click to upload
+3. Wait for Claude AI to analyze the image
+4. View the AI analysis and generated QR code
+5. Download QR codes or delete scans as needed
+6. All scans are saved locally in your browser
 
 ### Prompt Generator
 1. Navigate to "Prompt Generator"

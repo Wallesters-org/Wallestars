@@ -7,6 +7,18 @@ import { claudeRouter } from './routes/claude.js';
 import { computerUseRouter } from './routes/computerUse.js';
 import { androidRouter } from './routes/android.js';
 import { setupSocketHandlers } from './socket/handlers.js';
+import { 
+  securityMiddleware, 
+  sanitizeInput, 
+  requestTimeout, 
+  errorHandler 
+} from './middleware/security.js';
+import { 
+  apiLimiter, 
+  claudeLimiter,
+  visionLimiter,
+  computerUseLimiter 
+} from './middleware/rateLimit.js';
 
 dotenv.config();
 
@@ -23,8 +35,16 @@ const io = new Server(httpServer, {
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // Increase limit for base64 images
 app.use(express.static('dist'));
+
+// Security middleware
+app.use(securityMiddleware);
+app.use(sanitizeInput);
+app.use(requestTimeout(30000)); // 30 second timeout
+
+// General API rate limiting
+app.use('/api/', apiLimiter);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -39,22 +59,16 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// API Routes
+// API Routes with specific rate limiters
 app.use('/api/claude', claudeRouter);
-app.use('/api/computer', computerUseRouter);
+app.use('/api/computer', computerUseLimiter, computerUseRouter);
 app.use('/api/android', androidRouter);
 
 // Socket.IO setup
 setupSocketHandlers(io);
 
-// Error handling
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(500).json({
-    error: 'Internal server error',
-    message: err.message
-  });
-});
+// Error handling middleware (must be last)
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
 
