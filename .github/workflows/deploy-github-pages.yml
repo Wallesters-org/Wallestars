@@ -36,9 +36,9 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          # GitHub Pages uses base path for repository name
-          # For custom domain, this won't be needed
-          VITE_BASE_PATH: /Wallestars/
+          # Note: If using custom domain (workmail.pro), the base path is not needed
+          # If using default GitHub Pages URL, uncomment the line below:
+          # VITE_BASE_PATH: /Wallestars/
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
