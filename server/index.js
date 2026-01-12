@@ -7,6 +7,7 @@ import { claudeRouter } from './routes/claude.js';
 import { computerUseRouter } from './routes/computerUse.js';
 import { androidRouter } from './routes/android.js';
 import { documentScannerRouter } from './routes/documentScanner.js';
+import { n8nWebhooksRouter } from './routes/n8nWebhooks.js';
 import { setupSocketHandlers } from './socket/handlers.js';
 
 dotenv.config();
@@ -46,9 +47,13 @@ app.use('/api/claude', claudeRouter);
 app.use('/api/computer', computerUseRouter);
 app.use('/api/android', androidRouter);
 app.use('/api/document-scanner', documentScannerRouter);
+app.use('/api/webhooks/n8n', n8nWebhooksRouter);
 
 // Socket.IO setup
 setupSocketHandlers(io);
+
+// Make io globally available for n8n webhooks
+global.io = io;
 
 // Error handling
 app.use((err, req, res, next) => {

@@ -1,0 +1,393 @@
+{
+  "name": "System Health Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/health",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "check-wallestars-health",
+      "name": "Check Wallestars Health",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5678/healthz",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "check-n8n-health",
+      "name": "Check N8N Health",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 400],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "command": "df -h / | tail -1 | awk '{print $5}' | sed 's/%//'"
+      },
+      "id": "check-disk-space",
+      "name": "Check Disk Space",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [450, 600],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "command": "free | grep Mem | awk '{printf \"%.0f\", $3/$2 * 100.0}'"
+      },
+      "id": "check-memory-usage",
+      "name": "Check Memory Usage",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [450, 800],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const wallestarHealth = $input.first().json;\nconst n8nHealth = $input.all()[1].json;\nconst diskSpace = parseInt($input.all()[2].json.stdout || '0');\nconst memoryUsage = parseInt($input.all()[3].json.stdout || '0');\n\n// Determine overall health status\nconst wallestarHealthy = wallestarHealth.statusCode === 200;\nconst n8nHealthy = n8nHealth.statusCode === 200;\nconst diskHealthy = diskSpace < 80;\nconst memoryHealthy = memoryUsage < 80;\n\nconst allHealthy = wallestarHealthy && n8nHealthy && diskHealthy && memoryHealthy;\n\nconst healthReport = {\n  timestamp: new Date().toISOString(),\n  overallStatus: allHealthy ? 'healthy' : 'unhealthy',\n  services: {\n    wallestars: {\n      status: wallestarHealthy ? 'up' : 'down',\n      statusCode: wallestarHealth.statusCode,\n      needsRestart: !wallestarHealthy\n    },\n    n8n: {\n      status: n8nHealthy ? 'up' : 'down',\n      statusCode: n8nHealth.statusCode,\n      needsRestart: !n8nHealthy\n    }\n  },\n  resources: {\n    disk: {\n      usage: diskSpace,\n      status: diskHealthy ? 'ok' : 'warning',\n      critical: diskSpace > 90\n    },\n    memory: {\n      usage: memoryUsage,\n      status: memoryHealthy ? 'ok' : 'warning',\n      critical: memoryUsage > 90\n    }\n  },\n  alerts: []\n};\n\n// Generate alerts\nif (!wallestarHealthy) {\n  healthReport.alerts.push({\n    severity: 'critical',\n    service: 'wallestars',\n    message: 'Wallestars service is down'\n  });\n}\n\nif (!n8nHealthy) {\n  healthReport.alerts.push({\n    severity: 'critical',\n    service: 'n8n',\n    message: 'N8N service is down'\n  });\n}\n\nif (diskSpace > 90) {\n  healthReport.alerts.push({\n    severity: 'critical',\n    resource: 'disk',\n    message: `Disk space critical: ${diskSpace}% used`\n  });\n} else if (!diskHealthy) {\n  healthReport.alerts.push({\n    severity: 'warning',\n    resource: 'disk',\n    message: `Disk space warning: ${diskSpace}% used`\n  });\n}\n\nif (memoryUsage > 90) {\n  healthReport.alerts.push({\n    severity: 'critical',\n    resource: 'memory',\n    message: `Memory critical: ${memoryUsage}% used`\n  });\n} else if (!memoryHealthy) {\n  healthReport.alerts.push({\n    severity: 'warning',\n    resource: 'memory',\n    message: `Memory warning: ${memoryUsage}% used`\n  });\n}\n\nreturn { json: healthReport };"
+      },
+      "id": "aggregate-health-data",
+      "name": "Aggregate Health Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.overallStatus}}",
+              "value2": "unhealthy"
+            }
+          ]
+        }
+      },
+      "id": "if-unhealthy",
+      "name": "If Unhealthy",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.services.wallestars.needsRestart}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-wallestars-needs-restart",
+      "name": "If Wallestars Needs Restart",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.services.n8n.needsRestart}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-n8n-needs-restart",
+      "name": "If N8N Needs Restart",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 500]
+    },
+    {
+      "parameters": {
+        "command": "pm2 restart wallestars"
+      },
+      "id": "restart-wallestars",
+      "name": "Restart Wallestars",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "command": "pm2 restart n8n"
+      },
+      "id": "restart-n8n",
+      "name": "Restart N8N",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1250, 500]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/webhooks/n8n/health-report",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "healthReport",
+              "value": "={{$json}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-to-wallestars",
+      "name": "Send to Wallestars Dashboard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1450, 400],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const report = $input.first().json;\nconst alerts = report.alerts || [];\n\nif (alerts.length > 0) {\n  const criticalAlerts = alerts.filter(a => a.severity === 'critical');\n  const warningAlerts = alerts.filter(a => a.severity === 'warning');\n  \n  let message = '🚨 **Wallestars Health Alert**\\n\\n';\n  \n  if (criticalAlerts.length > 0) {\n    message += '**Critical Issues:**\\n';\n    criticalAlerts.forEach(alert => {\n      message += `- ${alert.message}\\n`;\n    });\n  }\n  \n  if (warningAlerts.length > 0) {\n    message += '\\n**Warnings:**\\n';\n    warningAlerts.forEach(alert => {\n      message += `- ${alert.message}\\n`;\n    });\n  }\n  \n  message += `\\n**Time:** ${report.timestamp}`;\n  message += `\\n**Overall Status:** ${report.overallStatus}`;\n  \n  return {\n    json: {\n      message,\n      severity: criticalAlerts.length > 0 ? 'critical' : 'warning',\n      report\n    }\n  };\n}\n\nreturn { json: { skip: true } };"
+      },
+      "id": "format-alert-message",
+      "name": "Format Alert Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 700]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.skip}}",
+              "value2": false
+            }
+          ]
+        }
+      },
+      "id": "if-has-alerts",
+      "name": "If Has Alerts",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1250, 700]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/webhooks/n8n/alert",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "={{$json.message}}"
+            },
+            {
+              "name": "severity",
+              "value": "={{$json.severity}}"
+            },
+            {
+              "name": "report",
+              "value": "={{$json.report}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-alert",
+      "name": "Send Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1450, 700],
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Wallestars Health",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check N8N Health",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Disk Space",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Memory Usage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Wallestars Health": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Health Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check N8N Health": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Health Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Disk Space": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Health Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Memory Usage": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Health Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Health Data": {
+      "main": [
+        [
+          {
+            "node": "If Unhealthy",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send to Wallestars Dashboard",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Format Alert Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Unhealthy": {
+      "main": [
+        [
+          {
+            "node": "If Wallestars Needs Restart",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If N8N Needs Restart",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Wallestars Needs Restart": {
+      "main": [
+        [
+          {
+            "node": "Restart Wallestars",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If N8N Needs Restart": {
+      "main": [
+        [
+          {
+            "node": "Restart N8N",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Alert Message": {
+      "main": [
+        [
+          {
+            "node": "If Has Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Has Alerts": {
+      "main": [
+        [
+          {
+            "node": "Send Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "id": "system-health-monitor",
+  "meta": {
+    "instanceId": "wallestars-n8n"
+  },
+  "tags": []
+}
