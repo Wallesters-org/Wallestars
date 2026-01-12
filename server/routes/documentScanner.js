@@ -40,7 +40,7 @@ router.post('/classify', async (req, res) => {
 
 Respond with ONLY the category name in lowercase, nothing else.`;
 
-    const response = await anthropic.messages.create({
+    const classificationResponse = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 100,
       messages: [{
@@ -62,11 +62,11 @@ Respond with ONLY the category name in lowercase, nothing else.`;
       }]
     });
 
-    const classification = response.content[0].text.trim().toLowerCase();
+    const classificationResult = classificationResponse.content[0].text.trim().toLowerCase();
 
     res.json({
       success: true,
-      documentType: classification,
+      documentType: classificationResult,
       confidence: 'high' // Claude doesn't provide confidence scores directly
     });
   } catch (error) {
@@ -124,7 +124,7 @@ Important:
 - If a field is not present, use null
 - Return ONLY valid JSON, no additional text`;
 
-    const response = await anthropic.messages.create({
+    const extractionResponse = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
       messages: [{
@@ -146,7 +146,7 @@ Important:
       }]
     });
 
-    const extractedText = response.content[0].text.trim();
+    const extractedText = extractionResponse.content[0].text.trim();
     
     // Try to parse JSON from response
     let extractedData;
@@ -223,9 +223,9 @@ router.post('/extract-document', async (req, res) => {
 }`
     };
 
-    const prompt = prompts[documentType] || prompts.note;
+    const extractionPrompt = prompts[documentType] || prompts.note;
 
-    const response = await anthropic.messages.create({
+    const extractionResponse = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
       messages: [{
@@ -241,13 +241,13 @@ router.post('/extract-document', async (req, res) => {
           },
           {
             type: 'text',
-            text: prompt + '\n\nReturn ONLY valid JSON, no additional text.'
+            text: extractionPrompt + '\n\nReturn ONLY valid JSON, no additional text.'
           }
         ]
       }]
     });
 
-    const extractedText = response.content[0].text.trim();
+    const extractedText = extractionResponse.content[0].text.trim();
     
     let extractedData;
     try {

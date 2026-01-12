@@ -32,12 +32,12 @@ export default function AndroidControl() {
 
   const fetchDevices = async () => {
     try {
-      const response = await fetch('/api/android/devices');
-      const data = await response.json();
-      if (data.success) {
-        setDevices(data.devices);
-        if (data.devices.length > 0 && !selectedDevice) {
-          setSelectedDevice(data.devices[0].id);
+      const devicesResponse = await fetch('/api/android/devices');
+      const devicesData = await devicesResponse.json();
+      if (devicesData.success) {
+        setDevices(devicesData.devices);
+        if (devicesData.devices.length > 0 && !selectedDevice) {
+          setSelectedDevice(devicesData.devices[0].id);
         }
       }
     } catch (error) {
@@ -47,10 +47,10 @@ export default function AndroidControl() {
 
   const fetchDeviceInfo = async (deviceId) => {
     try {
-      const response = await fetch(`/api/android/info/${deviceId}`);
-      const data = await response.json();
-      if (data.success) {
-        setDeviceInfo(data.device);
+      const deviceInfoResponse = await fetch(`/api/android/info/${deviceId}`);
+      const deviceInfoData = await deviceInfoResponse.json();
+      if (deviceInfoData.success) {
+        setDeviceInfo(deviceInfoData.device);
       }
     } catch (error) {
       console.error('Failed to fetch device info:', error);
@@ -62,17 +62,17 @@ export default function AndroidControl() {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/android/screenshot', {
+      const screenshotResponse = await fetch('/api/android/screenshot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ deviceId: selectedDevice })
       });
 
-      const data = await response.json();
-      if (data.success) {
-        setScreenshot(data.screenshot);
+      const screenshotData = await screenshotResponse.json();
+      if (screenshotData.success) {
+        setScreenshot(screenshotData.screenshot);
       } else {
-        alert('Failed to take screenshot: ' + data.error);
+        alert('Failed to take screenshot: ' + screenshotData.error);
       }
     } catch (error) {
       console.error('Screenshot error:', error);
@@ -87,17 +87,17 @@ export default function AndroidControl() {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/android/${action}`, {
+      const actionResponse = await fetch(`/api/android/${action}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ deviceId: selectedDevice, ...params })
       });
 
-      const data = await response.json();
-      if (data.success) {
+      const actionData = await actionResponse.json();
+      if (actionData.success) {
         console.log('Action performed:', action);
       } else {
-        alert('Action failed: ' + data.error);
+        alert('Action failed: ' + actionData.error);
       }
     } catch (error) {
       console.error('Action error:', error);

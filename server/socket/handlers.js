@@ -14,11 +14,11 @@ export function setupSocketHandlers(io) {
 
       const streamInterval = setInterval(async () => {
         try {
-          const img = await screenshot({ format: 'png' });
-          const base64 = img.toString('base64');
+          const screenshotBuffer = await screenshot({ format: 'png' });
+          const base64Screenshot = screenshotBuffer.toString('base64');
 
           socket.emit('screen-frame', {
-            screenshot: base64,
+            screenshot: base64Screenshot,
             timestamp: new Date().toISOString()
           });
         } catch (error) {

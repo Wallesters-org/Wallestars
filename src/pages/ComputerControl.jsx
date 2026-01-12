@@ -25,10 +25,10 @@ export default function ComputerControl() {
 
   const fetchSystemInfo = async () => {
     try {
-      const response = await fetch('/api/computer/info');
-      const data = await response.json();
-      if (data.success) {
-        setSystemInfo(data.system);
+      const systemInfoResponse = await fetch('/api/computer/info');
+      const systemInfoData = await systemInfoResponse.json();
+      if (systemInfoData.success) {
+        setSystemInfo(systemInfoData.system);
       }
     } catch (error) {
       console.error('Failed to fetch system info:', error);
@@ -48,17 +48,17 @@ export default function ComputerControl() {
   const handleQuickAction = async (action) => {
     setIsExecuting(true);
     try {
-      let response;
+      let actionResponse;
       switch (action) {
         case 'screenshot':
-          response = await fetch('/api/computer/screenshot');
-          const data = await response.json();
-          if (data.success) {
+          actionResponse = await fetch('/api/computer/screenshot');
+          const screenshotData = await actionResponse.json();
+          if (screenshotData.success) {
             alert('Screenshot taken successfully!');
           }
           break;
         case 'click':
-          response = await fetch('/api/computer/click', {
+          actionResponse = await fetch('/api/computer/click', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ x: 100, y: 100 })
@@ -80,11 +80,11 @@ export default function ComputerControl() {
     setIsExecuting(true);
     try {
       // First take screenshot
-      const screenshotRes = await fetch('/api/computer/screenshot');
-      const screenshotData = await screenshotRes.json();
+      const screenshotResponse = await fetch('/api/computer/screenshot');
+      const screenshotData = await screenshotResponse.json();
 
       // Send to Claude Computer Use
-      const response = await fetch('/api/claude/computer-use', {
+      const computerUseResponse = await fetch('/api/claude/computer-use', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -93,17 +93,17 @@ export default function ComputerControl() {
         })
       });
 
-      const data = await response.json();
-      if (data.success && data.action) {
-        alert(`Claude suggests: ${data.action.explanation}`);
+      const computerUseData = await computerUseResponse.json();
+      if (computerUseData.success && computerUseData.action) {
+        alert(`Claude suggests: ${computerUseData.action.explanation}`);
         // Execute the action
-        if (data.action.action === 'click') {
+        if (computerUseData.action.action === 'click') {
           await fetch('/api/computer/click', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              x: data.action.x,
-              y: data.action.y
+              x: computerUseData.action.x,
+              y: computerUseData.action.y
             })
           });
         }
