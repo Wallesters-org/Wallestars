@@ -26,6 +26,7 @@
 - 💬 Chat with Claude AI using the latest Sonnet 4.5 model
 - 🖥️ Control your Linux desktop with Computer Use API
 - 📱 Automate Android devices via ADB
+- 🤖 Automate task delegation to AI agents via GitHub webhooks
 - 📊 Monitor system metrics in real-time
 - 🎨 Enjoy a stunning, responsive interface
 
@@ -38,6 +39,13 @@
 - **Chat Interface** - Beautiful conversational UI
 - **Computer Use** - AI-powered desktop automation
 - **Vision Capabilities** - Screenshot analysis and action planning
+
+### 🤖 Agent Delegation System
+- **Automatic Task Assignment** - GitHub events automatically delegated to appropriate agents
+- **Smart Matching** - Keyword-based agent selection with priority scoring
+- **Real-time Notifications** - WebSocket events for agent assignments and completions
+- **9 Specialized Agents** - Security, deployment, testing, documentation, and more
+- **Dashboard Monitoring** - Track active assignments and agent availability
 
 ### 🖥️ Linux Computer Use
 - **Screen Streaming** - Real-time desktop visualization
@@ -318,6 +326,17 @@ Security is a top priority for Wallestars Control Center. We follow industry bes
 - Keep dependencies updated with `npm audit`
 
 For security concerns, see our [Security Policy](SECURITY.md).
+
+---
+
+## 📚 Additional Documentation
+
+- **[AGENT_DELEGATION_WORKFLOW.md](AGENT_DELEGATION_WORKFLOW.md)** - Complete guide to the agent delegation system
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture and design decisions
+- **[SMART_SCAN_DOCS.md](SMART_SCAN_DOCS.md)** - Smart document scanning and AI classification
+- **[PROMPT_GENERATOR_DOCS.md](PROMPT_GENERATOR_DOCS.md)** - Prompt generator for Spark applications
+- **[MCP_INTEGRATION_SUMMARY.md](MCP_INTEGRATION_SUMMARY.md)** - Model Context Protocol integration details
+- **[N8N Workflows](n8n-workflows/IMPLEMENTATION_GUIDE.md)** - N8N automation workflows setup
 
 ---
 
