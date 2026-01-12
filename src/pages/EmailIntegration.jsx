@@ -13,13 +13,17 @@ import {
   AlertCircle,
   Server,
   Lock,
-  FileText
+  FileText,
+  Key,
+  Shield,
+  Clock
 } from 'lucide-react';
 
 export default function EmailIntegration() {
   const [config, setConfig] = useState({
     user: '',
     password: '',
+    provider: 'hostinger',
     host: 'imap.hostinger.com',
     imapPort: 993,
     smtpHost: 'smtp.hostinger.com',
@@ -28,7 +32,9 @@ export default function EmailIntegration() {
   const [configStatus, setConfigStatus] = useState(null);
   const [testing, setTesting] = useState(false);
   const [fetching, setFetching] = useState(false);
+  const [monitoring, setMonitoring] = useState(false);
   const [emails, setEmails] = useState([]);
+  const [authCodes, setAuthCodes] = useState([]);
   const [mailboxes, setMailboxes] = useState([]);
   const [selectedMailbox, setSelectedMailbox] = useState('INBOX');
   const [error, setError] = useState(null);
@@ -174,6 +180,81 @@ export default function EmailIntegration() {
     setSuccess('Emails exported successfully');
   };
 
+  const handleExtractAuthCodes = async () => {
+    setFetching(true);
+    setError(null);
+    
+    try {
+      const response = await fetch('/api/email/extract-auth-codes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user: config.user,
+          password: config.password,
+          host: config.host,
+          port: config.imapPort,
+          provider: config.provider,
+          mailbox: selectedMailbox,
+          limit: 10
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setAuthCodes(data.authCodes);
+        setSuccess(`Found ${data.total} authentication codes in ${data.checked} messages`);
+        setActiveTab('authcodes');
+      } else {
+        setError(data.details || data.error);
+      }
+    } catch (error) {
+      setError(`Failed to extract auth codes: ${error.message}`);
+    } finally {
+      setFetching(false);
+    }
+  };
+
+  const handleMonitorAuthCodes = async () => {
+    setMonitoring(true);
+    setError(null);
+    setSuccess('Monitoring for new authentication codes... (60s timeout)');
+    
+    try {
+      const response = await fetch('/api/email/monitor-auth-codes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user: config.user,
+          password: config.password,
+          host: config.host,
+          port: config.imapPort,
+          provider: config.provider,
+          mailbox: selectedMailbox,
+          timeout: 60000
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        if (data.found) {
+          setSuccess(`✅ Authentication code received: ${data.firstCode}`);
+          setAuthCodes([data.authCode, ...authCodes]);
+          setActiveTab('authcodes');
+        } else {
+          setError(data.message || 'No authentication code received within timeout');
+        }
+      } else {
+        setError(data.details || data.error);
+      }
+    } catch (error) {
+      setError(`Monitoring failed: ${error.message}`);
+    } finally {
+      setMonitoring(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-8">
       <div className="max-w-7xl mx-auto">
@@ -186,11 +267,11 @@ export default function EmailIntegration() {
           <div className="flex items-center gap-3 mb-4">
             <Mail className="w-10 h-10 text-blue-500" />
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-              Email Integration (Hostinger IMAP/SMTP)
+              Email Integration & Auth Code Extraction
             </h1>
           </div>
           <p className="text-gray-400">
-            Connect to your Hostinger email account to fetch and analyze messages
+            Connect to Gmail/Hostinger to fetch emails and extract authentication codes for automation workflows
           </p>
         </motion.div>
 
@@ -230,7 +311,7 @@ export default function EmailIntegration() {
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
-          {['config', 'inbox', 'send'].map((tab) => (
+          {['config', 'authcodes', 'inbox', 'send'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -240,7 +321,7 @@ export default function EmailIntegration() {
                   : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
               }`}
             >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === 'authcodes' ? 'Auth Codes' : tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </div>
@@ -299,6 +380,30 @@ export default function EmailIntegration() {
             </h2>
 
             <div className="space-y-4">
+              {/* Provider Selection */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">
+                  Email Provider
+                </label>
+                <select
+                  value={config.provider}
+                  onChange={(e) => {
+                    const provider = e.target.value;
+                    const providerDefaults = {
+                      hostinger: { host: 'imap.hostinger.com', imapPort: 993, smtpHost: 'smtp.hostinger.com', smtpPort: 465 },
+                      gmail: { host: 'imap.gmail.com', imapPort: 993, smtpHost: 'smtp.gmail.com', smtpPort: 465 },
+                      workmail: { host: 'imap.mail.eu-west-1.awsapps.com', imapPort: 993, smtpHost: 'smtp.mail.eu-west-1.awsapps.com', smtpPort: 465 }
+                    };
+                    setConfig({ ...config, provider, ...providerDefaults[provider] });
+                  }}
+                  className="w-full bg-gray-700 text-white rounded-lg p-3 border border-gray-600 focus:border-blue-500 focus:outline-none"
+                >
+                  <option value="hostinger">Hostinger</option>
+                  <option value="gmail">Gmail</option>
+                  <option value="workmail">AWS WorkMail</option>
+                </select>
+              </div>
+
               {/* Email Address */}
               <div>
                 <label className="block text-sm text-gray-400 mb-2">
@@ -308,7 +413,7 @@ export default function EmailIntegration() {
                   type="email"
                   value={config.user}
                   onChange={(e) => setConfig({ ...config, user: e.target.value })}
-                  placeholder="your-email@domain.com"
+                  placeholder={config.provider === 'gmail' ? 'miropetrovski12@gmail.com' : 'your-email@domain.com'}
                   className="w-full bg-gray-700 text-white rounded-lg p-3 border border-gray-600 focus:border-blue-500 focus:outline-none"
                 />
               </div>
@@ -317,15 +422,20 @@ export default function EmailIntegration() {
               <div>
                 <label className="block text-sm text-gray-400 mb-2 flex items-center gap-2">
                   <Lock className="w-4 h-4" />
-                  Password
+                  Password {config.provider === 'gmail' && '(App Password)'}
                 </label>
                 <input
                   type="password"
                   value={config.password}
                   onChange={(e) => setConfig({ ...config, password: e.target.value })}
-                  placeholder="Your email password"
+                  placeholder={config.provider === 'gmail' ? 'App-specific password' : 'Your email password'}
                   className="w-full bg-gray-700 text-white rounded-lg p-3 border border-gray-600 focus:border-blue-500 focus:outline-none"
                 />
+                {config.provider === 'gmail' && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Use an App Password from Google Account → Security → 2-Step Verification → App passwords
+                  </p>
+                )}
               </div>
 
               {/* IMAP Server */}
@@ -381,62 +491,192 @@ export default function EmailIntegration() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={handleTestConnection}
-                  disabled={testing || !config.user || !config.password}
-                  className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg flex items-center justify-center gap-2"
-                >
-                  {testing ? (
-                    <>
-                      <Loader className="w-5 h-5 animate-spin" />
-                      Testing...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="w-5 h-5" />
-                      Test Connection
-                    </>
-                  )}
-                </button>
+              <div className="space-y-3 pt-4">
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleTestConnection}
+                    disabled={testing || !config.user || !config.password}
+                    className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg flex items-center justify-center gap-2"
+                  >
+                    {testing ? (
+                      <>
+                        <Loader className="w-5 h-5 animate-spin" />
+                        Testing...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-5 h-5" />
+                        Test Connection
+                      </>
+                    )}
+                  </button>
 
-                <button
-                  onClick={handleFetchEmails}
-                  disabled={fetching || !config.user || !config.password}
-                  className="flex-1 bg-green-500 hover:bg-green-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg flex items-center justify-center gap-2"
-                >
-                  {fetching ? (
-                    <>
-                      <Loader className="w-5 h-5 animate-spin" />
-                      Fetching...
-                    </>
-                  ) : (
-                    <>
-                      <Inbox className="w-5 h-5" />
-                      Fetch Emails
-                    </>
-                  )}
-                </button>
+                  <button
+                    onClick={handleFetchEmails}
+                    disabled={fetching || !config.user || !config.password}
+                    className="flex-1 bg-green-500 hover:bg-green-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg flex items-center justify-center gap-2"
+                  >
+                    {fetching ? (
+                      <>
+                        <Loader className="w-5 h-5 animate-spin" />
+                        Fetching...
+                      </>
+                    ) : (
+                      <>
+                        <Inbox className="w-5 h-5" />
+                        Fetch Emails
+                      </>
+                    )}
+                  </button>
 
-                <button
-                  onClick={handleFetchForAnalysis}
-                  disabled={fetching || !config.user || !config.password}
-                  className="flex-1 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg flex items-center justify-center gap-2"
-                >
-                  <FileText className="w-5 h-5" />
-                  Fetch for Analysis
-                </button>
+                  <button
+                    onClick={handleFetchForAnalysis}
+                    disabled={fetching || !config.user || !config.password}
+                    className="flex-1 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg flex items-center justify-center gap-2"
+                  >
+                    <FileText className="w-5 h-5" />
+                    Fetch for Analysis
+                  </button>
+                </div>
+
+                {/* Auth Code Extraction Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleExtractAuthCodes}
+                    disabled={fetching || !config.user || !config.password}
+                    className="flex-1 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg flex items-center justify-center gap-2"
+                  >
+                    {fetching ? (
+                      <>
+                        <Loader className="w-5 h-5 animate-spin" />
+                        Extracting...
+                      </>
+                    ) : (
+                      <>
+                        <Key className="w-5 h-5" />
+                        Extract Auth Codes
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={handleMonitorAuthCodes}
+                    disabled={monitoring || !config.user || !config.password}
+                    className="flex-1 bg-teal-500 hover:bg-teal-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg flex items-center justify-center gap-2"
+                  >
+                    {monitoring ? (
+                      <>
+                        <Loader className="w-5 h-5 animate-spin" />
+                        Monitoring...
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="w-5 h-5" />
+                        Monitor for Codes (60s)
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Info */}
               <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                 <p className="text-sm text-blue-300">
-                  <strong>Hostinger Settings:</strong><br />
-                  IMAP: imap.hostinger.com:993 (SSL)<br />
-                  SMTP: smtp.hostinger.com:465 (SSL)<br />
-                  POP3: pop.hostinger.com:995 (SSL)
+                  <strong>Provider Settings:</strong><br />
+                  {config.provider === 'gmail' && (
+                    <>Gmail: imap.gmail.com:993 / smtp.gmail.com:465 (Use App Password)</>
+                  )}
+                  {config.provider === 'hostinger' && (
+                    <>Hostinger: imap.hostinger.com:993 / smtp.hostinger.com:465</>
+                  )}
+                  {config.provider === 'workmail' && (
+                    <>AWS WorkMail: imap.mail.eu-west-1.awsapps.com:993</>
+                  )}
                 </p>
               </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Auth Codes Tab */}
+        {activeTab === 'authcodes' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-8 border border-gray-700"
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <Key className="w-6 h-6" />
+                Authentication Codes ({authCodes.length})
+              </h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleExtractAuthCodes}
+                  disabled={fetching}
+                  className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${fetching ? 'animate-spin' : ''}`} />
+                  Extract
+                </button>
+                <button
+                  onClick={handleMonitorAuthCodes}
+                  disabled={monitoring}
+                  className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                >
+                  <Clock className={`w-4 h-4 ${monitoring ? 'animate-spin' : ''}`} />
+                  Monitor
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-3 max-h-[600px] overflow-y-auto">
+              {authCodes.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <Shield className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  <p>No authentication codes found. Click "Extract" to scan recent emails.</p>
+                  <p className="text-sm mt-2">Or click "Monitor" to wait for new codes (60s timeout)</p>
+                </div>
+              ) : (
+                authCodes.map((item, index) => (
+                  <div
+                    key={index}
+                    className="bg-gradient-to-r from-amber-500/10 to-teal-500/10 rounded-lg p-4 border border-amber-500/30 hover:border-amber-500/50 transition-colors"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <h3 className="font-semibold text-white">{item.subject}</h3>
+                      <span className="text-xs text-gray-500">
+                        {new Date(item.date).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-400 mb-3">From: {item.from}</p>
+                    
+                    {/* Display extracted codes prominently */}
+                    <div className="bg-gray-900/50 rounded-lg p-4 mb-3">
+                      <p className="text-xs text-gray-500 mb-2">AUTHENTICATION CODES:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {item.codes.map((code, i) => (
+                          <div
+                            key={i}
+                            className="bg-amber-500 text-gray-900 font-mono font-bold px-4 py-2 rounded text-lg cursor-pointer hover:bg-amber-400 transition-colors"
+                            onClick={() => {
+                              navigator.clipboard.writeText(code);
+                              setSuccess(`Code copied: ${code}`);
+                            }}
+                            title="Click to copy"
+                          >
+                            {code}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {item.snippet && (
+                      <p className="text-sm text-gray-500 line-clamp-2">{item.snippet}</p>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </motion.div>
         )}
