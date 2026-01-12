@@ -469,7 +469,7 @@ CREATE INDEX idx_email_verified ON verified_business_profiles(email_verified_at)
 
 ```bash
 # N8N Integration
-N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
+N8N_WEBHOOK_URL=https://your-n8n-server.domain.com
 N8N_API_KEY=your_n8n_api_key_here
 
 # Smstome.com SMS Service

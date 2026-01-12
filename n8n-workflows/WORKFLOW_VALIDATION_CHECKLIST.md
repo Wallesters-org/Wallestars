@@ -619,8 +619,23 @@ WHERE email_alias LIKE '%e2e-test%';
 
 ### Data Security
 - [ ] Verification codes not logged in plain text
+  - Implementation: Use console.log('Code verified: [REDACTED]') instead of logging actual codes
+  - N8N workflows should avoid outputting sensitive data in execution logs
 - [ ] Email content not stored permanently
+  - Implementation: Email Monitor marks emails as read and doesn't store full body
+  - Only extract and store: verification_code, verification_link, timestamp
 - [ ] Old codes cleared after verification
+  - Implementation: Add scheduled workflow to clear codes older than 24 hours:
+    ```sql
+    UPDATE verified_business_profiles
+    SET sms_verification_code = NULL,
+        email_confirmation_code = NULL
+    WHERE (sms_verified_at < NOW() - INTERVAL '24 hours'
+           OR email_verified_at < NOW() - INTERVAL '24 hours')
+    AND (sms_verified_at IS NOT NULL OR email_verified_at IS NOT NULL);
+    ```
+  - Schedule: Daily at 2 AM
+  - Retention policy: Keep codes for 24 hours post-verification for audit
 
 ---
 
