@@ -1,0 +1,384 @@
+{
+    "name": "Continuous Agent Activity Monitor",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "minutes",
+                            "minutesInterval": 5
+                        }
+                    ]
+                }
+            },
+            "id": "schedule-5min",
+            "name": "Schedule: Every 5 Minutes",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.2,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "authentication": "oAuth2",
+                "resource": "pull",
+                "operation": "getAll",
+                "owner": "Wallesters-org",
+                "repository": "Wallestars",
+                "returnAll": true
+            },
+            "id": "github-get-prs",
+            "name": "GitHub: Get All PRs",
+            "type": "n8n-nodes-base.github",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ],
+            "credentials": {
+                "githubOAuth2Api": {
+                    "id": "github-oauth-credentials",
+                    "name": "GitHub OAuth2"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "functionCode": "// Групирай PR-ове по агенти\\nconst items = $input.all();\\nconst agents = {};\\n\\nfor (const item of items) {\\n  const pr = item.json;\\n  const labels = pr.labels || [];\\n  \\n  // Намери агент label\\n  const agentLabel = labels.find(l => l.name && l.name.startsWith('agent:'));\\n  \\n  if (agentLabel) {\\n    const agentName = agentLabel.name.replace('agent:', '');\\n    \\n    if (!agents[agentName]) {\\n      agents[agentName] = {\\n        name: agentName,\\n        prs: [],\\n        count: 0,\\n        status: 'active'\\n      };\\n    }\\n    \\n    agents[agentName].prs.push({\\n      number: pr.number,\\n      title: pr.title,\\n      state: pr.state,\\n      updated_at: pr.updated_at,\\n      url: pr.html_url\\n    });\\n    agents[agentName].count++;\\n  }\\n}\\n\\nreturn Object.values(agents).map(agent => ({ json: agent }));"
+            },
+            "id": "group-by-agent",
+            "name": "Code: Group by Agent",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "authentication": "oAuth2",
+                "resource": "issue",
+                "operation": "getComments",
+                "owner": "Wallesters-org",
+                "repository": "Wallestars",
+                "issueNumber": "={{$json.prs[0].number}}",
+                "returnAll": true
+            },
+            "id": "github-get-comments",
+            "name": "GitHub: Get PR Comments",
+            "type": "n8n-nodes-base.github",
+            "typeVersion": 1,
+            "position": [
+                850,
+                300
+            ],
+            "credentials": {
+                "githubOAuth2Api": {
+                    "id": "github-oauth-credentials",
+                    "name": "GitHub OAuth2"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "functionCode": "// Провери активността на агента\\nconst agent = $input.first().json;\\nconst comments = $input.all().slice(1);\\n\\nconst now = new Date();\\nlet lastActivity = null;\\nlet recentActivity = false;\\n\\nfor (const comment of comments) {\\n  const commentData = comment.json;\\n  const commentDate = new Date(commentData.created_at);\\n  const hoursSince = (now - commentDate) / (1000 * 60 * 60);\\n  \\n  if (hoursSince < 1) {\\n    recentActivity = true;\\n  }\\n  \\n  if (!lastActivity || commentDate > lastActivity) {\\n    lastActivity = commentDate;\\n  }\\n}\\n\\nconst status = {\\n  agent_name: agent.name,\\n  assigned_prs: agent.count,\\n  prs: agent.prs,\\n  last_activity: lastActivity ? lastActivity.toISOString() : 'Няма активност',\\n  is_active: recentActivity,\\n  hours_since_activity: lastActivity ? (now - lastActivity) / (1000 * 60 * 60) : 999,\\n  status_emoji: recentActivity ? '🟢' : '🟡',\\n  timestamp: now.toISOString()\\n};\\n\\nreturn { json: status };"
+            },
+            "id": "check-activity",
+            "name": "Code: Check Agent Activity",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1050,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": false,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "condition-inactive",
+                            "leftValue": "={{$json.hours_since_activity}}",
+                            "rightValue": "2",
+                            "operator": {
+                                "type": "number",
+                                "operation": "gt"
+                            }
+                        },
+                        {
+                            "id": "condition-has-prs",
+                            "leftValue": "={{$json.assigned_prs}}",
+                            "rightValue": "0",
+                            "operator": {
+                                "type": "number",
+                                "operation": "gt"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "id": "if-inactive",
+            "name": "IF: Agent Inactive",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                1250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "authentication": "oAuth2",
+                "resource": "issue",
+                "operation": "create",
+                "owner": "Wallesters-org",
+                "repository": "Wallestars",
+                "title": "=⚠️ Неактивен агент: {{$json.agent_name}}",
+                "body": "=**Агент:** `{{$json.agent_name}}`\\n**Назначени PR-ове:** {{$json.assigned_prs}}\\n**Последна активност:** {{$json.last_activity}}\\n**Часове от последна активност:** {{Math.round($json.hours_since_activity)}}h\\n\\n## PR-ове:\\n{{$json.prs.map(pr => `- #${pr.number}: ${pr.title}`).join('\\\\n')}}\\n\\n**Препоръка:** Прегледай статуса на агента и преразпредели PR-овете ако е необходимо.\\n\\n---\\n_Автоматично генерирано от Continuous Agent Monitor_",
+                "labels": "agent-alert,automated,inactive-agent"
+            },
+            "id": "create-alert-issue",
+            "name": "GitHub: Create Alert Issue",
+            "type": "n8n-nodes-base.github",
+            "typeVersion": 1,
+            "position": [
+                1450,
+                200
+            ],
+            "credentials": {
+                "githubOAuth2Api": {
+                    "id": "github-oauth-credentials",
+                    "name": "GitHub OAuth2"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "=INSERT INTO agent_activity_log (agent_name, assigned_prs, last_activity, is_active, hours_since_activity, timestamp, prs_data)\\nVALUES ('{{$json.agent_name}}', {{$json.assigned_prs}}, '{{$json.last_activity}}', {{$json.is_active}}, {{$json.hours_since_activity}}, NOW(), '{{JSON.stringify($json.prs)}}');"
+            },
+            "id": "log-to-supabase",
+            "name": "Supabase: Log Activity",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.4,
+            "position": [
+                1450,
+                400
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "supabase-credentials",
+                    "name": "Supabase DB"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "hours",
+                            "hoursInterval": 4
+                        }
+                    ]
+                }
+            },
+            "id": "schedule-4h",
+            "name": "Schedule: Every 4 Hours",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.2,
+            "position": [
+                250,
+                600
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT \\n  agent_name,\\n  COUNT(*) as check_count,\\n  AVG(assigned_prs) as avg_prs,\\n  SUM(CASE WHEN is_active THEN 1 ELSE 0 END)::float / COUNT(*) * 100 as activity_rate,\\n  MAX(timestamp) as last_check\\nFROM agent_activity_log\\nWHERE timestamp > NOW() - INTERVAL '4 hours'\\nGROUP BY agent_name\\nORDER BY activity_rate DESC;"
+            },
+            "id": "supabase-analytics",
+            "name": "Supabase: Get Analytics",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.4,
+            "position": [
+                450,
+                600
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "supabase-credentials",
+                    "name": "Supabase DB"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "functionCode": "// Генерирай аналитичен доклад\\nconst items = $input.all();\\nconst now = new Date();\\n\\nlet report = `# 📊 Доклад за активност на агентите\\n\\n`;\\nreport += `**Период:** Последните 4 часа\\\\n`;\\nreport += `**Време:** ${now.toISOString()}\\\\n\\\\n`;\\n\\nreport += `## Обобщение\\\\n\\\\n`;\\nreport += `| Агент | Проверки | Средно PR-ове | % Активност | Последна проверка |\\\\n`;\\nreport += `|---|---|---|---|---|\\\\n`;\\n\\nfor (const item of items) {\\n  const data = item.json;\\n  const activityEmoji = data.activity_rate > 50 ? '🟢' : data.activity_rate > 25 ? '🟡' : '🔴';\\n  \\n  report += `| ${activityEmoji} ${data.agent_name} | ${data.check_count} | ${Math.round(data.avg_prs * 10) / 10} | ${Math.round(data.activity_rate)}% | ${new Date(data.last_check).toLocaleString('bg-BG')} |\\\\n`;\\n}\\n\\nreport += `\\\\n---\\\\n_Автоматично генерирано от Continuous Agent Monitor_`;\\n\\nreturn { json: { report, timestamp: now.toISOString() } };"
+            },
+            "id": "generate-report",
+            "name": "Code: Generate Report",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                650,
+                600
+            ]
+        },
+        {
+            "parameters": {
+                "authentication": "oAuth2",
+                "resource": "issue",
+                "operation": "create",
+                "owner": "Wallesters-org",
+                "repository": "Wallestars",
+                "title": "=📊 Доклад за агенти - {{new Date().toLocaleDateString('bg-BG')}}",
+                "body": "={{$json.report}}",
+                "labels": "report,automated,agent-analytics"
+            },
+            "id": "create-report-issue",
+            "name": "GitHub: Create Report",
+            "type": "n8n-nodes-base.github",
+            "typeVersion": 1,
+            "position": [
+                850,
+                600
+            ],
+            "credentials": {
+                "githubOAuth2Api": {
+                    "id": "github-oauth-credentials",
+                    "name": "GitHub OAuth2"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Schedule: Every 5 Minutes": {
+            "main": [
+                [
+                    {
+                        "node": "GitHub: Get All PRs",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "GitHub: Get All PRs": {
+            "main": [
+                [
+                    {
+                        "node": "Code: Group by Agent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code: Group by Agent": {
+            "main": [
+                [
+                    {
+                        "node": "GitHub: Get PR Comments",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "GitHub: Get PR Comments": {
+            "main": [
+                [
+                    {
+                        "node": "Code: Check Agent Activity",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code: Check Agent Activity": {
+            "main": [
+                [
+                    {
+                        "node": "IF: Agent Inactive",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Supabase: Log Activity",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "IF: Agent Inactive": {
+            "main": [
+                [
+                    {
+                        "node": "GitHub: Create Alert Issue",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Schedule: Every 4 Hours": {
+            "main": [
+                [
+                    {
+                        "node": "Supabase: Get Analytics",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Supabase: Get Analytics": {
+            "main": [
+                [
+                    {
+                        "node": "Code: Generate Report",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code: Generate Report": {
+            "main": [
+                [
+                    {
+                        "node": "GitHub: Create Report",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "pinData": {},
+    "settings": {
+        "executionOrder": "v1",
+        "saveManualExecutions": true,
+        "callerPolicy": "workflowsFromSameOwner",
+        "errorWorkflow": ""
+    },
+    "staticData": null,
+    "tags": [],
+    "triggerCount": 2,
+    "updatedAt": "2026-01-12T05:33:00.000Z",
+    "versionId": "1"
+}
