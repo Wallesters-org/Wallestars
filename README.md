@@ -64,13 +64,18 @@
 - **Batch Processing** - Handle large message sets efficiently
 
 ### 📧 Email Integration (Hostinger IMAP/SMTP)
-- **IMAP Support** - Fetch emails from Hostinger mailboxes
-- **SMTP Sending** - Send emails via Hostinger SMTP
+- **Multi-Provider Support** - Gmail, Hostinger, AWS WorkMail
+- **IMAP Support** - Fetch emails from any IMAP server
+- **SMTP Sending** - Send emails via SMTP
+- **Authentication Code Extraction** - Auto-extract verification codes from emails
+- **Real-time Monitoring** - Wait for new auth codes (60s timeout)
 - **Message Analysis** - Integrate with Telegram analysis system
 - **n8n Workflow** - Automate email processing with workflows
+- **33mail/WorkMail.pro** - Support for email alias forwarding
 - **Multi-mailbox** - Access INBOX, Sent, and other folders
 - **Secure Connection** - SSL/TLS encrypted connections
 - **Export Capability** - Download emails as JSON
+- **Click-to-Copy Codes** - Easy code extraction for automation
 
 ### ✨ Prompt Generator
 - **Spark App Prompts** - Generate prompts for creating Spark visual applications
@@ -173,13 +178,17 @@
 
 ### Email Integration
 1. Navigate to "Email Integration"
-2. Configure Hostinger email credentials (IMAP/SMTP)
-3. Click "Test Connection" to verify settings
-4. Fetch emails from your mailbox
-5. Use "Fetch for Analysis" to send emails to Telegram Analysis
-6. Integrate with n8n workflows for automation
+2. Select provider (Gmail/Hostinger/AWS WorkMail)
+3. Configure email credentials (use Gmail App Password for Gmail)
+4. Click "Test Connection" to verify settings
+5. **Extract Auth Codes** - Scan recent emails for verification codes
+6. **Monitor for Codes** - Wait for new codes (60s timeout, perfect for automation)
+7. Click any code to copy to clipboard
+8. Use "Fetch for Analysis" to send emails to Telegram Analysis
+9. Integrate with n8n workflows for automation
 
-📚 **For detailed guide, see [EMAIL_INTEGRATION_DOCS.md](EMAIL_INTEGRATION_DOCS.md)**
+📚 **For detailed guide, see [EMAIL_INTEGRATION_DOCS.md](EMAIL_INTEGRATION_DOCS.md)**  
+📚 **For auth code automation, see [AUTH_CODE_EXTRACTION_GUIDE.md](AUTH_CODE_EXTRACTION_GUIDE.md)**
 
 ### Prompt Generator
 1. Navigate to "Prompt Generator"
