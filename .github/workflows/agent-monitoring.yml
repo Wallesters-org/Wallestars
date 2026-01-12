@@ -23,6 +23,8 @@ jobs:
       - name: Провери активност на агентите
         id: check_agents
         uses: actions/github-script@v7
+        env:
+          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
         with:
           script: |
             const agents = ['copilot-agent-1', 'copilot-agent-2', 'copilot-agent-3', 'copilot-agent-4'];
@@ -80,19 +82,19 @@ jobs:
             }
             
             // Създай summary
-            let summary = `## 🤖 Статус на агентите\n\n`;
-            summary += `**Време на проверка:** ${new Date().toISOString()}\n\n`;
-            summary += `| Агент | Назначени PR-ове | Последна активност | Статус |\n`;
-            summary += `|---|---|---|---|\n`;
+            let summary = `## 🤖 Статус на агентите\\n\\n`;
+            summary += `**Време на проверка:** ${new Date().toISOString()}\\n\\n`;
+            summary += `| Агент | Назначени PR-ове | Последна активност | Статус |\\n`;
+            summary += `|---|---|---|---|\\n`;
             
             for (const [agent, status] of Object.entries(agentStatus)) {
-              summary += `| ${agent} | ${status.assigned_prs} | ${status.last_activity || 'Няма'} | ${status.status} |\n`;
+              summary += `| ${agent} | ${status.assigned_prs} | ${status.last_activity || 'Няма'} | ${status.status} |\\n`;
             }
             
             await core.summary.addRaw(summary).write();
             
             // Изпрати към n8n
-            await fetch('${{ secrets.N8N_WEBHOOK_URL }}/webhook/agent-status', {
+            await fetch(`${process.env.N8N_WEBHOOK_URL}/webhook/agent-status`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -159,7 +161,6 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            // Вземи PR-ове от последните 24 часа
             const oneDayAgo = new Date();
             oneDayAgo.setDate(oneDayAgo.getDate() - 1);
             
@@ -177,24 +178,23 @@ jobs:
             const openPRs = recentPRs.filter(pr => pr.state === 'open');
             const closedPRs = recentPRs.filter(pr => pr.state === 'closed' && pr.merged_at);
             
-            // Създай issue с доклад
-            const reportBody = `
-# 📊 Дневен доклад за агенти - ${new Date().toLocaleDateString('bg-BG')}
-
-## Обобщение
-- **Отворени PR-ове:** ${openPRs.length}
-- **Merge-нати PR-ове:** ${closedPRs.length}
-- **Общо активност:** ${recentPRs.length}
-
-## Отворени PR-ове
-${openPRs.map(pr => `- #${pr.number} - ${pr.title} (${pr.user.login})`).join('\n')}
-
-## Merge-нати PR-ове
-${closedPRs.map(pr => `- ✅ #${pr.number} - ${pr.title} (${pr.user.login})`).join('\n')}
-
----
-_Автоматично генерирано от Agent Monitoring System_
-            `;
+            const reportBody = [
+              `# 📊 Дневен доклад за агенти - ${new Date().toLocaleDateString('bg-BG')}`,
+              '',
+              '## Обобщение',
+              `- **Отворени PR-ове:** ${openPRs.length}`,
+              `- **Merge-нати PR-ове:** ${closedPRs.length}`,
+              `- **Общо активност:** ${recentPRs.length}`,
+              '',
+              '## Отворени PR-ове',
+              ...openPRs.map(pr => `- #${pr.number} - ${pr.title} (${pr.user.login})`),
+              '',
+              '## Merge-нати PR-ове',
+              ...closedPRs.map(pr => `- ✅ #${pr.number} - ${pr.title} (${pr.user.login})`),
+              '',
+              '---',
+              '_Автоматично генерирано от Agent Monitoring System_'
+            ].join('\n');
             
             await github.rest.issues.create({
               owner: context.repo.owner,

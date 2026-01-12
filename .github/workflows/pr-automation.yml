@@ -59,6 +59,8 @@ jobs:
 
       - name: Делегирай PR без агент
         uses: actions/github-script@v7
+        env:
+          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
         with:
           script: |
             const pullRequests = JSON.parse('${{ steps.get_prs.outputs.prs }}');
@@ -91,7 +93,7 @@ jobs:
                 });
                 
                 // Изпрати webhook към n8n
-                await fetch('${{ secrets.N8N_WEBHOOK_URL }}/webhook/pr-delegated', {
+                await fetch(`${process.env.N8N_WEBHOOK_URL}/webhook/pr-delegated`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -196,8 +198,10 @@ jobs:
     
     steps:
       - name: Изпрати статус към n8n
+        env:
+          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
         run: |
-          curl -X POST "${{ secrets.N8N_WEBHOOK_URL }}/webhook/github-pr-status" \
+          curl -X POST "${N8N_WEBHOOK_URL}/webhook/github-pr-status" \
             -H "Content-Type: application/json" \
             -d '{
               "workflow": "pr-automation",

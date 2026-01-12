@@ -173,28 +173,28 @@ jobs:
             const prNumber = context.payload.pull_request.number;
             const prTitle = context.payload.pull_request.title;
             
-            const sessionBody = `
-# 🧪 Test Session за PR #${prNumber}
-
-## PR Информация
-- **Заглавие:** ${prTitle}
-- **Автор:** @${context.payload.pull_request.user.login}
-- **URL:** ${context.payload.pull_request.html_url}
-
-## Test Checklist
-- [ ] Unit тестове преминати
-- [ ] Integration тестове преминати
-- [ ] E2E тестове преминати
-- [ ] Build verification успешна
-- [ ] Security scan чиста
-- [ ] Code quality одобрена
-
-## Статус
-🔄 **В процес на тестване**
-
----
-_Автоматично създадена test session_
-            `;
+            const sessionBody = [
+              `# 🧪 Test Session за PR #${prNumber}`,
+              '',
+              '## PR Информация',
+              `- **Заглавие:** ${prTitle}`,
+              `- **Автор:** @${context.payload.pull_request.user.login}`,
+              `- **URL:** ${context.payload.pull_request.html_url}`,
+              '',
+              '## Test Checklist',
+              '- [ ] Unit тестове преминати',
+              '- [ ] Integration тестове преминати',
+              '- [ ] E2E тестове преминати',
+              '- [ ] Build verification успешна',
+              '- [ ] Security scan чиста',
+              '- [ ] Code quality одобрена',
+              '',
+              '## Статус',
+              '🔄 **В процес на тестване**',
+              '',
+              '---',
+              '_Автоматично създадена test session_'
+            ].join('\n');
             
             const { data: issue } = await github.rest.issues.create({
               owner: context.repo.owner,
@@ -220,8 +220,10 @@ _Автоматично създадена test session_
     
     steps:
       - name: Изпрати резултати към n8n
+        env:
+          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
         run: |
-          curl -X POST "${{ secrets.N8N_WEBHOOK_URL }}/webhook/test-results" \
+          curl -X POST "${N8N_WEBHOOK_URL}/webhook/test-results" \
             -H "Content-Type: application/json" \
             -d '{
               "workflow": "testing-automation",
