@@ -627,12 +627,20 @@ WHERE email_alias LIKE '%e2e-test%';
 - [ ] Old codes cleared after verification
   - Implementation: Add scheduled workflow to clear codes older than 24 hours:
     ```sql
+    -- Clear SMS codes that are older than 24 hours after SMS verification
     UPDATE verified_business_profiles
-    SET sms_verification_code = NULL,
-        email_confirmation_code = NULL
-    WHERE (sms_verified_at < NOW() - INTERVAL '24 hours'
-           OR email_verified_at < NOW() - INTERVAL '24 hours')
-    AND (sms_verified_at IS NOT NULL OR email_verified_at IS NOT NULL);
+    SET sms_verification_code = NULL
+    WHERE sms_verified_at IS NOT NULL
+      AND sms_verified_at < NOW() - INTERVAL '24 hours'
+      AND sms_verification_code IS NOT NULL;
+    
+    -- Clear Email codes that are older than 24 hours after Email verification
+    UPDATE verified_business_profiles
+    SET email_confirmation_code = NULL,
+        email_verification_link = NULL
+    WHERE email_verified_at IS NOT NULL
+      AND email_verified_at < NOW() - INTERVAL '24 hours'
+      AND (email_confirmation_code IS NOT NULL OR email_verification_link IS NOT NULL);
     ```
   - Schedule: Daily at 2 AM
   - Retention policy: Keep codes for 24 hours post-verification for audit

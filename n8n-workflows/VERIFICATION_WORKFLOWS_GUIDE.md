@@ -135,9 +135,15 @@ Returns:
 // Generate VAT Number
 const vatNumber = item.eik ? `BG${item.eik}` : null;
 
+```javascript
 // Generate 33mail Alias
 const emailAlias = item.name 
-  ? `${item.name.toLowerCase().replace(/\s+/g, '-')}@wallester.33mail.com`
+  ? `${item.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '-')  // Replace any non-alphanumeric with hyphen
+      .replace(/-+/g, '-')          // Replace multiple hyphens with single
+      .replace(/^-|-$/g, '')        // Remove leading/trailing hyphens
+    }@wallester.33mail.com`
   : null;
 
 // Parse Address
@@ -241,6 +247,23 @@ return results;
 - 4-digit codes: `1234`
 - 5-digit codes: `12345`
 - 6-digit codes: `123456`
+
+**Note**: The regex pattern `\b(\d{4,6})\b` captures any 4-6 digit number. For production, consider enhancing with context matching:
+```javascript
+// Enhanced OTP extraction with context
+const patterns = [
+  /(?:code|verification|otp)[\s:]*(\d{4,6})/i,  // With context words
+  /\b(\d{4,6})\b/                                 // Fallback to any 4-6 digits
+];
+
+for (const pattern of patterns) {
+  const match = text.match(pattern);
+  if (match) {
+    codeMatch = match;
+    break;
+  }
+}
+```
 
 #### Step 3: Match Pending Request
 ```json
