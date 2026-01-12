@@ -131,7 +131,7 @@ function findBestAgent(taskType) {
  */
 function createDelegatedTask(event, taskType, agent) {
   const task = {
-    id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    id: `task-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
     eventType: event.eventType,
     eventNumber: event.number,
     eventTitle: event.title,

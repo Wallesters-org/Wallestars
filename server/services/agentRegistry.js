@@ -1,6 +1,6 @@
 /**
  * Agent Registry - Defines available agents and their capabilities
- * Based on .github/TASKS/AGENT_DELEGATION_GUIDE.md
+ * Based on AGENT_DELEGATION_SYSTEM.md documentation
  */
 
 export const AGENT_REGISTRY = {
