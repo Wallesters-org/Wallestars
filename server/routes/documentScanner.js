@@ -280,9 +280,9 @@ router.post('/extract-document', async (req, res) => {
 // Validate extracted invoice data
 router.post('/validate-invoice', async (req, res) => {
   try {
-    const { data } = req.body;
+    const { data: invoiceData } = req.body;
 
-    if (!data) {
+    if (!invoiceData) {
       return res.status(400).json({
         success: false,
         error: 'Invoice data is required'
@@ -293,48 +293,48 @@ router.post('/validate-invoice', async (req, res) => {
     const warnings = [];
 
     // Required fields validation
-    if (!data.vendorName) {
+    if (!invoiceData.vendorName) {
       validationErrors.push({ field: 'vendorName', message: 'Vendor name is required' });
     }
-    if (!data.totalAmount || data.totalAmount <= 0) {
+    if (!invoiceData.totalAmount || invoiceData.totalAmount <= 0) {
       validationErrors.push({ field: 'totalAmount', message: 'Valid total amount is required' });
     }
-    if (!data.invoiceNumber) {
+    if (!invoiceData.invoiceNumber) {
       warnings.push({ field: 'invoiceNumber', message: 'Invoice number is missing' });
     }
-    if (!data.invoiceDate) {
+    if (!invoiceData.invoiceDate) {
       warnings.push({ field: 'invoiceDate', message: 'Invoice date is missing' });
     }
 
     // Calculate totals validation
-    if (data.items && data.items.length > 0) {
-      const calculatedSubtotal = data.items.reduce((sum, item) => {
-        return sum + (item.totalPrice || (item.quantity * item.unitPrice) || 0);
+    if (invoiceData.items && invoiceData.items.length > 0) {
+      const calculatedSubtotal = invoiceData.items.reduce((sum, invoiceItem) => {
+        return sum + (invoiceItem.totalPrice || (invoiceItem.quantity * invoiceItem.unitPrice) || 0);
       }, 0);
 
-      if (data.subtotal && Math.abs(calculatedSubtotal - data.subtotal) > 0.01) {
+      if (invoiceData.subtotal && Math.abs(calculatedSubtotal - invoiceData.subtotal) > 0.01) {
         warnings.push({
           field: 'subtotal',
-          message: `Subtotal mismatch. Calculated: ${calculatedSubtotal.toFixed(2)}, Extracted: ${data.subtotal}`
+          message: `Subtotal mismatch. Calculated: ${calculatedSubtotal.toFixed(2)}, Extracted: ${invoiceData.subtotal}`
         });
       }
 
       // Validate total with tax
-      if (data.subtotal && data.taxAmount && data.totalAmount) {
-        const expectedTotal = data.subtotal + data.taxAmount;
-        if (Math.abs(expectedTotal - data.totalAmount) > 0.01) {
+      if (invoiceData.subtotal && invoiceData.taxAmount && invoiceData.totalAmount) {
+        const expectedTotal = invoiceData.subtotal + invoiceData.taxAmount;
+        if (Math.abs(expectedTotal - invoiceData.totalAmount) > 0.01) {
           warnings.push({
             field: 'totalAmount',
-            message: `Total amount mismatch. Expected: ${expectedTotal.toFixed(2)}, Extracted: ${data.totalAmount}`
+            message: `Total amount mismatch. Expected: ${expectedTotal.toFixed(2)}, Extracted: ${invoiceData.totalAmount}`
           });
         }
       }
     }
 
     // Date validation
-    if (data.invoiceDate && data.dueDate) {
-      const invoiceDate = new Date(data.invoiceDate);
-      const dueDate = new Date(data.dueDate);
+    if (invoiceData.invoiceDate && invoiceData.dueDate) {
+      const invoiceDate = new Date(invoiceData.invoiceDate);
+      const dueDate = new Date(invoiceData.dueDate);
       if (dueDate < invoiceDate) {
         validationErrors.push({
           field: 'dueDate',
@@ -352,7 +352,7 @@ router.post('/validate-invoice', async (req, res) => {
       needsReview,
       validationErrors,
       warnings,
-      data
+      data: invoiceData
     });
   } catch (error) {
     console.error('Validation error:', error);
@@ -404,31 +404,31 @@ router.post('/export/delta-bg', async (req, res) => {
     const deltaBGData = documents.map((doc, index) => {
       if (doc.documentType !== 'invoice') return null;
 
-      const data = doc.data;
+      const invoiceData = doc.data;
       
       return {
         RecordType: 'INV',
-        DocumentNumber: data.invoiceNumber || `AUTO-${Date.now()}-${index}`,
-        DocumentDate: data.invoiceDate || new Date().toISOString().split('T')[0],
-        DueDate: data.dueDate || '',
-        VendorCode: data.vendorTaxId || '',
-        VendorName: data.vendorName || '',
-        VendorAddress: data.vendorAddress || '',
-        CustomerName: data.customerName || '',
-        CustomerAddress: data.customerAddress || '',
-        Currency: data.currency || 'BGN',
-        Subtotal: data.subtotal?.toFixed(2) || '0.00',
-        TaxRate: data.taxRate?.toFixed(2) || '0.00',
-        TaxAmount: data.taxAmount?.toFixed(2) || '0.00',
-        TotalAmount: data.totalAmount?.toFixed(2) || '0.00',
-        PaymentTerms: data.paymentTerms || '',
-        Items: data.items?.map(item => ({
-          Description: item.description || '',
-          Quantity: item.quantity || 0,
-          UnitPrice: item.unitPrice?.toFixed(2) || '0.00',
-          TotalPrice: item.totalPrice?.toFixed(2) || '0.00'
+        DocumentNumber: invoiceData.invoiceNumber || `AUTO-${Date.now()}-${index}`,
+        DocumentDate: invoiceData.invoiceDate || new Date().toISOString().split('T')[0],
+        DueDate: invoiceData.dueDate || '',
+        VendorCode: invoiceData.vendorTaxId || '',
+        VendorName: invoiceData.vendorName || '',
+        VendorAddress: invoiceData.vendorAddress || '',
+        CustomerName: invoiceData.customerName || '',
+        CustomerAddress: invoiceData.customerAddress || '',
+        Currency: invoiceData.currency || 'BGN',
+        Subtotal: invoiceData.subtotal?.toFixed(2) || '0.00',
+        TaxRate: invoiceData.taxRate?.toFixed(2) || '0.00',
+        TaxAmount: invoiceData.taxAmount?.toFixed(2) || '0.00',
+        TotalAmount: invoiceData.totalAmount?.toFixed(2) || '0.00',
+        PaymentTerms: invoiceData.paymentTerms || '',
+        Items: invoiceData.items?.map(invoiceItem => ({
+          Description: invoiceItem.description || '',
+          Quantity: invoiceItem.quantity || 0,
+          UnitPrice: invoiceItem.unitPrice?.toFixed(2) || '0.00',
+          TotalPrice: invoiceItem.totalPrice?.toFixed(2) || '0.00'
         })) || [],
-        Notes: data.notes || '',
+        Notes: invoiceData.notes || '',
         ImportDate: new Date().toISOString(),
         ValidationStatus: doc.validationStatus || 'pending'
       };
@@ -488,43 +488,43 @@ router.post('/export/trz', async (req, res) => {
     documents.forEach((doc, index) => {
       if (doc.documentType !== 'invoice') return;
 
-      const data = doc.data;
+      const invoiceData = doc.data;
       xmlContent += `    <Invoice id="${index + 1}">\n`;
-      xmlContent += `      <InvoiceNumber>${escapeXml(data.invoiceNumber || '')}</InvoiceNumber>\n`;
-      xmlContent += `      <InvoiceDate>${data.invoiceDate || ''}</InvoiceDate>\n`;
-      xmlContent += `      <DueDate>${data.dueDate || ''}</DueDate>\n`;
+      xmlContent += `      <InvoiceNumber>${escapeXml(invoiceData.invoiceNumber || '')}</InvoiceNumber>\n`;
+      xmlContent += `      <InvoiceDate>${invoiceData.invoiceDate || ''}</InvoiceDate>\n`;
+      xmlContent += `      <DueDate>${invoiceData.dueDate || ''}</DueDate>\n`;
       xmlContent += `      <Vendor>\n`;
-      xmlContent += `        <Name>${escapeXml(data.vendorName || '')}</Name>\n`;
-      xmlContent += `        <Address>${escapeXml(data.vendorAddress || '')}</Address>\n`;
-      xmlContent += `        <TaxId>${escapeXml(data.vendorTaxId || '')}</TaxId>\n`;
+      xmlContent += `        <Name>${escapeXml(invoiceData.vendorName || '')}</Name>\n`;
+      xmlContent += `        <Address>${escapeXml(invoiceData.vendorAddress || '')}</Address>\n`;
+      xmlContent += `        <TaxId>${escapeXml(invoiceData.vendorTaxId || '')}</TaxId>\n`;
       xmlContent += `      </Vendor>\n`;
       xmlContent += `      <Customer>\n`;
-      xmlContent += `        <Name>${escapeXml(data.customerName || '')}</Name>\n`;
-      xmlContent += `        <Address>${escapeXml(data.customerAddress || '')}</Address>\n`;
+      xmlContent += `        <Name>${escapeXml(invoiceData.customerName || '')}</Name>\n`;
+      xmlContent += `        <Address>${escapeXml(invoiceData.customerAddress || '')}</Address>\n`;
       xmlContent += `      </Customer>\n`;
       xmlContent += `      <Items>\n`;
       
-      if (data.items && data.items.length > 0) {
-        data.items.forEach((item, itemIndex) => {
+      if (invoiceData.items && invoiceData.items.length > 0) {
+        invoiceData.items.forEach((invoiceItem, itemIndex) => {
           xmlContent += `        <Item id="${itemIndex + 1}">\n`;
-          xmlContent += `          <Description>${escapeXml(item.description || '')}</Description>\n`;
-          xmlContent += `          <Quantity>${item.quantity || 0}</Quantity>\n`;
-          xmlContent += `          <UnitPrice>${item.unitPrice?.toFixed(2) || '0.00'}</UnitPrice>\n`;
-          xmlContent += `          <TotalPrice>${item.totalPrice?.toFixed(2) || '0.00'}</TotalPrice>\n`;
+          xmlContent += `          <Description>${escapeXml(invoiceItem.description || '')}</Description>\n`;
+          xmlContent += `          <Quantity>${invoiceItem.quantity || 0}</Quantity>\n`;
+          xmlContent += `          <UnitPrice>${invoiceItem.unitPrice?.toFixed(2) || '0.00'}</UnitPrice>\n`;
+          xmlContent += `          <TotalPrice>${invoiceItem.totalPrice?.toFixed(2) || '0.00'}</TotalPrice>\n`;
           xmlContent += `        </Item>\n`;
         });
       }
       
       xmlContent += `      </Items>\n`;
       xmlContent += `      <Financial>\n`;
-      xmlContent += `        <Currency>${data.currency || 'BGN'}</Currency>\n`;
-      xmlContent += `        <Subtotal>${data.subtotal?.toFixed(2) || '0.00'}</Subtotal>\n`;
-      xmlContent += `        <TaxRate>${data.taxRate?.toFixed(2) || '0.00'}</TaxRate>\n`;
-      xmlContent += `        <TaxAmount>${data.taxAmount?.toFixed(2) || '0.00'}</TaxAmount>\n`;
-      xmlContent += `        <TotalAmount>${data.totalAmount?.toFixed(2) || '0.00'}</TotalAmount>\n`;
+      xmlContent += `        <Currency>${invoiceData.currency || 'BGN'}</Currency>\n`;
+      xmlContent += `        <Subtotal>${invoiceData.subtotal?.toFixed(2) || '0.00'}</Subtotal>\n`;
+      xmlContent += `        <TaxRate>${invoiceData.taxRate?.toFixed(2) || '0.00'}</TaxRate>\n`;
+      xmlContent += `        <TaxAmount>${invoiceData.taxAmount?.toFixed(2) || '0.00'}</TaxAmount>\n`;
+      xmlContent += `        <TotalAmount>${invoiceData.totalAmount?.toFixed(2) || '0.00'}</TotalAmount>\n`;
       xmlContent += `      </Financial>\n`;
-      xmlContent += `      <PaymentTerms>${escapeXml(data.paymentTerms || '')}</PaymentTerms>\n`;
-      xmlContent += `      <Notes>${escapeXml(data.notes || '')}</Notes>\n`;
+      xmlContent += `      <PaymentTerms>${escapeXml(invoiceData.paymentTerms || '')}</PaymentTerms>\n`;
+      xmlContent += `      <Notes>${escapeXml(invoiceData.notes || '')}</Notes>\n`;
       xmlContent += `      <ValidationStatus>${doc.validationStatus || 'pending'}</ValidationStatus>\n`;
       xmlContent += `    </Invoice>\n`;
     });
