@@ -71,6 +71,15 @@
 - **Quick Links** - Direct access to Anthropic Console Workbench
 - **Comprehensive Templates** - Detailed specifications for AI-powered apps
 
+### 🤖 Agent Delegation System
+- **Automatic Task Routing** - GitHub events auto-delegated to appropriate agents
+- **9 Specialized Agents** - Security, deployment, testing, documentation, and more
+- **Intelligent Analysis** - Analyzes PR/Issue content, labels, and branch names
+- **Priority Management** - P0 (critical) to P3 (low) priority levels
+- **Workload Balancing** - Distributes tasks based on agent capacity
+- **Real-time Tracking** - WebSocket updates for task status changes
+- **REST API** - Full API for task management and monitoring
+
 ### 🎨 Professional UI/UX
 - **Modern Design** - Tailwind CSS with custom components
 - **Smooth Animations** - Framer Motion for fluid transitions
@@ -310,6 +319,12 @@ Security is a top priority for Wallestars Control Center. We follow industry bes
 - **[SECURITY.md](SECURITY.md)** - Security policy and vulnerability reporting
 - **[SECURITY_CHECKLIST.md](SECURITY_CHECKLIST.md)** - Pre-deployment security checklist
 - **[VPS_DEPLOYMENT.md](VPS_DEPLOYMENT.md)** - Secure deployment guide
+
+### Additional Documentation
+- **[AGENT_DELEGATION_SYSTEM.md](AGENT_DELEGATION_SYSTEM.md)** - Agent delegation system guide
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture overview
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contributing guidelines
+- **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - Testing documentation
 
 ### Quick Security Tips
 - Never commit `.env` files or API keys
