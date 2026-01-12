@@ -151,6 +151,20 @@
   animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* Glow pulse animation */
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 5px currentColor, 0 0 10px currentColor;
+  }
+  50% {
+    box-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor;
+  }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
 /* Shimmer effect for loading states */
 @keyframes shimmer {
   0% {
@@ -192,6 +206,43 @@
 
 .text-gradient-cool {
   @apply bg-gradient-to-r from-accent-cyan via-primary-400 to-accent-indigo bg-clip-text text-transparent;
+}
+
+/* Glow utilities */
+.glow-primary {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4), 0 0 40px rgba(59, 130, 246, 0.2);
+}
+
+.glow-violet {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.4), 0 0 40px rgba(139, 92, 246, 0.2);
+}
+
+.glow-emerald {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4), 0 0 40px rgba(16, 185, 129, 0.2);
+}
+
+/* Gradient border animation */
+@keyframes gradient-border {
+  0%, 100% { 
+    border-color: rgba(59, 130, 246, 0.3);
+  }
+  50% { 
+    border-color: rgba(139, 92, 246, 0.5);
+  }
+}
+
+.animate-gradient-border {
+  animation: gradient-border 3s ease infinite;
+}
+
+/* Floating animation variations */
+.animate-float-slow {
+  animation: float 8s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float 6s ease-in-out infinite;
+  animation-delay: 2s;
 }
 
 /* Mobile-specific utilities */
