@@ -11,56 +11,56 @@
 @layer components {
   /* Premium Glassmorphism Effects */
   .glass-effect {
-    @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] shadow-lg;
+    @apply bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-xl;
   }
 
   .glass-effect-hover {
-    @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] hover:bg-white/[0.06] hover:border-white/[0.12] transition-all duration-300 shadow-lg;
+    @apply bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] hover:bg-white/[0.08] hover:border-white/[0.15] transition-all duration-300 shadow-xl hover:shadow-2xl;
   }
 
   .glass-ultra {
-    @apply bg-white/[0.02] backdrop-blur-2xl border border-white/[0.05] shadow-2xl;
+    @apply bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] shadow-2xl;
   }
 
   .glow-effect {
-    @apply shadow-xl shadow-primary-500/10;
+    @apply shadow-xl shadow-primary-500/20;
   }
 
   .glow-effect-hover {
-    @apply hover:shadow-2xl hover:shadow-primary-500/20 transition-shadow duration-300;
+    @apply hover:shadow-2xl hover:shadow-primary-500/30 transition-shadow duration-300;
   }
 
   /* Premium Buttons */
   .btn-primary {
-    @apply bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 
-           text-white font-medium px-6 py-3 rounded-xl transition-all duration-300 
-           transform hover:scale-[1.02] active:scale-[0.98] 
-           shadow-lg shadow-primary-500/30 hover:shadow-xl hover:shadow-primary-500/40
-           border border-white/10;
+    @apply bg-gradient-to-r from-primary-500 via-primary-600 to-accent-violet hover:from-primary-600 hover:via-accent-violet hover:to-accent-purple
+           text-white font-semibold px-6 py-3 rounded-xl transition-all duration-300 
+           transform hover:scale-[1.03] active:scale-[0.97] 
+           shadow-xl shadow-primary-500/40 hover:shadow-2xl hover:shadow-primary-500/50
+           border border-white/20 relative overflow-hidden;
   }
 
   .btn-secondary {
-    @apply glass-effect-hover text-dark-100 font-medium px-6 py-3 rounded-xl transition-all duration-300
-           transform hover:scale-[1.02] active:scale-[0.98];
+    @apply glass-effect-hover text-dark-100 font-semibold px-6 py-3 rounded-xl transition-all duration-300
+           transform hover:scale-[1.03] active:scale-[0.97] hover:text-primary-400;
   }
 
   .btn-ghost {
-    @apply hover:bg-white/5 text-dark-100 font-medium px-4 py-2 rounded-lg transition-all duration-200
-           border border-transparent hover:border-white/10;
+    @apply hover:bg-white/10 text-dark-100 font-medium px-4 py-2 rounded-lg transition-all duration-200
+           border border-transparent hover:border-white/20 hover:text-primary-400;
   }
 
   /* Premium Cards */
   .card {
-    @apply glass-effect rounded-2xl p-6 glow-effect-hover transition-all duration-300;
+    @apply glass-effect rounded-2xl p-6 glow-effect-hover transition-all duration-300 hover:border-white/20;
   }
 
   .card-ultra {
-    @apply glass-ultra rounded-2xl p-6 hover:shadow-2xl hover:bg-white/[0.04] transition-all duration-300;
+    @apply glass-ultra rounded-2xl p-6 hover:shadow-2xl hover:bg-white/[0.06] transition-all duration-300 hover:border-white/15;
   }
 
   .card-interactive {
     @apply glass-effect rounded-2xl p-6 glow-effect-hover transition-all duration-300
-           hover:scale-[1.01] cursor-pointer;
+           hover:scale-[1.02] cursor-pointer hover:border-white/20 hover:bg-white/[0.06];
   }
 
   /* Premium Input Fields */
@@ -179,11 +179,19 @@
 
 /* Text gradients */
 .text-gradient-primary {
-  @apply bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600 bg-clip-text text-transparent;
+  @apply bg-gradient-to-r from-primary-400 via-accent-violet to-accent-purple bg-clip-text text-transparent;
 }
 
 .text-gradient-accent {
   @apply bg-gradient-to-r from-accent-cyan via-primary-500 to-accent-purple bg-clip-text text-transparent;
+}
+
+.text-gradient-vibrant {
+  @apply bg-gradient-to-r from-accent-rose via-accent-pink to-accent-purple bg-clip-text text-transparent;
+}
+
+.text-gradient-cool {
+  @apply bg-gradient-to-r from-accent-cyan via-primary-400 to-accent-indigo bg-clip-text text-transparent;
 }
 
 /* Mobile-specific utilities */
