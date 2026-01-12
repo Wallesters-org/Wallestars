@@ -208,6 +208,19 @@
   @apply bg-gradient-to-r from-accent-cyan via-primary-400 to-accent-indigo bg-clip-text text-transparent;
 }
 
+/* Animation delays */
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-3000 {
+  animation-delay: 3s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
 /* Glow utilities */
 .glow-primary {
   box-shadow: 0 0 20px rgba(59, 130, 246, 0.4), 0 0 40px rgba(59, 130, 246, 0.2);
