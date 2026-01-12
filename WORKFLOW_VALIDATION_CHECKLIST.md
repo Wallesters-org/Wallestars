@@ -48,7 +48,7 @@ npm run lint
 npm run build
 
 # Validate YAML syntax (requires Python 3 with PyYAML)
-# Install PyYAML if needed: pip install pyyaml
+# Install PyYAML if needed: pip install PyYAML
 python3 -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml'))"
 python3 -c "import yaml; yaml.safe_load(open('.github/workflows/azure-webapps-node.yml'))"
 
@@ -153,4 +153,4 @@ For Azure deployment to work, ensure:
 ---
 
 **Status**: All checks passed ✓  
-**Last Validated**: January 2026
+**Last Validated**: January 12, 2026
