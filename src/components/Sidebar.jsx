@@ -8,7 +8,8 @@ import {
   Settings,
   Zap,
   Sparkles,
-  ScanLine
+  ScanLine,
+  Network
 } from 'lucide-react';
 
 const menuItems = [
@@ -18,6 +19,7 @@ const menuItems = [
   { id: 'android', name: 'Android Control', icon: Smartphone },
   { id: 'smartscan', name: 'Smart Scan', icon: ScanLine },
   { id: 'promptgen', name: 'Prompt Generator', icon: Sparkles },
+  { id: 'orchestration', name: 'Task Orchestration', icon: Network },
   { id: 'settings', name: 'Settings', icon: Settings },
 ];
 
