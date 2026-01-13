@@ -14,7 +14,12 @@
         "SCREENSHOT_INTERVAL": "2000",
         "ADB_HOST": "localhost",
         "ADB_PORT": "5037",
-        "WS_PORT": "3001"
+        "WS_PORT": "3001",
+        "N8N_WORKFLOW_URL": "https://n8n.srv1201204.hstgr.cloud/workflow/I8mKi4o2ZgXKRHiY",
+        "N8N_MCP_API_URL": "https://api.n8n-mcp.com/mcpclaude/anti-bullying-platform-uGVex",
+        "HOSTINGER_VPS_URL": "https://hpanel.hostinger.com/vps/1201204/overview",
+        "CLAUDE_CODE_URL": "https://claude.ai/code",
+        "CHROME_WEBSTORE_URL": "https://chromewebstore.google.com/unsupported"
       }
     }
   }
