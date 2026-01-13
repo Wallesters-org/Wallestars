@@ -67,6 +67,14 @@
 - **Navigation** - Home, Back, Power buttons
 - **Device Info** - Model, Android version, battery level
 
+### 🌐 Hostinger VPS Management
+- **VPS Control** - Manage Hostinger VPS instances
+- **Billing Management** - View and manage subscriptions
+- **Payment Methods** - Handle payment options
+- **Invoice Access** - Download and view invoices
+- **Automated Deployment** - GitHub Actions workflow
+- **Renewal Management** - One-click subscription renewal
+
 ### 📄 Smart Scan
 - **AI Document Classification** - Automatically identify invoices, receipts, notes, and more
 - **Intelligent Data Extraction** - Extract structured data using Claude Vision API
@@ -127,6 +135,9 @@
    ANTHROPIC_API_KEY=sk-ant-your-key-here
    ENABLE_COMPUTER_USE=true
    ENABLE_ANDROID=true
+   
+   # Optional: For Hostinger VPS Management
+   HOSTINGER_API_TOKEN=your_hostinger_api_token
    ```
 
 4. **Start development server:**
@@ -187,6 +198,15 @@
 6. Optionally download the prompt as a markdown file
 
 📚 **For detailed documentation, see [PROMPT_GENERATOR_DOCS.md](PROMPT_GENERATOR_DOCS.md)**
+
+### Hostinger VPS Management
+1. Configure your Hostinger API token in `.env`
+2. Navigate to "Hostinger VPS"
+3. View VPS instances, subscriptions, and billing
+4. Manage renewals and payments
+5. Monitor VPS metrics and status
+
+📚 **For detailed documentation, see [HOSTINGER_API_INTEGRATION.md](HOSTINGER_API_INTEGRATION.md)**
 
 ---
 
