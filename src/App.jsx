@@ -9,6 +9,7 @@ import AndroidControl from './pages/AndroidControl';
 import Settings from './pages/Settings';
 import PromptGenerator from './pages/PromptGenerator';
 import SmartScan from './pages/SmartScan';
+import VisualCategorization from './pages/VisualCategorization';
 import { SocketProvider } from './context/SocketContext';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
     computer: <ComputerControl />,
     android: <AndroidControl />,
     smartscan: <SmartScan />,
+    categorize: <VisualCategorization />,
     promptgen: <PromptGenerator />,
     settings: <Settings />
   };

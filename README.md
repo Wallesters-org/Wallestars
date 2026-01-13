@@ -77,6 +77,16 @@
 - **USB Transfer Ready** - Files validated for seamless cross-computer transfer
 - **Edit & Correct** - Manual correction mode for extracted data
 
+### 🗂️ Visual Categorization with ToolBoxPro
+- **AI-Powered Organization** - Automatically categorize files using Claude Vision API
+- **Smart File Management** - Organize documents, images, and data files intelligently
+- **Visual Interface** - Beautiful grid and list views with drag-and-drop support
+- **Batch Processing** - Process multiple files at once with AI categorization
+- **Multi-Select Tools** - Bulk operations for efficient file management
+- **Export Capabilities** - Save categorization data in JSON format
+- **Real-time Preview** - Instant image previews and status tracking
+- **Manual Override** - Adjust AI suggestions with flexible category controls
+
 ### ✨ Prompt Generator
 - **Spark App Prompts** - Generate prompts for creating Spark visual applications
 - **Bilingual Support** - Available in English and Bulgarian
@@ -177,6 +187,17 @@
 7. Click "Export & Download" to save the validated file
 
 📚 **For detailed documentation, see [SMART_SCAN_DOCS.md](SMART_SCAN_DOCS.md)**
+
+### Visual Categorization
+1. Navigate to "Visual Categorization"
+2. Upload files using the "Upload Files" button or drag & drop
+3. Click "Auto-Categorize" to let AI organize your files
+4. Review AI suggestions and adjust categories if needed
+5. Use grid or list view to browse your organized files
+6. Filter by category or search for specific files
+7. Export categorization data as JSON for records
+
+📚 **For detailed documentation, see [VISUAL_CATEGORIZATION_DOCS.md](VISUAL_CATEGORIZATION_DOCS.md)**
 
 ### Prompt Generator
 1. Navigate to "Prompt Generator"
