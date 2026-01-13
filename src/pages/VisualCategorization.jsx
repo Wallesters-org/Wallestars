@@ -52,19 +52,22 @@ export default function VisualCategorization() {
       timestamp: new Date().toISOString()
     }));
 
-    // Create previews for images
-    for (const item of newItems) {
+    // Add items first
+    setItems(prev => [...prev, ...newItems]);
+
+    // Create previews for images asynchronously
+    newItems.forEach((item) => {
       if (item.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onloadend = () => {
-          item.preview = reader.result;
-          setItems(prev => [...prev]);
+          // Update the specific item's preview
+          setItems(prev => prev.map(i => 
+            i.id === item.id ? { ...i, preview: reader.result } : i
+          ));
         };
         reader.readAsDataURL(item.file);
       }
-    }
-
-    setItems(prev => [...prev, ...newItems]);
+    });
   };
 
   const categorizeItems = async () => {
@@ -72,6 +75,8 @@ export default function VisualCategorization() {
     const pendingItems = items.filter(item => item.status === 'pending');
 
     try {
+      const updatedItems = [...items];
+      
       for (const item of pendingItems) {
         // Prepare data for AI categorization
         const itemData = {
@@ -93,17 +98,21 @@ export default function VisualCategorization() {
 
         const result = await response.json();
 
-        if (result.success) {
-          item.category = result.category;
-          item.aiSuggestion = result.suggestion;
-          item.status = 'categorized';
-        } else {
-          item.status = 'error';
-          item.error = result.error;
+        const itemIndex = updatedItems.findIndex(i => i.id === item.id);
+        if (itemIndex !== -1) {
+          if (result.success) {
+            updatedItems[itemIndex].category = result.category;
+            updatedItems[itemIndex].aiSuggestion = result.suggestion;
+            updatedItems[itemIndex].status = 'categorized';
+          } else {
+            updatedItems[itemIndex].status = 'error';
+            updatedItems[itemIndex].error = result.error;
+          }
         }
-
-        setItems(prev => [...prev]);
       }
+      
+      // Single update after all items processed
+      setItems(updatedItems);
     } catch (error) {
       console.error('Categorization error:', error);
     } finally {

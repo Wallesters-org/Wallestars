@@ -189,6 +189,12 @@ router.post('/batch-classify', async (req, res) => {
 
 /**
  * Basic categorization based on file type
+ * Used as fallback when AI categorization is unavailable
+ * 
+ * @param {Object} item - The item to categorize
+ * @param {string} item.type - MIME type of the file
+ * @param {string} item.name - Filename including extension
+ * @returns {string} Category name ('images', 'documents', 'data', or 'other')
  */
 function getBasicCategory(item) {
   const type = item.type?.toLowerCase() || '';
