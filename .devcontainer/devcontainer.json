@@ -1,54 +1,348 @@
-  {
-    "name": "Wallestars Dev Container",
-    "image": "mcr.microsoft.com/devcontainers/typescript-node:20",
+{
+  "name": "Wallestars - Full Stack AI Platform with Claude Code",
+  
+  "build": {
+    "dockerfile": "Dockerfile.claude",
+    "context": "..",
+    "args": {
+      "TZ": "Europe/Sofia",
+      "CLAUDE_CODE_VERSION": "latest",
+      "GIT_DELTA_VERSION": "0.18.2",
+      "ZSH_IN_DOCKER_VERSION": "1.2.0",
+      "BASE_IMAGE": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm"
+    }
+  },
+  
+  "runArgs": [
+    "--cap-add=NET_ADMIN",
+    "--cap-add=NET_RAW",
+    "--name=wallestars-devcontainer",
+    "--hostname=wallestars-dev"
+  ],
 
-    "features": {
-      "ghcr.io/devcontainers/features/docker-in-docker:2": {},
-      "ghcr.io/devcontainers/features/git:1": {}
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "installOhMyZsh": true,
+      "installOhMyZshConfig": true,
+      "upgradePackages": true,
+      "username": "node",
+      "userUid": "automatic",
+      "userGid": "automatic"
     },
+    "ghcr.io/devcontainers/features/node:1": {
+      "nodeGypDependencies": true,
+      "nvmVersion": "latest",
+      "version": "22"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12",
+      "installTools": true,
+      "installJupyterlab": true
+    },
+    "ghcr.io/devcontainers/features/git:1": {
+      "version": "latest",
+      "ppa": true
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "version": "latest",
+      "installDirectlyFromGitHubRelease": true
+    },
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "dockerDashComposeVersion": "v2",
+      "enableNonRootDocker": true,
+      "moby": true
+    },
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+      "version": "latest",
+      "helm": "latest",
+      "minikube": "none"
+    },
+    "ghcr.io/devcontainers-contrib/features/postgres-asdf:1": {
+      "version": "16"
+    },
+    "ghcr.io/devcontainers-contrib/features/redis-asdf:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers-contrib/features/age:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers-contrib/features/sops:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers-contrib/features/curl-apt-get:1": {},
+    "ghcr.io/devcontainers-contrib/features/wget-apt-get:1": {},
+    "ghcr.io/devcontainers-contrib/features/jq-apt-get:1": {},
+    "ghcr.io/devcontainers-contrib/features/yq-apt-get:1": {},
+    "ghcr.io/devcontainers/features/azure-cli:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/aws-cli:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers-contrib/features/act:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers-contrib/features/pre-commit:2": {
+      "version": "latest"
+    }
+  },
 
-    "customizations": {
-      "vscode": {
-        "extensions": [
-          "dbaeumer.vscode-eslint",
-          "esbenp.prettier-vscode",
-          "bradlc.vscode-tailwindcss",
-          "dsznajder.es7-react-js-snippets"
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "github.copilot",
+        "github.copilot-chat",
+        "anthropic.claude-code",
+        "saoudrizwan.claude-dev",
+        "continue.continue",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "dsznajder.es7-react-js-snippets",
+        "xabikos.javascriptsnippets",
+        "ms-vscode.vscode-typescript-next",
+        "burkeholland.simple-react-snippets",
+        "formulahendry.auto-rename-tag",
+        "formulahendry.auto-close-tag",
+        "zignd.html-css-class-completion",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.black-formatter",
+        "supabase.supabase",
+        "mtxr.sqltools",
+        "mtxr.sqltools-driver-pg",
+        "humao.rest-client",
+        "rangav.vscode-thunder-client",
+        "ms-azuretools.vscode-docker",
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        "github.vscode-pull-request-github",
+        "github.vscode-github-actions",
+        "eamodio.gitlens",
+        "mhutchie.git-graph",
+        "donjayamanne.githistory",
+        "n8n-io.n8n",
+        "redhat.vscode-yaml",
+        "tamasfe.even-better-toml",
+        "orta.vscode-jest",
+        "firsttris.vscode-jest-runner",
+        "streetsidesoftware.code-spell-checker",
+        "ms-playwright.playwright",
+        "hbenl.vscode-test-explorer",
+        "trunk.io",
+        "snyk-security.snyk-vulnerability-scanner",
+        "sonarsource.sonarlint-vscode",
+        "juanblanco.solidity",
+        "tintinweb.solidity-visual-auditor",
+        "nomicfoundation.hardhat-solidity",
+        "amazonwebservices.aws-toolkit-vscode",
+        "yzhang.markdown-all-in-one",
+        "bierner.markdown-mermaid",
+        "davidanson.vscode-markdownlint",
+        "bierner.markdown-preview-github-styles",
+        "christian-kohler.path-intellisense",
+        "visualstudioexptteam.vscodeintellicode",
+        "usernamehw.errorlens",
+        "gruntfuggly.todo-tree",
+        "aaron-bond.better-comments",
+        "wayou.vscode-todo-highlight",
+        "mechatroner.rainbow-csv",
+        "oderwat.indent-rainbow",
+        "ritwickdey.liveserver",
+        "ms-vscode.live-server",
+        "pkief.material-icon-theme",
+        "github.github-vscode-theme"
+      ],
+      
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit",
+          "source.organizeImports": "explicit"
+        },
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true,
+        "editor.wordWrap": "on",
+        "editor.rulers": [80, 120],
+        "editor.minimap.enabled": true,
+        "editor.bracketPairColorization.enabled": true,
+        "editor.guides.bracketPairs": true,
+        "editor.trimTrailingWhitespace": true,
+        "editor.inlineSuggest.enabled": true,
+        "editor.suggestSelection": "first",
+        "editor.snippetSuggestions": "top",
+        "files.insertFinalNewline": true,
+        "files.autoSave": "afterDelay",
+        "files.autoSaveDelay": 1000,
+        "files.exclude": {
+          "**/.git": true,
+          "**/.DS_Store": true,
+          "**/node_modules": true,
+          "**/.env": true,
+          "**/.env.local": true
+        },
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.fontSize": 14,
+        "terminal.integrated.fontFamily": "MesloLGS NF",
+        "git.autofetch": true,
+        "git.confirmSync": false,
+        "git.enableSmartCommit": true,
+        "gitlens.codeLens.enabled": true,
+        "claude-code.apiKey": "${ANTHROPIC_API_KEY}",
+        "claude-code.model": "claude-sonnet-4-20250514",
+        "claude-code.dangerouslySkipPermissions": false,
+        "prettier.singleQuote": true,
+        "prettier.trailingComma": "es5",
+        "prettier.semi": true,
+        "prettier.tabWidth": 2,
+        "javascript.updateImportsOnFileMove.enabled": "always",
+        "javascript.suggest.autoImports": true,
+        "typescript.updateImportsOnFileMove.enabled": "always",
+        "typescript.suggest.autoImports": true,
+        "eslint.validate": [
+          "javascript",
+          "javascriptreact",
+          "typescript",
+          "typescriptreact"
         ],
-        "settings": {
-          "editor.formatOnSave": true,
+        "eslint.alwaysShowStatus": true,
+        "security.workspace.trust.enabled": false,
+        "[javascript]": {
           "editor.defaultFormatter": "esbenp.prettier-vscode"
-        }
+        },
+        "[typescript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[json]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[jsonc]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[markdown]": {
+          "editor.defaultFormatter": "yzhang.markdown-all-in-one"
+        },
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.black-formatter"
+        },
+        "todo-tree.general.tags": [
+          "TODO",
+          "FIXME",
+          "HACK",
+          "XXX",
+          "NOTE",
+          "BUG",
+          "SECURITY"
+        ],
+        "errorLens.enabledDiagnosticLevels": [
+          "error",
+          "warning",
+          "info"
+        ]
       }
+    }
+  },
+
+  "forwardPorts": [
+    3000,
+    5000,
+    5678,
+    5432,
+    6379,
+    8000,
+    8080,
+    9229
+  ],
+  
+  "portsAttributes": {
+    "3000": {
+      "label": "Frontend / Main Application",
+      "onAutoForward": "notify"
     },
-
-    "postCreateCommand": "npm install && cp .env.example .env",
-
-    "forwardPorts": [5173, 3000, 3001],
-
-    "portsAttributes": {
-      "5173": {
-        "label": "Frontend (Vite)",
-        "onAutoForward": "openBrowser"
-      },
-      "3000": {
-        "label": "Backend API"
-      },
-      "3001": {
-        "label": "WebSocket"
-      }
+    "5000": {
+      "label": "Backend API",
+      "onAutoForward": "notify"
     },
-
-    "remoteEnv": {
-      "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}",
-      "ENABLE_COMPUTER_USE": "false",
-      "ENABLE_ANDROID": "false",
-      "NODE_ENV": "development"
+    "5678": {
+      "label": "n8n Workflow Automation",
+      "onAutoForward": "openBrowser"
     },
+    "5432": {
+      "label": "PostgreSQL Database",
+      "onAutoForward": "silent"
+    },
+    "6379": {
+      "label": "Redis Cache",
+      "onAutoForward": "silent"
+    },
+    "8000": {
+      "label": "Dev Server",
+      "onAutoForward": "silent"
+    },
+    "8080": {
+      "label": "Alternative HTTP Server",
+      "onAutoForward": "silent"
+    },
+    "9229": {
+      "label": "Node.js Debugger",
+      "onAutoForward": "silent"
+    }
+  },
 
-    "runArgs": ["--privileged"],
+  "mounts": [
+    "source=${localEnv:HOME}/.ssh,target=/home/node/.ssh,type=bind,readonly",
+    "source=${localEnv:HOME}/.gitconfig,target=/home/node/.gitconfig,type=bind,readonly",
+    "source=wallestars-node-modules,target=/workspaces/Wallestars/node_modules,type=volume",
+    "source=claude-code-bashhistory,target=/commandhistory,type=volume",
+    "source=claude-code-config,target=/home/node/.claude,type=volume",
+    "source=wallestars-config,target=/home/node/.config/wallestars,type=volume"
+  ],
 
-    "mounts": [
-      "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
-    ]
-  }
+  "remoteEnv": {
+    "NODE_ENV": "development",
+    "LOG_LEVEL": "info",
+    "WALLESTARS_WORKSPACE": "/workspaces/Wallestars",
+    "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}",
+    "ENABLE_COMPUTER_USE": "false",
+    "ENABLE_ANDROID": "false"
+  },
+
+  "containerEnv": {
+    "TZ": "Europe/Sofia",
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    "POWERLEVEL9K_DISABLE_GITSTATUS": "true",
+    "WALLESTARS_ENV": "development"
+  },
+
+  "onCreateCommand": "bash .devcontainer/scripts/on-create.sh",
+  "postCreateCommand": "bash .devcontainer/scripts/post-create.sh",
+  "postStartCommand": "bash .devcontainer/scripts/post-start.sh",
+  "postAttachCommand": "bash .devcontainer/scripts/post-attach.sh",
+  "waitFor": "postStartCommand",
+
+  "remoteUser": "node",
+  "containerUser": "node",
+
+  "workspaceFolder": "/workspaces/Wallestars",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/Wallestars,type=bind,consistency=delegated",
+
+  "overrideFeatureInstallOrder": [
+    "ghcr.io/devcontainers/features/common-utils",
+    "ghcr.io/devcontainers/features/git",
+    "ghcr.io/devcontainers/features/node",
+    "ghcr.io/devcontainers/features/docker-in-docker"
+  ],
+
+  "capAdd": [
+    "SYS_PTRACE",
+    "NET_ADMIN",
+    "NET_RAW"
+  ],
+
+  "securityOpt": [
+    "seccomp=unconfined"
+  ]
+}
