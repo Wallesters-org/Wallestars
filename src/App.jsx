@@ -9,6 +9,7 @@ import AndroidControl from './pages/AndroidControl';
 import Settings from './pages/Settings';
 import PromptGenerator from './pages/PromptGenerator';
 import SmartScan from './pages/SmartScan';
+import SlackChat from './pages/SlackChat';
 import { SocketProvider } from './context/SocketContext';
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
   const pages = {
     dashboard: <Dashboard />,
     chat: <ClaudeChat />,
+    slack: <SlackChat />,
     computer: <ComputerControl />,
     android: <AndroidControl />,
     smartscan: <SmartScan />,

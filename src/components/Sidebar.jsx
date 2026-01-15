@@ -8,12 +8,14 @@ import {
   Settings,
   Zap,
   Sparkles,
-  ScanLine
+  ScanLine,
+  Hash
 } from 'lucide-react';
 
 const menuItems = [
   { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
   { id: 'chat', name: 'Claude Chat', icon: MessageSquare },
+  { id: 'slack', name: 'Slack Chat', icon: Hash },
   { id: 'computer', name: 'Computer Use', icon: Monitor },
   { id: 'android', name: 'Android Control', icon: Smartphone },
   { id: 'smartscan', name: 'Smart Scan', icon: ScanLine },
