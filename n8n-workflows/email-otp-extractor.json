@@ -1,0 +1,243 @@
+{
+  "name": "Email OTP Extractor",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "email-otp",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {"name": "senderFilter", "value": "={{$json.senderFilter || 'wallester'}}"},
+            {"name": "subjectFilter", "value": "={{$json.subjectFilter || 'verification'}}"},
+            {"name": "startTime", "value": "={{$now.toISO()}}"}
+          ],
+          "number": [
+            {"name": "maxRetries", "value": "={{$json.maxRetries || 10}}"},
+            {"name": "waitSeconds", "value": "={{$json.waitSeconds || 15}}"},
+            {"name": "currentRetry", "value": 0}
+          ]
+        }
+      },
+      "id": "set-config",
+      "name": "Set Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [300, 300]
+    },
+    {
+      "parameters": {
+        "loopScopes": ["item"]
+      },
+      "id": "loop-start",
+      "name": "Retry Loop",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "amount": "={{$('Set Configuration').item.json.waitSeconds}}"
+      },
+      "id": "wait-for-email",
+      "name": "Wait for Email",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": 5,
+        "filters": {
+          "q": "=is:unread from:{{$('Set Configuration').item.json.senderFilter}} subject:{{$('Set Configuration').item.json.subjectFilter}} after:{{$('Set Configuration').item.json.startTime.split('T')[0]}}",
+          "includeSpamTrash": false
+        },
+        "options": {
+          "format": "full"
+        }
+      },
+      "id": "gmail-search",
+      "name": "Search Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [900, 300],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{GMAIL_OAUTH2_CREDENTIAL_ID}}",
+          "name": "Gmail OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Multi-pattern OTP/Link extraction from email\nconst emails = $input.all();\nconst config = $('Set Configuration').item.json;\nconst currentRetry = config.currentRetry || 0;\nconst maxRetries = config.maxRetries || 10;\n\n// OTP code patterns (ordered by priority)\nconst codePatterns = [\n  /\\b(\\d{6})\\b/,                      // 6-digit code\n  /\\b(\\d{4})\\b/,                      // 4-digit code\n  /code[:\\s]*(\\d{4,6})/i,             // \"code: 123456\"\n  /OTP[:\\s]*(\\d{4,6})/i,              // \"OTP: 123456\"\n  /verification\\s+code[:\\s]*(\\d{4,6})/i, // \"verification code 123456\"\n  /your\\s+code\\s+is[:\\s]*(\\d{4,6})/i, // \"your code is 123456\"\n  /pin[:\\s]*(\\d{4,6})/i,              // \"PIN: 1234\"\n  /passcode[:\\s]*(\\d{4,6})/i,         // \"passcode: 123456\"\n  /\\b(\\d{5})\\b/                       // 5-digit fallback\n];\n\n// Verification link patterns\nconst linkPatterns = [\n  /https?:\\/\\/[^\\s\"<>]+verify[^\\s\"<>]*/i,\n  /https?:\\/\\/[^\\s\"<>]+confirm[^\\s\"<>]*/i,\n  /https?:\\/\\/[^\\s\"<>]+activate[^\\s\"<>]*/i,\n  /https?:\\/\\/[^\\s\"<>]+token=[^\\s\"<>]*/i\n];\n\nlet foundCode = null;\nlet foundLink = null;\nlet patternUsed = null;\nlet emailId = null;\nlet emailSubject = null;\n\nfor (const email of emails) {\n  const data = email.json;\n  \n  // Get email body (handle both text and html)\n  let body = '';\n  if (data.payload?.body?.data) {\n    body = Buffer.from(data.payload.body.data, 'base64').toString('utf-8');\n  } else if (data.snippet) {\n    body = data.snippet;\n  }\n  \n  // Also check parts for multipart emails\n  if (data.payload?.parts) {\n    for (const part of data.payload.parts) {\n      if (part.body?.data) {\n        body += Buffer.from(part.body.data, 'base64').toString('utf-8');\n      }\n    }\n  }\n  \n  // Extract code using patterns\n  for (let i = 0; i < codePatterns.length; i++) {\n    const match = body.match(codePatterns[i]);\n    if (match) {\n      foundCode = match[1];\n      patternUsed = `code_pattern_${i + 1}`;\n      emailId = data.id;\n      emailSubject = data.payload?.headers?.find(h => h.name.toLowerCase() === 'subject')?.value;\n      break;\n    }\n  }\n  \n  // Also try to find verification links\n  if (!foundLink) {\n    for (let i = 0; i < linkPatterns.length; i++) {\n      const match = body.match(linkPatterns[i]);\n      if (match) {\n        foundLink = match[0];\n        if (!patternUsed) {\n          patternUsed = `link_pattern_${i + 1}`;\n          emailId = data.id;\n          emailSubject = data.payload?.headers?.find(h => h.name.toLowerCase() === 'subject')?.value;\n        }\n        break;\n      }\n    }\n  }\n  \n  if (foundCode) break;\n}\n\nconst hasResult = !!(foundCode || foundLink);\n\nreturn {\n  json: {\n    hasResult: hasResult,\n    code: foundCode,\n    verification_link: foundLink,\n    patternUsed: patternUsed,\n    emailId: emailId,\n    emailSubject: emailSubject,\n    currentRetry: currentRetry + 1,\n    maxRetries: maxRetries,\n    shouldContinue: !hasResult && (currentRetry + 1) < maxRetries,\n    emailsChecked: emails.length\n  }\n};"
+      },
+      "id": "extract-otp",
+      "name": "Extract OTP/Link",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"},
+          "conditions": [
+            {
+              "id": "result-found",
+              "leftValue": "={{$json.hasResult}}",
+              "rightValue": true,
+              "operator": {"type": "boolean", "operation": "equals"}
+            }
+          ]
+        }
+      },
+      "id": "if-result-found",
+      "name": "If Result Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1300, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "markAsRead",
+        "messageId": "={{$json.emailId}}"
+      },
+      "id": "mark-as-read",
+      "name": "Mark as Read",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1500, 200],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{GMAIL_OAUTH2_CREDENTIAL_ID}}",
+          "name": "Gmail OAuth2"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"code\": {{$('Extract OTP/Link').item.json.code ? '\"' + $('Extract OTP/Link').item.json.code + '\"' : null}},\n  \"verification_link\": {{$('Extract OTP/Link').item.json.verification_link ? '\"' + $('Extract OTP/Link').item.json.verification_link + '\"' : null}},\n  \"email_id\": \"{{$('Extract OTP/Link').item.json.emailId}}\",\n  \"email_subject\": \"{{$('Extract OTP/Link').item.json.emailSubject}}\",\n  \"pattern_used\": \"{{$('Extract OTP/Link').item.json.patternUsed}}\",\n  \"retries_used\": {{$('Extract OTP/Link').item.json.currentRetry}},\n  \"message\": \"Email verification extracted successfully\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1700, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"},
+          "conditions": [
+            {
+              "id": "should-continue",
+              "leftValue": "={{$json.shouldContinue}}",
+              "rightValue": true,
+              "operator": {"type": "boolean", "operation": "equals"}
+            }
+          ]
+        }
+      },
+      "id": "if-should-continue",
+      "name": "Should Continue Retry?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1500, 400]
+    },
+    {
+      "parameters": {
+        "values": {
+          "number": [
+            {"name": "currentRetry", "value": "={{$json.currentRetry}}"}
+          ]
+        }
+      },
+      "id": "update-retry-count",
+      "name": "Update Retry Count",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1700, 350]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"EMAIL_TIMEOUT\",\n  \"message\": \"Failed to receive email verification after {{$json.maxRetries}} attempts\",\n  \"emails_checked\": {{$json.emailsChecked}},\n  \"retries_attempted\": {{$json.currentRetry}}\n}",
+        "options": {
+          "responseCode": 408
+        }
+      },
+      "id": "respond-timeout",
+      "name": "Respond Timeout",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1700, 500]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [[{"node": "Set Configuration", "type": "main", "index": 0}]]
+    },
+    "Set Configuration": {
+      "main": [[{"node": "Retry Loop", "type": "main", "index": 0}]]
+    },
+    "Retry Loop": {
+      "main": [
+        [{"node": "Wait for Email", "type": "main", "index": 0}],
+        []
+      ]
+    },
+    "Wait for Email": {
+      "main": [[{"node": "Search Gmail", "type": "main", "index": 0}]]
+    },
+    "Search Gmail": {
+      "main": [[{"node": "Extract OTP/Link", "type": "main", "index": 0}]]
+    },
+    "Extract OTP/Link": {
+      "main": [[{"node": "If Result Found", "type": "main", "index": 0}]]
+    },
+    "If Result Found": {
+      "main": [
+        [{"node": "Mark as Read", "type": "main", "index": 0}],
+        [{"node": "Should Continue Retry?", "type": "main", "index": 0}]
+      ]
+    },
+    "Mark as Read": {
+      "main": [[{"node": "Respond Success", "type": "main", "index": 0}]]
+    },
+    "Should Continue Retry?": {
+      "main": [
+        [{"node": "Update Retry Count", "type": "main", "index": 0}],
+        [{"node": "Respond Timeout", "type": "main", "index": 0}]
+      ]
+    },
+    "Update Retry Count": {
+      "main": [[{"node": "Retry Loop", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": ["email", "otp", "verification", "gmail", "extraction"]
+}

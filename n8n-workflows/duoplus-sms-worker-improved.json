@@ -1,0 +1,310 @@
+{
+  "name": "DuoPlus SMS Worker - Improved",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "duoplus-sms",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {"name": "country", "value": "={{$json.country || 'US'}}"},
+            {"name": "service", "value": "={{$json.service || 'wallester'}}"}
+          ],
+          "number": [
+            {"name": "maxRetries", "value": "={{$json.maxRetries || 12}}"},
+            {"name": "retryDelaySeconds", "value": "={{$json.retryDelaySeconds || 10}}"},
+            {"name": "currentRetry", "value": 0}
+          ]
+        }
+      },
+      "id": "set-config",
+      "name": "Set Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [300, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.duoplus.io/v1/phone/order",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {"name": "country", "value": "={{$json.country}}"},
+            {"name": "service", "value": "={{$json.service}}"},
+            {"name": "duration", "value": "20"}
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "order-phone",
+      "name": "Order Phone Number",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "{{DUOPLUS_CREDENTIAL_ID}}",
+          "name": "DuoPlus API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"},
+          "conditions": [
+            {
+              "id": "phone-check",
+              "leftValue": "={{$json.success}}",
+              "rightValue": true,
+              "operator": {"type": "boolean", "operation": "equals"}
+            }
+          ]
+        }
+      },
+      "id": "if-phone-success",
+      "name": "If Phone Order Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {"name": "phoneNumber", "value": "={{$json.data.phoneNumber}}"},
+            {"name": "orderId", "value": "={{$json.data.orderId}}"}
+          ],
+          "number": [
+            {"name": "currentRetry", "value": 0}
+          ]
+        }
+      },
+      "id": "store-phone-data",
+      "name": "Store Phone Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "loopScopes": ["item"]
+      },
+      "id": "loop-start",
+      "name": "Loop Over Retries",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1100, 200]
+    },
+    {
+      "parameters": {
+        "amount": "={{$('Set Configuration').item.json.retryDelaySeconds}}"
+      },
+      "id": "wait-for-sms",
+      "name": "Wait for SMS",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1300, 200]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.duoplus.io/v1/phone/{{$('Store Phone Data').item.json.orderId}}/sms",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "check-sms",
+      "name": "Check SMS Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1500, 200],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "{{DUOPLUS_CREDENTIAL_ID}}",
+          "name": "DuoPlus API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Multi-pattern OTP extraction\nconst smsData = $input.first().json;\nconst messages = smsData.data?.messages || smsData.messages || [];\n\n// OTP patterns ordered by priority\nconst patterns = [\n  /\\b(\\d{6})\\b/,                    // 6-digit code\n  /\\b(\\d{4})\\b/,                    // 4-digit code\n  /code[:\\s]*(\\d{4,6})/i,           // \"code: 123456\"\n  /OTP[:\\s]*(\\d{4,6})/i,            // \"OTP: 123456\"\n  /verification[\\s:]+?(\\d{4,6})/i,  // \"verification 123456\"\n  /confirm[\\s:]+?(\\d{4,6})/i,       // \"confirm 123456\"\n  /\\b(\\d{5})\\b/                     // 5-digit fallback\n];\n\nlet foundCode = null;\nlet patternUsed = null;\nlet messageFound = null;\n\nfor (const msg of messages) {\n  const text = msg.body || msg.text || msg.content || '';\n  \n  for (let i = 0; i < patterns.length; i++) {\n    const match = text.match(patterns[i]);\n    if (match) {\n      foundCode = match[1];\n      patternUsed = `pattern_${i + 1}`;\n      messageFound = text;\n      break;\n    }\n  }\n  \n  if (foundCode) break;\n}\n\nconst currentRetry = $('Store Phone Data').item.json.currentRetry || 0;\nconst maxRetries = $('Set Configuration').item.json.maxRetries || 12;\n\nreturn {\n  json: {\n    hasCode: !!foundCode,\n    code: foundCode,\n    patternUsed: patternUsed,\n    message: messageFound,\n    currentRetry: currentRetry + 1,\n    maxRetries: maxRetries,\n    shouldContinue: !foundCode && (currentRetry + 1) < maxRetries,\n    phoneNumber: $('Store Phone Data').item.json.phoneNumber,\n    orderId: $('Store Phone Data').item.json.orderId\n  }\n};"
+      },
+      "id": "extract-otp",
+      "name": "Extract OTP Code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1700, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"},
+          "conditions": [
+            {
+              "id": "code-found",
+              "leftValue": "={{$json.hasCode}}",
+              "rightValue": true,
+              "operator": {"type": "boolean", "operation": "equals"}
+            }
+          ]
+        }
+      },
+      "id": "if-code-found",
+      "name": "If Code Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1900, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"code\": \"{{$json.code}}\",\n  \"phoneNumber\": \"{{$json.phoneNumber}}\",\n  \"orderId\": \"{{$json.orderId}}\",\n  \"patternUsed\": \"{{$json.patternUsed}}\",\n  \"retriesUsed\": {{$json.currentRetry}},\n  \"message\": \"OTP code extracted successfully\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2100, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"},
+          "conditions": [
+            {
+              "id": "should-continue",
+              "leftValue": "={{$json.shouldContinue}}",
+              "rightValue": true,
+              "operator": {"type": "boolean", "operation": "equals"}
+            }
+          ]
+        }
+      },
+      "id": "if-should-continue",
+      "name": "Should Continue Retry?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2100, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "number": [
+            {"name": "currentRetry", "value": "={{$json.currentRetry}}"}
+          ]
+        }
+      },
+      "id": "update-retry-count",
+      "name": "Update Retry Count",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [2300, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"SMS_TIMEOUT\",\n  \"message\": \"Failed to receive SMS OTP after {{$json.maxRetries}} attempts\",\n  \"phoneNumber\": \"{{$json.phoneNumber}}\",\n  \"orderId\": \"{{$json.orderId}}\",\n  \"retriesAttempted\": {{$json.currentRetry}}\n}",
+        "options": {
+          "responseCode": 408
+        }
+      },
+      "id": "respond-timeout",
+      "name": "Respond Timeout",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2300, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"PHONE_ORDER_FAILED\",\n  \"message\": \"Failed to order phone number from DuoPlus\",\n  \"details\": {{JSON.stringify($json)}}\n}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "id": "respond-phone-error",
+      "name": "Respond Phone Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 400]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [[{"node": "Set Configuration", "type": "main", "index": 0}]]
+    },
+    "Set Configuration": {
+      "main": [[{"node": "Order Phone Number", "type": "main", "index": 0}]]
+    },
+    "Order Phone Number": {
+      "main": [[{"node": "If Phone Order Success", "type": "main", "index": 0}]]
+    },
+    "If Phone Order Success": {
+      "main": [
+        [{"node": "Store Phone Data", "type": "main", "index": 0}],
+        [{"node": "Respond Phone Error", "type": "main", "index": 0}]
+      ]
+    },
+    "Store Phone Data": {
+      "main": [[{"node": "Loop Over Retries", "type": "main", "index": 0}]]
+    },
+    "Loop Over Retries": {
+      "main": [
+        [{"node": "Wait for SMS", "type": "main", "index": 0}],
+        []
+      ]
+    },
+    "Wait for SMS": {
+      "main": [[{"node": "Check SMS Status", "type": "main", "index": 0}]]
+    },
+    "Check SMS Status": {
+      "main": [[{"node": "Extract OTP Code", "type": "main", "index": 0}]]
+    },
+    "Extract OTP Code": {
+      "main": [[{"node": "If Code Found", "type": "main", "index": 0}]]
+    },
+    "If Code Found": {
+      "main": [
+        [{"node": "Respond Success", "type": "main", "index": 0}],
+        [{"node": "Should Continue Retry?", "type": "main", "index": 0}]
+      ]
+    },
+    "Should Continue Retry?": {
+      "main": [
+        [{"node": "Update Retry Count", "type": "main", "index": 0}],
+        [{"node": "Respond Timeout", "type": "main", "index": 0}]
+      ]
+    },
+    "Update Retry Count": {
+      "main": [[{"node": "Loop Over Retries", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": ["duoplus", "sms", "otp", "verification", "improved"]
+}
