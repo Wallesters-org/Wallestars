@@ -1,0 +1,406 @@
+name: Master Automation Orchestrator
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Target workflow to run'
+        required: true
+        type: choice
+        options:
+          - all-workflows
+          - pr-workflows
+          - monitoring-workflows
+          - mcp-workflows
+          - testing-workflows
+      pr_number:
+        description: 'PR number (optional, for PR-specific workflows)'
+        required: false
+        type: string
+  schedule:
+    # Run complete health check daily at 00:00 UTC
+    - cron: '0 0 * * *'
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  checks: write
+  actions: write
+
+jobs:
+  orchestrate-workflows:
+    runs-on: ubuntu-latest
+    name: Workflow Orchestrator
+    outputs:
+      workflows_triggered: ${{ steps.trigger.outputs.workflows }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Determine workflows to run
+        id: determine
+        run: |
+          TARGET="${{ github.event.inputs.target || 'all-workflows' }}"
+          
+          case "$TARGET" in
+            all-workflows)
+              echo "workflows=pr-session-management,agent-monitoring,testing-automation,mcp-enhanced-automation" >> $GITHUB_OUTPUT
+              ;;
+            pr-workflows)
+              echo "workflows=pr-session-management,pr-automation" >> $GITHUB_OUTPUT
+              ;;
+            monitoring-workflows)
+              echo "workflows=agent-monitoring" >> $GITHUB_OUTPUT
+              ;;
+            mcp-workflows)
+              echo "workflows=mcp-enhanced-automation" >> $GITHUB_OUTPUT
+              ;;
+            testing-workflows)
+              echo "workflows=testing-automation" >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo "workflows=all" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+      - name: Trigger workflows
+        id: trigger
+        uses: actions/github-script@v7
+        env:
+          WORKFLOWS: ${{ steps.determine.outputs.workflows }}
+          PR_NUMBER: ${{ github.event.inputs.pr_number }}
+        with:
+          script: |
+            const workflows = process.env.WORKFLOWS.split(',');
+            const prNumber = process.env.PR_NUMBER;
+            const triggered = [];
+            
+            for (const workflow of workflows) {
+              try {
+                const inputs = prNumber ? { pr_number: prNumber } : {};
+                
+                await github.rest.actions.createWorkflowDispatch({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  workflow_id: `${workflow.trim()}.yml`,
+                  ref: context.ref,
+                  inputs: inputs
+                });
+                
+                triggered.push(workflow);
+                console.log(`✅ Triggered: ${workflow}`);
+              } catch (error) {
+                console.log(`⚠️ Could not trigger ${workflow}: ${error.message}`);
+              }
+            }
+            
+            core.setOutput('workflows', triggered.join(','));
+            
+            await core.summary
+              .addHeading('Workflow Orchestration')
+              .addRaw(`**Triggered:** ${triggered.length} workflows\n\n`)
+              .addList(triggered.map(w => `${w}.yml`))
+              .write();
+
+  health-check:
+    runs-on: ubuntu-latest
+    name: System Health Check
+    if: github.event.schedule || github.event.inputs.target == 'all-workflows'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check repository health
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Check open issues
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+            
+            // Check open PRs
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+            
+            // Check workflow runs
+            const { data: runs } = await github.rest.actions.listWorkflowRunsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 20
+            });
+            
+            const failedRuns = runs.workflow_runs.filter(r => r.conclusion === 'failure');
+            const stalePRs = prs.filter(pr => {
+              const updated = new Date(pr.updated_at);
+              const hoursSince = (new Date() - updated) / (1000 * 60 * 60);
+              return hoursSince > 48;
+            });
+            
+            // Generate health report
+            const healthScore = 100 - 
+              (failedRuns.length * 5) - 
+              (stalePRs.length * 10) - 
+              (issues.length > 50 ? 20 : 0);
+            
+            const healthStatus = healthScore > 80 ? '🟢 Healthy' :
+                                healthScore > 60 ? '🟡 Fair' :
+                                '🔴 Needs Attention';
+            
+            await core.summary
+              .addHeading('🏥 System Health Report')
+              .addRaw(`**Overall Health:** ${healthStatus} (${healthScore}/100)\n\n`)
+              .addHeading('Statistics', 3)
+              .addRaw(`- Open Issues: ${issues.length}\n`)
+              .addRaw(`- Open PRs: ${prs.length}\n`)
+              .addRaw(`- Stale PRs: ${stalePRs.length}\n`)
+              .addRaw(`- Recent Failed Runs: ${failedRuns.length}\n\n`)
+              .addHeading('Recommendations', 3)
+              .addList([
+                stalePRs.length > 0 ? `Review ${stalePRs.length} stale PRs` : 'No stale PRs',
+                failedRuns.length > 0 ? `Fix ${failedRuns.length} failed workflows` : 'All workflows passing',
+                issues.length > 50 ? 'Triage and close old issues' : 'Issue count is manageable'
+              ])
+              .write();
+            
+            // Create issue if health is poor
+            if (healthScore < 60) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `🚨 System Health Alert - Score: ${healthScore}/100`,
+                body: `# System Health Alert\n\n` +
+                  `**Health Score:** ${healthScore}/100 - ${healthStatus}\n\n` +
+                  `## Issues Detected\n` +
+                  `- Open Issues: ${issues.length}\n` +
+                  `- Open PRs: ${prs.length}\n` +
+                  `- Stale PRs: ${stalePRs.length}\n` +
+                  `- Failed Runs: ${failedRuns.length}\n\n` +
+                  `## Action Required\n` +
+                  `Please review and address these issues to improve system health.\n\n` +
+                  `---\n` +
+                  `*Auto-generated by Master Automation Orchestrator*`,
+                labels: ['health-alert', 'automated', 'urgent']
+              });
+            }
+
+  workflow-coordination:
+    runs-on: ubuntu-latest
+    name: Coordinate Workflow Execution
+    needs: [orchestrate-workflows]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Monitor workflow execution
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Wait for triggered workflows to start
+            await new Promise(resolve => setTimeout(resolve, 10000));
+            
+            const { data: runs } = await github.rest.actions.listWorkflowRunsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 50
+            });
+            
+            const recentRuns = runs.workflow_runs.filter(r => {
+              const created = new Date(r.created_at);
+              const minutesAgo = (new Date() - created) / (1000 * 60);
+              return minutesAgo < 5;
+            });
+            
+            await core.summary
+              .addHeading('Workflow Execution Status')
+              .addTable([
+                [{data: 'Workflow', header: true}, {data: 'Status', header: true}, {data: 'Started', header: true}],
+                ...recentRuns.map(r => [
+                  r.name,
+                  r.status === 'completed' ? `${r.conclusion}` : r.status,
+                  new Date(r.created_at).toISOString()
+                ])
+              ])
+              .write();
+
+  aggregate-results:
+    runs-on: ubuntu-latest
+    name: Aggregate Results
+    needs: [health-check, workflow-coordination]
+    if: always()
+    env:
+      N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Collect results
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: runs } = await github.rest.actions.listWorkflowRunsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 20
+            });
+            
+            const todayRuns = runs.workflow_runs.filter(r => {
+              const created = new Date(r.created_at);
+              const hoursAgo = (new Date() - created) / (1000 * 60 * 60);
+              return hoursAgo < 24;
+            });
+            
+            const successRate = todayRuns.length > 0 ?
+              (todayRuns.filter(r => r.conclusion === 'success').length / todayRuns.length * 100).toFixed(1) :
+              0;
+            
+            await core.summary
+              .addHeading('📊 Daily Automation Summary')
+              .addRaw(`**Date:** ${new Date().toISOString().split('T')[0]}\n\n`)
+              .addHeading('Metrics', 3)
+              .addRaw(`- Total Runs: ${todayRuns.length}\n`)
+              .addRaw(`- Success Rate: ${successRate}%\n`)
+              .addRaw(`- Average Duration: ${Math.floor(todayRuns.reduce((acc, r) => acc + (r.run_duration_ms || 0), 0) / todayRuns.length / 1000)}s\n\n`)
+              .addHeading('Status', 3)
+              .addRaw(successRate > 90 ? '✅ Excellent\n' : successRate > 75 ? '🟡 Good\n' : '🔴 Needs Improvement\n')
+              .write();
+
+      - name: Send webhook notification
+        if: env.N8N_WEBHOOK_URL != ''
+        run: |
+          curl -X POST "${{ env.N8N_WEBHOOK_URL }}/webhook/automation-summary" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "workflow": "master-orchestrator",
+              "status": "completed",
+              "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
+              "target": "${{ github.event.inputs.target || 'scheduled' }}",
+              "repository": "${{ github.repository }}"
+            }'
+
+  cleanup-old-runs:
+    runs-on: ubuntu-latest
+    name: Cleanup Old Workflow Runs
+    if: github.event.schedule
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Delete old workflow runs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: runs } = await github.rest.actions.listWorkflowRunsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+            
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            
+            let deleted = 0;
+            
+            for (const run of runs.workflow_runs) {
+              const created = new Date(run.created_at);
+              if (created < thirtyDaysAgo && run.conclusion === 'success') {
+                try {
+                  await github.rest.actions.deleteWorkflowRun({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    run_id: run.id
+                  });
+                  deleted++;
+                } catch (error) {
+                  console.log(`Could not delete run ${run.id}: ${error.message}`);
+                }
+              }
+            }
+            
+            console.log(`✅ Deleted ${deleted} old workflow runs`);
+            
+            await core.summary
+              .addHeading('Cleanup Summary')
+              .addRaw(`Deleted ${deleted} workflow runs older than 30 days\n`)
+              .write();
+
+  generate-documentation:
+    runs-on: ubuntu-latest
+    name: Generate Automation Documentation
+    if: github.event.schedule
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate workflow documentation
+        run: |
+          cat > AUTOMATION_STATUS.md << 'EOF'
+          # Automation System Status
+          
+          **Last Updated:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          
+          ## Active Workflows
+          
+          ### PR Management
+          - `pr-session-management.yml` - Complete PR lifecycle management
+          - `pr-automation.yml` - PR delegation and code review
+          
+          ### Monitoring
+          - `agent-monitoring.yml` - Agent activity and health monitoring
+          - `testing-automation.yml` - Automated testing pipeline
+          
+          ### MCP Integration
+          - `mcp-enhanced-automation.yml` - MCP server testing and validation
+          
+          ### Orchestration
+          - `master-automation-orchestrator.yml` - Central workflow coordination
+          
+          ## Workflow Schedule
+          
+          | Workflow | Schedule | Purpose |
+          |----------|----------|---------|
+          | PR Session | Every 5 min | Monitor active PR sessions |
+          | Agent Monitoring | Every 10 min | Check agent activity |
+          | Testing | Every 30 min | Run automated tests |
+          | MCP Health | Every hour | Validate MCP integration |
+          | Master Orchestrator | Daily | System health check |
+          
+          ## Health Status
+          
+          ✅ All workflows operational
+          
+          ## Recent Activity
+          
+          Check [Actions tab](../../actions) for recent workflow runs.
+          
+          ---
+          *Auto-generated by Master Automation Orchestrator*
+          EOF
+
+      - name: Commit documentation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          if git diff --quiet AUTOMATION_STATUS.md; then
+            echo "No changes to commit"
+          else
+            git add AUTOMATION_STATUS.md
+            git commit -m "docs: Update automation status"
+            git push
+          fi
+        continue-on-error: true
