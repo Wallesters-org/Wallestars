@@ -65,7 +65,7 @@ jobs:
           PR_NUMBERS: ${{ steps.get_prs.outputs.pr_numbers }}
         with:
           script: |
-            const prNumbers = process.env.PR_NUMBERS ? process.env.PR_NUMBERS.split(',').filter(n => n).map(n => parseInt(n)) : [];
+            const prNumbers = process.env.PR_NUMBERS ? process.env.PR_NUMBERS.split(',').filter(n => n).map(n => parseInt(n, 10)) : [];
             const agents = ['copilot-agent-1', 'copilot-agent-2', 'copilot-agent-3', 'copilot-agent-4'];
             let agentIndex = 0;
             
