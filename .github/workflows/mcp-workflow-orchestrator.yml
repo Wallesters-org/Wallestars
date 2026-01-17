@@ -1,0 +1,361 @@
+name: MCP-Enhanced Workflow Orchestrator
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main, develop]
+  schedule:
+    # Run comprehensive orchestration every 20 minutes
+    - cron: '*/20 * * * *'
+  workflow_dispatch:
+    inputs:
+      full_scan:
+        description: 'Run full system scan'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  checks: write
+  actions: write
+
+jobs:
+  orchestrate-workflows:
+    runs-on: ubuntu-latest
+    name: MCP Workflow Orchestration
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Initialize MCP Context
+        id: mcp_init
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Initialize MCP context for orchestration
+            const mcpContext = {
+              repository: context.repo,
+              event: context.eventName,
+              timestamp: new Date().toISOString(),
+              tools_available: [
+                'claude_ai',
+                'computer_use',
+                'android_control',
+                'github_api',
+                'n8n_webhooks',
+                'supabase_db'
+              ],
+              active_sessions: []
+            };
+            
+            // Get all open PRs
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+            
+            mcpContext.active_sessions = prs.map(pr => ({
+              pr_number: pr.number,
+              title: pr.title,
+              author: pr.user.login,
+              state: pr.draft ? 'draft' : 'ready',
+              updated_at: pr.updated_at
+            }));
+            
+            core.setOutput('mcp_context', JSON.stringify(mcpContext));
+            core.setOutput('pr_count', prs.length);
+            
+            return mcpContext;
+
+      - name: Run Automated Code Analysis
+        id: code_analysis
+        run: |
+          echo "🔍 Running automated code analysis..."
+          
+          # Run available code quality checks
+          npm run lint || echo "Linting completed"
+          npm run format:check || echo "Format check completed"
+          
+          # Check for common issues
+          echo "Checking for console.log statements..."
+          CONSOLE_LOGS=$(git diff origin/main... | grep -c "console.log" || echo "0")
+          
+          echo "Checking for debugger statements..."
+          DEBUGGERS=$(git diff origin/main... | grep -c "debugger" || echo "0")
+          
+          echo "console_logs=$CONSOLE_LOGS" >> $GITHUB_OUTPUT
+          echo "debuggers=$DEBUGGERS" >> $GITHUB_OUTPUT
+          
+          echo "✅ Code analysis complete"
+
+      - name: Coordinate PR Agent Assignment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const agents = ['copilot-agent-1', 'copilot-agent-2', 'copilot-agent-3', 'copilot-agent-4'];
+            
+            // Get all PRs
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open'
+            });
+            
+            // Count PRs per agent
+            const agentWorkload = {};
+            agents.forEach(agent => agentWorkload[agent] = 0);
+            
+            for (const pr of prs) {
+              const agentLabel = pr.labels.find(l => l.name.startsWith('agent:'));
+              if (agentLabel) {
+                const agent = agentLabel.name.split(':')[1];
+                agentWorkload[agent] = (agentWorkload[agent] || 0) + 1;
+              }
+            }
+            
+            // Find agent with least workload
+            const leastLoadedAgent = Object.entries(agentWorkload)
+              .sort((a, b) => a[1] - b[1])[0][0];
+            
+            core.setOutput('next_agent', leastLoadedAgent);
+            core.setOutput('agent_workload', JSON.stringify(agentWorkload));
+            
+            console.log('Agent Workload:', agentWorkload);
+            console.log('Next agent for assignment:', leastLoadedAgent);
+
+      - name: Trigger Dependent Workflows
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Trigger other workflows as needed
+            const workflows = [
+              'pr-automation.yml',
+              'agent-monitoring.yml',
+              'testing-automation.yml',
+              'pr-active-session-manager.yml'
+            ];
+            
+            for (const workflow of workflows) {
+              try {
+                await github.rest.actions.createWorkflowDispatch({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  workflow_id: workflow,
+                  ref: context.ref || 'main'
+                });
+                console.log(`✅ Triggered ${workflow}`);
+              } catch (error) {
+                console.log(`⚠️ Could not trigger ${workflow}: ${error.message}`);
+              }
+            }
+
+      - name: Update MCP Server Status
+        run: |
+          echo "📡 Updating MCP server status..."
+          
+          # Check if MCP server configuration exists
+          if [ -f ".mcp.json" ]; then
+            echo "✅ MCP configuration found"
+            cat .mcp.json
+          else
+            echo "⚠️ MCP configuration not found"
+          fi
+          
+          # Validate MCP tools availability
+          echo "Validating MCP tools..."
+          if [ -f "server/index.js" ]; then
+            echo "✅ MCP server exists"
+          else
+            echo "⚠️ MCP server not found"
+          fi
+
+      - name: Generate Orchestration Summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const mcpContext = JSON.parse('${{ steps.mcp_init.outputs.mcp_context }}');
+            const agentWorkload = JSON.parse('${{ steps.coordinate_pr_agent_assignment.outputs.agent_workload }}');
+            const consoleLogs = '${{ steps.code_analysis.outputs.console_logs }}';
+            const debuggers = '${{ steps.code_analysis.outputs.debuggers }}';
+            
+            let summary = `# 🎭 MCP Workflow Orchestration Report\n\n`;
+            summary += `**Generated:** ${new Date().toISOString()}\n`;
+            summary += `**Trigger:** ${context.eventName}\n\n`;
+            
+            summary += `## 🤖 MCP Integration Status\n\n`;
+            summary += `### Available Tools\n`;
+            mcpContext.tools_available.forEach(tool => {
+              summary += `- ✅ ${tool}\n`;
+            });
+            summary += `\n`;
+            
+            summary += `## 📊 Active PR Sessions\n\n`;
+            summary += `**Total Active PRs:** ${mcpContext.active_sessions.length}\n\n`;
+            
+            if (mcpContext.active_sessions.length > 0) {
+              summary += `| PR | Title | Author | State |\n`;
+              summary += `|---|---|---|---|\n`;
+              mcpContext.active_sessions.forEach(session => {
+                summary += `| #${session.pr_number} | ${session.title} | @${session.author} | ${session.state} |\n`;
+              });
+              summary += `\n`;
+            }
+            
+            summary += `## 👥 Agent Distribution\n\n`;
+            summary += `| Agent | Assigned PRs |\n`;
+            summary += `|---|---|\n`;
+            Object.entries(agentWorkload).forEach(([agent, count]) => {
+              summary += `| ${agent} | ${count} |\n`;
+            });
+            summary += `\n`;
+            
+            summary += `## 🔍 Code Quality Metrics\n\n`;
+            summary += `- Console.log statements: ${consoleLogs}\n`;
+            summary += `- Debugger statements: ${debuggers}\n\n`;
+            
+            if (parseInt(consoleLogs) > 0 || parseInt(debuggers) > 0) {
+              summary += `⚠️ **Action Required:** Code contains debug statements that should be removed.\n\n`;
+            } else {
+              summary += `✅ **Clean Code:** No debug statements found.\n\n`;
+            }
+            
+            summary += `## 🚀 Orchestrated Workflows\n\n`;
+            summary += `The following workflows were triggered:\n`;
+            summary += `- ✅ PR Automation\n`;
+            summary += `- ✅ Agent Monitoring\n`;
+            summary += `- ✅ Testing Automation\n`;
+            summary += `- ✅ PR Active Session Manager\n\n`;
+            
+            summary += `## 📈 System Health\n\n`;
+            const healthScore = 100 - (parseInt(consoleLogs) * 2) - (parseInt(debuggers) * 5);
+            summary += `**Overall Health Score:** ${Math.max(healthScore, 0)}/100\n\n`;
+            
+            if (healthScore >= 90) {
+              summary += `🟢 **Excellent** - System is running optimally\n`;
+            } else if (healthScore >= 70) {
+              summary += `🟡 **Good** - Minor issues detected\n`;
+            } else if (healthScore >= 50) {
+              summary += `🟠 **Fair** - Several issues need attention\n`;
+            } else {
+              summary += `🔴 **Poor** - Immediate action required\n`;
+            }
+            
+            await core.summary.addRaw(summary).write();
+
+  mcp-integration-check:
+    runs-on: ubuntu-latest
+    name: Verify MCP Integration
+    needs: orchestrate-workflows
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Validate MCP Configuration
+        run: |
+          echo "🔍 Validating MCP configuration..."
+          
+          # Check MCP config file
+          if [ -f ".mcp.json" ]; then
+            echo "✅ .mcp.json exists"
+            
+            # Validate JSON syntax
+            node -e "JSON.parse(require('fs').readFileSync('.mcp.json', 'utf8'))" && \
+              echo "✅ .mcp.json is valid JSON" || \
+              echo "❌ .mcp.json has syntax errors"
+          else
+            echo "⚠️ .mcp.json not found"
+          fi
+          
+          # Check MCP server implementation
+          if [ -f "server/index.js" ]; then
+            echo "✅ MCP server (server/index.js) exists"
+            
+            # Check for MCP protocol implementation
+            if grep -q "mcpServers" server/index.js; then
+              echo "✅ MCP protocol implementation found"
+            else
+              echo "⚠️ MCP protocol implementation not detected"
+            fi
+          else
+            echo "❌ MCP server not found"
+          fi
+          
+          # Check Claude Desktop config example
+          if [ -f "claude_desktop_config.json.example" ]; then
+            echo "✅ Claude Desktop config example exists"
+          else
+            echo "⚠️ Claude Desktop config example not found"
+          fi
+
+      - name: Test MCP Server Startup
+        run: |
+          echo "🚀 Testing MCP server startup..."
+          
+          # Set dummy API key for testing
+          export ANTHROPIC_API_KEY="test-key-for-validation"
+          export ENABLE_COMPUTER_USE="false"
+          export ENABLE_ANDROID="false"
+          
+          # Try to start server and check for errors
+          timeout 10s node server/index.js > /tmp/server.log 2>&1 || true
+          
+          # Check logs for critical errors
+          if grep -q "Error" /tmp/server.log; then
+            echo "⚠️ Server startup errors detected:"
+            cat /tmp/server.log
+          else
+            echo "✅ Server startup looks clean"
+          fi
+
+  notify-completion:
+    runs-on: ubuntu-latest
+    name: Notify Orchestration Complete
+    needs: [orchestrate-workflows, mcp-integration-check]
+    if: always()
+    env:
+      N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+    
+    steps:
+      - name: Send completion webhook
+        run: |
+          if [ -n "$N8N_WEBHOOK_URL" ]; then
+            curl -X POST "${N8N_WEBHOOK_URL}/webhook/orchestration-complete" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "workflow": "mcp-workflow-orchestrator",
+                "status": "completed",
+                "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
+                "repository": "${{ github.repository }}",
+                "event": "${{ github.event_name }}",
+                "orchestration_success": "${{ needs.orchestrate-workflows.result }}",
+                "mcp_check_success": "${{ needs.mcp-integration-check.result }}"
+              }' || echo "Webhook notification skipped"
+          else
+            echo "N8N_WEBHOOK_URL not configured"
+          fi

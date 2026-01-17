@@ -1,0 +1,358 @@
+name: Active PR Session Manager
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, review_requested]
+  pull_request_review:
+    types: [submitted, dismissed]
+  check_suite:
+    types: [completed]
+  schedule:
+    # Run every 10 minutes to check active PR sessions
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Specific PR number to process (optional)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  checks: write
+
+jobs:
+  track-active-sessions:
+    runs-on: ubuntu-latest
+    name: Track Active PR Sessions
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get all active PR sessions
+        id: get_sessions
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pullRequests } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+            
+            const activeSessions = [];
+            
+            for (const pr of pullRequests) {
+              // Get PR details including checks and reviews
+              const { data: reviews } = await github.rest.pulls.listReviews({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number
+              });
+              
+              const { data: checks } = await github.rest.checks.listForRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: pr.head.sha
+              });
+              
+              const approvedReviews = reviews.filter(r => r.state === 'APPROVED');
+              const changesRequested = reviews.filter(r => r.state === 'CHANGES_REQUESTED');
+              const checksStatus = checks.check_runs.every(c => c.conclusion === 'success');
+              
+              const session = {
+                number: pr.number,
+                title: pr.title,
+                author: pr.user.login,
+                draft: pr.draft,
+                mergeable: pr.mergeable,
+                mergeable_state: pr.mergeable_state,
+                approved_count: approvedReviews.length,
+                changes_requested: changesRequested.length > 0,
+                checks_passing: checksStatus,
+                updated_at: pr.updated_at,
+                labels: pr.labels.map(l => l.name)
+              };
+              
+              activeSessions.push(session);
+            }
+            
+            core.setOutput('sessions', JSON.stringify(activeSessions));
+            core.setOutput('count', activeSessions.length);
+            
+            // Create detailed summary
+            let summary = `## 🎯 Active PR Sessions Dashboard\n\n`;
+            summary += `**Total Active Sessions:** ${activeSessions.length}\n`;
+            summary += `**Last Updated:** ${new Date().toISOString()}\n\n`;
+            
+            if (activeSessions.length > 0) {
+              summary += `### Session Overview\n\n`;
+              summary += `| PR | Title | Author | Status | Checks | Reviews | Ready to Merge |\n`;
+              summary += `|---|---|---|---|---|---|---|\n`;
+              
+              for (const session of activeSessions) {
+                const statusIcon = session.draft ? '📝' : '✅';
+                const checksIcon = session.checks_passing ? '✅' : '⏳';
+                const reviewsIcon = session.approved_count > 0 ? `✅ (${session.approved_count})` : '⏳';
+                const readyToMerge = !session.draft && 
+                                     session.checks_passing && 
+                                     session.approved_count > 0 && 
+                                     !session.changes_requested;
+                const mergeIcon = readyToMerge ? '🚀 YES' : '⏳ NO';
+                
+                summary += `| #${session.number} | ${session.title.substring(0, 40)}... | @${session.author} | ${statusIcon} | ${checksIcon} | ${reviewsIcon} | ${mergeIcon} |\n`;
+              }
+              
+              summary += `\n### Legend\n`;
+              summary += `- 📝 Draft PR | ✅ Ready for Review\n`;
+              summary += `- ⏳ Pending | ✅ Passed/Approved\n`;
+              summary += `- 🚀 Ready to merge\n`;
+            }
+            
+            await core.summary.addRaw(summary).write();
+            
+            return activeSessions;
+
+  auto-merge-ready-prs:
+    runs-on: ubuntu-latest
+    name: Auto-Merge Ready PRs
+    needs: track-active-sessions
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Auto-merge approved PRs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pullRequests } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+            
+            let mergedCount = 0;
+            
+            for (const pr of pullRequests) {
+              // Skip draft PRs
+              if (pr.draft) continue;
+              
+              // Check for auto-merge label
+              const hasAutoMergeLabel = pr.labels.some(l => 
+                l.name === 'auto-merge' || l.name === 'ready-to-merge'
+              );
+              
+              // Get reviews
+              const { data: reviews } = await github.rest.pulls.listReviews({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number
+              });
+              
+              const approvedReviews = reviews.filter(r => r.state === 'APPROVED');
+              const changesRequested = reviews.filter(r => r.state === 'CHANGES_REQUESTED');
+              
+              // Get check runs
+              const { data: checks } = await github.rest.checks.listForRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: pr.head.sha
+              });
+              
+              const allChecksPassed = checks.check_runs.length === 0 || 
+                                      checks.check_runs.every(c => 
+                                        c.conclusion === 'success' || c.conclusion === 'neutral'
+                                      );
+              
+              // Determine if PR is ready to merge
+              const readyToMerge = (
+                hasAutoMergeLabel &&
+                approvedReviews.length >= 1 &&
+                changesRequested.length === 0 &&
+                allChecksPassed &&
+                pr.mergeable !== false
+              );
+              
+              if (readyToMerge) {
+                try {
+                  // Attempt to merge
+                  await github.rest.pulls.merge({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: pr.number,
+                    merge_method: 'squash', // Use squash merge by default
+                    commit_title: `${pr.title} (#${pr.number})`,
+                    commit_message: `Auto-merged by PR Session Manager\n\nApproved by: ${approvedReviews.map(r => `@${r.user.login}`).join(', ')}`
+                  });
+                  
+                  mergedCount++;
+                  
+                  console.log(`✅ Auto-merged PR #${pr.number}: ${pr.title}`);
+                  
+                  // Add comment about auto-merge
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    body: `🤖 **Auto-Merge Successful**\n\nThis PR was automatically merged by the Active PR Session Manager.\n\n**Merge Details:**\n- ✅ All checks passed\n- ✅ ${approvedReviews.length} approving review(s)\n- ✅ No changes requested\n- 🚀 Merged using squash method\n\n---\n_Automated by GitHub Actions_`
+                  });
+                  
+                } catch (error) {
+                  console.log(`⚠️ Failed to auto-merge PR #${pr.number}: ${error.message}`);
+                  
+                  // Add comment explaining why merge failed
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    body: `⚠️ **Auto-Merge Failed**\n\nThis PR was ready for auto-merge but encountered an error:\n\n\`\`\`\n${error.message}\n\`\`\`\n\nPlease merge manually or resolve the issue.\n\n---\n_Automated by GitHub Actions_`
+                  });
+                }
+              }
+            }
+            
+            console.log(`✅ Auto-merged ${mergedCount} PR(s)`);
+            core.setOutput('merged_count', mergedCount);
+
+  health-check:
+    runs-on: ubuntu-latest
+    name: PR Session Health Check
+    needs: track-active-sessions
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check PR health metrics
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pullRequests } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+            
+            const now = new Date();
+            const stalePRs = [];
+            const conflictPRs = [];
+            const needsAttention = [];
+            
+            for (const pr of pullRequests) {
+              const updatedAt = new Date(pr.updated_at);
+              const daysSinceUpdate = (now - updatedAt) / (1000 * 60 * 60 * 24);
+              
+              // Check for stale PRs (>7 days without update)
+              if (daysSinceUpdate > 7) {
+                stalePRs.push(pr);
+              }
+              
+              // Check for merge conflicts
+              if (pr.mergeable === false) {
+                conflictPRs.push(pr);
+              }
+              
+              // Check for PRs needing attention
+              const { data: reviews } = await github.rest.pulls.listReviews({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number
+              });
+              
+              const changesRequested = reviews.filter(r => r.state === 'CHANGES_REQUESTED');
+              
+              if (changesRequested.length > 0 && daysSinceUpdate > 2) {
+                needsAttention.push(pr);
+              }
+            }
+            
+            // Create health report
+            let healthReport = `## 🏥 PR Session Health Report\n\n`;
+            healthReport += `**Generated:** ${now.toISOString()}\n\n`;
+            healthReport += `### Summary\n`;
+            healthReport += `- 🟢 Active PRs: ${pullRequests.length}\n`;
+            healthReport += `- 🟡 Stale PRs (>7 days): ${stalePRs.length}\n`;
+            healthReport += `- 🔴 Conflict PRs: ${conflictPRs.length}\n`;
+            healthReport += `- ⚠️ Needs Attention: ${needsAttention.length}\n\n`;
+            
+            if (stalePRs.length > 0) {
+              healthReport += `### 🟡 Stale PRs\n`;
+              for (const pr of stalePRs) {
+                healthReport += `- #${pr.number}: ${pr.title} (Last updated: ${pr.updated_at})\n`;
+              }
+              healthReport += `\n`;
+            }
+            
+            if (conflictPRs.length > 0) {
+              healthReport += `### 🔴 PRs with Merge Conflicts\n`;
+              for (const pr of conflictPRs) {
+                healthReport += `- #${pr.number}: ${pr.title}\n`;
+              }
+              healthReport += `\n`;
+            }
+            
+            if (needsAttention.length > 0) {
+              healthReport += `### ⚠️ PRs Needing Attention\n`;
+              for (const pr of needsAttention) {
+                healthReport += `- #${pr.number}: ${pr.title}\n`;
+              }
+              healthReport += `\n`;
+            }
+            
+            await core.summary.addRaw(healthReport).write();
+            
+            // Create issues for critical health problems
+            if (conflictPRs.length > 0) {
+              const issueBody = [
+                `## 🔴 Merge Conflicts Detected`,
+                ``,
+                `The following PRs have merge conflicts and need attention:`,
+                ``,
+                ...conflictPRs.map(pr => `- [ ] #${pr.number}: ${pr.title}`),
+                ``,
+                `**Action Required:** Resolve conflicts to enable merging.`,
+                ``,
+                `---`,
+                `_Auto-generated by PR Session Health Check_`
+              ].join('\n');
+              
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `🔴 PR Health Alert: ${conflictPRs.length} PRs with Merge Conflicts`,
+                body: issueBody,
+                labels: ['health-alert', 'merge-conflict', 'automated']
+              });
+            }
+
+  notify-webhook:
+    runs-on: ubuntu-latest
+    name: Notify N8N Webhook
+    needs: [track-active-sessions, auto-merge-ready-prs, health-check]
+    if: always()
+    env:
+      N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+    
+    steps:
+      - name: Send session data to N8N
+        run: |
+          if [ -n "$N8N_WEBHOOK_URL" ]; then
+            curl -X POST "${N8N_WEBHOOK_URL}/webhook/pr-session-update" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "workflow": "pr-active-session-manager",
+                "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
+                "repository": "${{ github.repository }}",
+                "trigger": "${{ github.event_name }}",
+                "merged_count": "${{ needs.auto-merge-ready-prs.outputs.merged_count || 0 }}"
+              }' || echo "N8N webhook notification skipped (not configured)"
+          else
+            echo "N8N_WEBHOOK_URL not configured, skipping webhook notification"
+          fi
