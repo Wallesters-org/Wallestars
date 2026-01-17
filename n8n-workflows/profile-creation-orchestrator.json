@@ -1,0 +1,537 @@
+{
+  "name": "Profile Creation Orchestrator with OTP",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "profile-creation-orchestrator",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Entry Point",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 400],
+      "webhookId": "profile-creation-orchestrator"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "users_pending",
+        "filterType": "string",
+        "filterString": "id=eq.{{ $json.user_id }}",
+        "dataMode": "defineInNode",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldName": "status",
+              "fieldValue": "processing"
+            },
+            {
+              "fieldName": "updated_at",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            }
+          ]
+        }
+      },
+      "id": "update-status-processing",
+      "name": "Update Status: Processing",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [450, 400],
+      "credentials": {
+        "supabaseApi": {
+          "id": "{{SUPABASE_CREDENTIAL_ID}}",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "tableId": "verified_business_profiles",
+        "dataMode": "defineInNode",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldName": "user_id",
+              "fieldValue": "={{ $json.user_id }}"
+            },
+            {
+              "fieldName": "email",
+              "fieldValue": "={{ $json.email }}"
+            },
+            {
+              "fieldName": "phone",
+              "fieldValue": "={{ $json.phone }}"
+            },
+            {
+              "fieldName": "company_name",
+              "fieldValue": "={{ $json.name }}"
+            },
+            {
+              "fieldName": "address",
+              "fieldValue": "={{ JSON.stringify({}) }}"
+            },
+            {
+              "fieldName": "ownership_data",
+              "fieldValue": "={{ JSON.stringify({}) }}"
+            },
+            {
+              "fieldName": "registry_data",
+              "fieldValue": "={{ JSON.stringify($json.metadata || {}) }}"
+            }
+          ]
+        }
+      },
+      "id": "create-profile",
+      "name": "Create Business Profile",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [650, 400],
+      "credentials": {
+        "supabaseApi": {
+          "id": "{{SUPABASE_CREDENTIAL_ID}}",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Store profile_id for later use\nconst input = $input.first().json;\nconst webhookData = $('Webhook Entry Point').first().json;\n\n// Supabase returns array, get first item\nconst profile = Array.isArray(input) ? input[0] : input;\n\nreturn {\n  json: {\n    ...webhookData,\n    profile_id: profile.id,\n    profile_created: true,\n    created_at: profile.created_at\n  }\n};"
+      },
+      "id": "merge-profile-data",
+      "name": "Merge Profile Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.needs_sms_verification }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "check-sms-needed",
+      "name": "SMS Verification Needed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.N8N_WEBHOOK_URL }}/webhook/airtop-sms-otp",
+        "authentication": "none",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "={{ $json.user_id }}"
+            },
+            {
+              "name": "profile_id",
+              "value": "={{ $json.profile_id }}"
+            },
+            {
+              "name": "phone",
+              "value": "={{ $json.phone }}"
+            },
+            {
+              "name": "name",
+              "value": "={{ $json.name }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "trigger-sms-otp",
+      "name": "Trigger SMS OTP via Airtop",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "users_pending",
+        "filterType": "string",
+        "filterString": "id=eq.{{ $json.user_id }}",
+        "dataMode": "defineInNode",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldName": "status",
+              "fieldValue": "awaiting_sms"
+            }
+          ]
+        }
+      },
+      "id": "update-status-sms",
+      "name": "Update Status: Awaiting SMS",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1450, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "{{SUPABASE_CREDENTIAL_ID}}",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.needs_email_verification }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "check-email-needed",
+      "name": "Email Verification Needed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1650, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.N8N_WEBHOOK_URL }}/webhook/airtop-email-otp",
+        "authentication": "none",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "={{ $json.user_id }}"
+            },
+            {
+              "name": "profile_id",
+              "value": "={{ $json.profile_id }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $json.email }}"
+            },
+            {
+              "name": "name",
+              "value": "={{ $json.name }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "trigger-email-otp",
+      "name": "Trigger Email OTP via Airtop",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "users_pending",
+        "filterType": "string",
+        "filterString": "id=eq.{{ $json.user_id }}",
+        "dataMode": "defineInNode",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldName": "status",
+              "fieldValue": "awaiting_email"
+            }
+          ]
+        }
+      },
+      "id": "update-status-email",
+      "name": "Update Status: Awaiting Email",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [2050, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "{{SUPABASE_CREDENTIAL_ID}}",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check if both verifications are complete\nconst webhookData = $('Webhook Entry Point').first().json;\nconst smsData = $('Trigger SMS OTP via Airtop').first()?.json;\nconst emailData = $('Trigger Email OTP via Airtop').first()?.json;\n\nconst smsVerified = smsData?.success && smsData?.code;\nconst emailVerified = emailData?.success && emailData?.code;\n\nconst needsSMS = webhookData.needs_sms_verification;\nconst needsEmail = webhookData.needs_email_verification;\n\nlet allVerified = true;\nlet status = 'verified';\n\nif (needsSMS && !smsVerified) {\n  allVerified = false;\n  status = 'awaiting_sms';\n}\n\nif (needsEmail && !emailVerified) {\n  allVerified = false;\n  status = needsSMS && !smsVerified ? 'awaiting_email' : 'awaiting_email';\n}\n\nreturn {\n  json: {\n    ...webhookData,\n    sms_verified: smsVerified,\n    email_verified: emailVerified,\n    all_verified: allVerified,\n    final_status: status,\n    sms_code: smsData?.code,\n    email_code: emailData?.code\n  }\n};"
+      },
+      "id": "check-verification-complete",
+      "name": "Check Verification Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2250, 400]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "users_pending",
+        "filterType": "string",
+        "filterString": "id=eq.{{ $json.user_id }}",
+        "dataMode": "defineInNode",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldName": "status",
+              "fieldValue": "={{ $json.final_status }}"
+            }
+          ]
+        }
+      },
+      "id": "update-final-status",
+      "name": "Update Final Status",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [2450, 400],
+      "credentials": {
+        "supabaseApi": {
+          "id": "{{SUPABASE_CREDENTIAL_ID}}",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "tableId": "verification_logs",
+        "dataMode": "defineInNode",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldName": "user_id",
+              "fieldValue": "={{ $json.user_id }}"
+            },
+            {
+              "fieldName": "profile_id",
+              "fieldValue": "={{ $json.profile_id }}"
+            },
+            {
+              "fieldName": "event_type",
+              "fieldValue": "={{ $json.all_verified ? 'verification_completed' : 'verification_failed' }}"
+            },
+            {
+              "fieldName": "event_data",
+              "fieldValue": "={{ JSON.stringify($json) }}"
+            }
+          ]
+        }
+      },
+      "id": "log-completion",
+      "name": "Log Verification Completion",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [2650, 400],
+      "credentials": {
+        "supabaseApi": {
+          "id": "{{SUPABASE_CREDENTIAL_ID}}",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  success: $json.all_verified,\n  message: $json.all_verified ? 'Profile created and verified successfully' : 'Profile created, verification pending',\n  user_id: $json.user_id,\n  profile_id: $json.profile_id,\n  status: $json.final_status,\n  sms_verified: $json.sms_verified,\n  email_verified: $json.email_verified,\n  timestamp: new Date().toISOString()\n}) }}"
+      },
+      "id": "respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2850, 400]
+    }
+  ],
+  "connections": {
+    "Webhook Entry Point": {
+      "main": [
+        [
+          {
+            "node": "Update Status: Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status: Processing": {
+      "main": [
+        [
+          {
+            "node": "Create Business Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Business Profile": {
+      "main": [
+        [
+          {
+            "node": "Merge Profile Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Profile Data": {
+      "main": [
+        [
+          {
+            "node": "SMS Verification Needed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SMS Verification Needed?": {
+      "main": [
+        [
+          {
+            "node": "Trigger SMS OTP via Airtop",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Email Verification Needed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger SMS OTP via Airtop": {
+      "main": [
+        [
+          {
+            "node": "Update Status: Awaiting SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status: Awaiting SMS": {
+      "main": [
+        [
+          {
+            "node": "Email Verification Needed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Verification Needed?": {
+      "main": [
+        [
+          {
+            "node": "Trigger Email OTP via Airtop",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Verification Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Email OTP via Airtop": {
+      "main": [
+        [
+          {
+            "node": "Update Status: Awaiting Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status: Awaiting Email": {
+      "main": [
+        [
+          {
+            "node": "Check Verification Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Verification Status": {
+      "main": [
+        [
+          {
+            "node": "Update Final Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Final Status": {
+      "main": [
+        [
+          {
+            "node": "Log Verification Completion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Verification Completion": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    "orchestrator",
+    "profile-creation",
+    "otp",
+    "wallestars"
+  ],
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "1.0.0"
+}

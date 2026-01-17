@@ -8,6 +8,7 @@ import ComputerControl from './pages/ComputerControl';
 import AndroidControl from './pages/AndroidControl';
 import Settings from './pages/Settings';
 import PromptGenerator from './pages/PromptGenerator';
+import SmartScan from './pages/SmartScan';
 import { SocketProvider } from './context/SocketContext';
 import { ThemeProvider } from './context/ThemeContext';
 
@@ -20,6 +21,7 @@ function App() {
     chat: <ClaudeChat />,
     computer: <ComputerControl />,
     android: <AndroidControl />,
+    smartscan: <SmartScan />,
     promptgen: <PromptGenerator />,
     settings: <Settings />
   };

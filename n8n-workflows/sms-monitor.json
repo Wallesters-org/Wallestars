@@ -1,0 +1,236 @@
+{
+    "name": "SMS Monitor",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "seconds",
+                            "secondsInterval": 30
+                        }
+                    ]
+                }
+            },
+            "id": "schedule-trigger",
+            "name": "Poll Every 30s",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1,
+            "position": [
+                100,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "GET",
+                "url": "={{$env.SMSTOME_API_URL}}/messages",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "status",
+                            "value": "unread"
+                        },
+                        {
+                            "name": "limit",
+                            "value": "10"
+                        }
+                    ]
+                }
+            },
+            "id": "http-poll-sms",
+            "name": "Poll Smstome.com",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                300,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Extract verification codes using regex\nconst messages = $input.all();\nconst results = [];\n\nfor (const msg of messages) {\n  const text = msg.json.body || msg.json.message || '';\n  const codeMatch = text.match(/\\b(\\d{4,6})\\b/);\n  \n  if (codeMatch) {\n    results.push({\n      phone: msg.json.from || msg.json.sender,\n      code: codeMatch[1],\n      raw_message: text,\n      received_at: msg.json.timestamp || new Date().toISOString()\n    });\n  }\n}\n\nreturn results;"
+            },
+            "id": "code-extract",
+            "name": "Regex Extract Code",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                500,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "tableId": "users_pending",
+                "returnAll": false,
+                "limit": 1,
+                "filterType": "string",
+                "filterString": "phone=eq.{{$json.phone}},status=eq.awaiting_sms"
+            },
+            "id": "supabase-match",
+            "name": "Match Pending Request",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                700,
+                300
+            ],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "{{SUPABASE_CREDENTIAL_ID}}",
+                    "name": "Supabase API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "number": [
+                        {
+                            "value1": "={{$json.length}}",
+                            "operation": "larger",
+                            "value2": 0
+                        }
+                    ]
+                }
+            },
+            "id": "if-match-found",
+            "name": "If Match Found",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                900,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "update",
+                "tableId": "verified_business_profiles",
+                "filterType": "string",
+                "filterString": "user_id=eq.{{$json[0].id}}"
+            },
+            "id": "supabase-update",
+            "name": "Update SMS Code",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                1100,
+                300
+            ],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "{{SUPABASE_CREDENTIAL_ID}}",
+                    "name": "Supabase API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "sms_verification_code",
+                            "value": "={{$('Regex Extract Code').item.json.code}}"
+                        },
+                        {
+                            "name": "sms_verified_at",
+                            "value": "={{$now}}"
+                        }
+                    ]
+                }
+            },
+            "id": "set-code",
+            "name": "Set Verification Code",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3,
+            "position": [
+                1100,
+                200
+            ]
+        }
+    ],
+    "connections": {
+        "Poll Every 30s": {
+            "main": [
+                [
+                    {
+                        "node": "Poll Smstome.com",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Poll Smstome.com": {
+            "main": [
+                [
+                    {
+                        "node": "Regex Extract Code",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Regex Extract Code": {
+            "main": [
+                [
+                    {
+                        "node": "Match Pending Request",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Match Pending Request": {
+            "main": [
+                [
+                    {
+                        "node": "If Match Found",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If Match Found": {
+            "main": [
+                [
+                    {
+                        "node": "Set Verification Code",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                []
+            ]
+        },
+        "Set Verification Code": {
+            "main": [
+                [
+                    {
+                        "node": "Update SMS Code",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": [
+        "sms",
+        "verification",
+        "monitoring"
+    ]
+}

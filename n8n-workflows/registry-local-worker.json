@@ -1,0 +1,286 @@
+{
+    "name": "Registry Local Worker",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "registry-check",
+                "responseMode": "lastNode"
+            },
+            "id": "webhook-trigger",
+            "name": "Webhook Trigger",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                100,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "tableId": "users_pending",
+                "returnAll": false,
+                "limit": 50,
+                "filterType": "string",
+                "filterString": "status=eq.pending"
+            },
+            "id": "supabase-read",
+            "name": "Supabase Read Pending",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                300,
+                300
+            ],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "{{SUPABASE_CREDENTIAL_ID}}",
+                    "name": "Supabase API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "GET",
+                "url": "={{$env.COMPANYBOOK_API_URL}}/api/people",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "name",
+                            "value": "={{$json.name}}"
+                        }
+                    ]
+                }
+            },
+            "id": "http-people-search",
+            "name": "CompanyBook People Search",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                500,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "GET",
+                "url": "={{$env.COMPANYBOOK_API_URL}}/people/{{$json.id}}",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "with_data",
+                            "value": "true"
+                        }
+                    ]
+                }
+            },
+            "id": "http-profile-details",
+            "name": "Get Profile Details",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                700,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "GET",
+                "url": "={{$env.COMPANYBOOK_API_URL}}/relationships/{{$json.id}}",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "type",
+                            "value": "ownership"
+                        }
+                    ]
+                }
+            },
+            "id": "http-relationships",
+            "name": "Get Ownership Details",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                900,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{$json.business_type}}",
+                            "operation": "regex",
+                            "value2": "^(EOOD|ET)$"
+                        }
+                    ]
+                }
+            },
+            "id": "filter-business-type",
+            "name": "Filter EOOD/ET",
+            "type": "n8n-nodes-base.filter",
+            "typeVersion": 1,
+            "position": [
+                1100,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Enrich Data: Generate VAT, Email Alias\nconst item = $input.item.json;\n\n// Generate Bulgarian VAT number (BG + EIK)\nconst vatNumber = item.eik ? `BG${item.eik}` : null;\n\n// Generate email alias using 33mail format\nconst emailAlias = item.name \n  ? `${item.name.toLowerCase().replace(/\\s+/g, '-')}@wallester.33mail.com`\n  : null;\n\n// Parse address\nconst address = {\n  street: item.address?.street || '',\n  city: item.address?.city || '',\n  postcode: item.address?.postcode || '',\n  country: 'Bulgaria'\n};\n\nreturn {\n  ...item,\n  vat_number: vatNumber,\n  email_alias: emailAlias,\n  parsed_address: address,\n  enriched_at: new Date().toISOString()\n};"
+            },
+            "id": "code-enrich",
+            "name": "Enrich Data",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1300,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "upsert",
+                "tableId": "verified_business_profiles",
+                "conflictType": "id"
+            },
+            "id": "supabase-upsert",
+            "name": "Supabase Upsert Profile",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                1500,
+                300
+            ],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "{{SUPABASE_CREDENTIAL_ID}}",
+                    "name": "Supabase API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "message": "✅ Registry check completed for {{$json.name}}. VAT: {{$json.vat_number}}"
+            },
+            "id": "notify-success",
+            "name": "Notify Chat",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3,
+            "position": [
+                1700,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Supabase Read Pending",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Supabase Read Pending": {
+            "main": [
+                [
+                    {
+                        "node": "CompanyBook People Search",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "CompanyBook People Search": {
+            "main": [
+                [
+                    {
+                        "node": "Get Profile Details",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Profile Details": {
+            "main": [
+                [
+                    {
+                        "node": "Get Ownership Details",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Ownership Details": {
+            "main": [
+                [
+                    {
+                        "node": "Filter EOOD/ET",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Filter EOOD/ET": {
+            "main": [
+                [
+                    {
+                        "node": "Enrich Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Enrich Data": {
+            "main": [
+                [
+                    {
+                        "node": "Supabase Upsert Profile",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Supabase Upsert Profile": {
+            "main": [
+                [
+                    {
+                        "node": "Notify Chat",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": [
+        "registry",
+        "verification",
+        "companybook"
+    ]
+}

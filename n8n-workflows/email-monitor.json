@@ -1,0 +1,234 @@
+{
+    "name": "Email Monitor",
+    "nodes": [
+        {
+            "parameters": {
+                "mailbox": "INBOX",
+                "postProcessAction": "markRead",
+                "options": {}
+            },
+            "id": "imap-trigger",
+            "name": "IMAP Watcher",
+            "type": "n8n-nodes-base.emailReadImap",
+            "typeVersion": 2,
+            "position": [
+                100,
+                300
+            ],
+            "credentials": {
+                "imap": {
+                    "id": "{{HOSTINGER_IMAP_CREDENTIAL_ID}}",
+                    "name": "Hostinger IMAP"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "// Extract verification links/codes from email body\nconst email = $input.item.json;\nlet body = email.text || email.html || '';\n\n// Remove HTML tags if present\nbody = body.replace(/<[^>]*>/g, '');\n\n// Extract verification link\nconst linkMatch = body.match(/https?:\\/\\/[^\\s]+verify[^\\s]*/i);\n\n// Extract 6-digit code\nconst codeMatch = body.match(/\\b(\\d{6})\\b/);\n\n// Extract email alias (33mail format)\nconst toAddress = email.to?.text || email.to || '';\nconst aliasMatch = toAddress.match(/([^@]+)@.*\\.33mail\\.com/);\n\nreturn {\n  from: email.from?.text || email.from,\n  to: toAddress,\n  subject: email.subject,\n  verification_link: linkMatch ? linkMatch[0] : null,\n  verification_code: codeMatch ? codeMatch[1] : null,\n  email_alias: aliasMatch ? aliasMatch[1] : null,\n  received_at: email.date || new Date().toISOString()\n};"
+            },
+            "id": "code-extract-body",
+            "name": "Extract Body",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                300,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{$json.email_alias}}",
+                            "operation": "isNotEmpty"
+                        }
+                    ]
+                }
+            },
+            "id": "if-has-alias",
+            "name": "If Has Alias",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                500,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "tableId": "verified_business_profiles",
+                "returnAll": false,
+                "limit": 1,
+                "filterType": "string",
+                "filterString": "email_alias=ilike.%{{$json.email_alias}}%"
+            },
+            "id": "supabase-match-alias",
+            "name": "Match 33mail Alias",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                700,
+                300
+            ],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "{{SUPABASE_CREDENTIAL_ID}}",
+                    "name": "Supabase API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "number": [
+                        {
+                            "value1": "={{$json.length}}",
+                            "operation": "larger",
+                            "value2": 0
+                        }
+                    ]
+                }
+            },
+            "id": "if-profile-found",
+            "name": "If Profile Found",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                900,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "update",
+                "tableId": "verified_business_profiles",
+                "filterType": "string",
+                "filterString": "id=eq.{{$json[0].id}}"
+            },
+            "id": "supabase-update-email",
+            "name": "Update Email Code",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                1100,
+                300
+            ],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "{{SUPABASE_CREDENTIAL_ID}}",
+                    "name": "Supabase API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "email_confirmation_code",
+                            "value": "={{$('Extract Body').item.json.verification_code}}"
+                        },
+                        {
+                            "name": "email_verification_link",
+                            "value": "={{$('Extract Body').item.json.verification_link}}"
+                        },
+                        {
+                            "name": "email_verified_at",
+                            "value": "={{$now}}"
+                        }
+                    ]
+                }
+            },
+            "id": "set-email-code",
+            "name": "Set Email Verification",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3,
+            "position": [
+                1100,
+                200
+            ]
+        }
+    ],
+    "connections": {
+        "IMAP Watcher": {
+            "main": [
+                [
+                    {
+                        "node": "Extract Body",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract Body": {
+            "main": [
+                [
+                    {
+                        "node": "If Has Alias",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If Has Alias": {
+            "main": [
+                [
+                    {
+                        "node": "Match 33mail Alias",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                []
+            ]
+        },
+        "Match 33mail Alias": {
+            "main": [
+                [
+                    {
+                        "node": "If Profile Found",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If Profile Found": {
+            "main": [
+                [
+                    {
+                        "node": "Set Email Verification",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                []
+            ]
+        },
+        "Set Email Verification": {
+            "main": [
+                [
+                    {
+                        "node": "Update Email Code",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": [
+        "email",
+        "verification",
+        "imap",
+        "monitoring"
+    ]
+}

@@ -1,0 +1,38 @@
+{
+    "mcpServers": {
+        "wallestars-control": {
+            "command": "node",
+            "args": [
+                "/home/administrator/Documents/Cline/MCP/Wallestars/server/index.js"
+            ],
+            "env": {
+                "ANTHROPIC_API_KEY": "${ANTHROPIC_API_KEY}",
+                "PORT": "3000",
+                "NODE_ENV": "production",
+                "ENABLE_COMPUTER_USE": "true",
+                "ENABLE_ANDROID": "false"
+            }
+        },
+        "registry-stagehand": {
+            "command": "node",
+            "args": [
+                "/home/administrator/Documents/Cline/MCP/registry-stagehand-worker/worker.mjs"
+            ],
+            "env": {
+                "SUPABASE_URL": "${SUPABASE_URL}",
+                "SUPABASE_SERVICE_ROLE_KEY": "${SUPABASE_SERVICE_ROLE_KEY}",
+                "BROWSERBASE_API_KEY": "${BROWSERBASE_API_KEY}",
+                "REGISTRY_BASE_URL": "https://portal.registryagency.bg/CR/en/Reports/VerificationPersonOrg?ident="
+            }
+        }
+    },
+    "transport": {
+        "type": "sse",
+        "port": 3006,
+        "corsOrigin": "*"
+    },
+    "logging": {
+        "level": "info",
+        "file": "/tmp/mcp-proxy.log"
+    }
+}

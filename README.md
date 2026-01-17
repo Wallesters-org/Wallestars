@@ -13,9 +13,22 @@
 
 *Beautiful real-time visualization • Computer Use • Device Control • MCP Support*
 
-[Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [MCP Setup](#-mcp-model-context-protocol)
+[Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [MCP Setup](#-mcp-model-context-protocol) • **[Site Access](SITE_ACCESS_INSTRUCTIONS.md)**
 
 </div>
+
+---
+
+## 🌐 Live Site Access
+
+**Important**: For instructions on how to access the deployed site, please see **[SITE_ACCESS_INSTRUCTIONS.md](SITE_ACCESS_INSTRUCTIONS.md)** (Available in Bulgarian and English).
+
+### Quick Links:
+- **Custom Domain**: https://workmail.pro (after DNS configuration)
+- **GitHub Pages**: https://wallesters-org.github.io/Wallestars (static frontend only)
+- **VPS Deployment**: https://srv1201204.hstgr.cloud (full functionality)
+
+> **Note**: GitHub Pages deployment hosts only the static frontend. For full backend functionality (Claude AI, Computer Use, Android Control), use the VPS deployment.
 
 ---
 
@@ -53,6 +66,16 @@
 - **Text Input** - Type on device keyboard
 - **Navigation** - Home, Back, Power buttons
 - **Device Info** - Model, Android version, battery level
+
+### 📄 Smart Scan
+- **AI Document Classification** - Automatically identify invoices, receipts, notes, and more
+- **Intelligent Data Extraction** - Extract structured data using Claude Vision API
+- **Invoice Processing** - Extract vendor info, line items, totals, and tax details
+- **Validation System** - Automatic validation with human-in-the-loop checkpoints
+- **Microsoft Delta BG Export** - Generate CSV files for Bulgarian accounting software
+- **Microsoft TRZ Export** - Generate XML files for financial data import
+- **USB Transfer Ready** - Files validated for seamless cross-computer transfer
+- **Edit & Correct** - Manual correction mode for extracted data
 
 ### ✨ Prompt Generator
 - **Spark App Prompts** - Generate prompts for creating Spark visual applications
@@ -143,6 +166,17 @@
 3. Select your device from the dropdown
 4. Take screenshots to view device screen
 5. Use Navigation controls or Quick Actions
+
+### Smart Scan
+1. Navigate to "Smart Scan"
+2. Click "Upload Document" or drag & drop an image
+3. Click "Classify Document" to identify the document type
+4. Click "Extract Data" to extract structured information
+5. Review validation results and edit if needed
+6. Choose export format (Delta BG CSV or TRZ XML)
+7. Click "Export & Download" to save the validated file
+
+📚 **For detailed documentation, see [SMART_SCAN_DOCS.md](SMART_SCAN_DOCS.md)**
 
 ### Prompt Generator
 1. Navigate to "Prompt Generator"
@@ -266,6 +300,37 @@ netlify deploy --prod
 ### Azure Web Apps Deployment
 
 The project also includes GitHub Actions workflow for Azure Web Apps deployment.
+
+### Custom Domain & DNS Configuration
+
+If you're deploying with a custom domain or GitHub Pages:
+
+📚 **For DNS configuration details, see [DNS_CONFIGURATION.md](DNS_CONFIGURATION.md)**
+
+This guide includes:
+- GitHub Pages TXT record verification
+- Custom domain setup instructions
+- VPS DNS configuration
+- Verification and troubleshooting steps
+
+---
+
+## 🔒 Security
+
+Security is a top priority for Wallestars Control Center. We follow industry best practices to protect your data and credentials.
+
+### Security Documentation
+- **[SECURITY.md](SECURITY.md)** - Security policy and vulnerability reporting
+- **[SECURITY_CHECKLIST.md](SECURITY_CHECKLIST.md)** - Pre-deployment security checklist
+- **[VPS_DEPLOYMENT.md](VPS_DEPLOYMENT.md)** - Secure deployment guide
+
+### Quick Security Tips
+- Never commit `.env` files or API keys
+- Use `npm run validate-env` before deployment
+- Rotate credentials if exposed
+- Keep dependencies updated with `npm audit`
+
+For security concerns, see our [Security Policy](SECURITY.md).
 
 ---
 

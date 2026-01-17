@@ -1,0 +1,525 @@
+{
+    "name": "PR Monitoring & Comment System",
+    "nodes": [
+        {
+            "parameters": {
+                "path": "pr-delegated",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "webhook-pr-delegated",
+            "name": "Webhook: PR Delegated",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1.1,
+            "position": [
+                250,
+                300
+            ],
+            "webhookId": "pr-delegated-webhook"
+        },
+        {
+            "parameters": {
+                "path": "agent-status",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "webhook-agent-status",
+            "name": "Webhook: Agent Status",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1.1,
+            "position": [
+                250,
+                500
+            ],
+            "webhookId": "agent-status-webhook"
+        },
+        {
+            "parameters": {
+                "path": "test-results",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "webhook-test-results",
+            "name": "Webhook: Test Results",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1.1,
+            "position": [
+                250,
+                700
+            ],
+            "webhookId": "test-results-webhook"
+        },
+        {
+            "parameters": {
+                "resource": "issue",
+                "operation": "createComment",
+                "owner": "={{$json.owner || 'Wallesters-org'}}",
+                "repository": "={{$json.repository || 'Wallestars'}}",
+                "issueNumber": "={{$json.pr_number}}",
+                "body": "=🤖 **Автоматичен мониторинг**\\n\\n**Статус:** PR е делегиран към `{{$json.agent}}`\\n\\n**Очаквани действия:**\\n- Code review\\n- Тестване\\n- Одобрение\\n\\n**Време:** {{$json.timestamp}}\\n\\n---\\n_Генерирано от n8n workflow_"
+            },
+            "id": "github-comment-delegated",
+            "name": "GitHub: Comment on Delegated PR",
+            "type": "n8n-nodes-base.github",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ],
+            "credentials": {
+                "githubApi": {
+                    "id": "github-credentials",
+                    "name": "GitHub API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "url": "={{$json.pr_url || $json.url}}",
+                "method": "GET",
+                "options": {}
+            },
+            "id": "check-pr-status",
+            "name": "Check PR Status",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": false,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "condition-1",
+                            "leftValue": "={{$json.state}}",
+                            "rightValue": "open",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "id": "if-pr-open",
+            "name": "IF: PR Open",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                850,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "resource": "issue",
+                "operation": "createComment",
+                "owner": "Wallesters-org",
+                "repository": "Wallestars",
+                "issueNumber": "={{$json.pr_number}}",
+                "body": "=⚠️ **Напомняне за прогрес**\\n\\nМинаха 30 минути от делегирането на този PR.\\n\\n**Моля актуализирай статуса**\\n\\n---\\n_Автоматично напомняне от n8n_"
+            },
+            "id": "github-reminder",
+            "name": "GitHub: Send Reminder",
+            "type": "n8n-nodes-base.github",
+            "typeVersion": 1,
+            "position": [
+                1050,
+                200
+            ],
+            "credentials": {
+                "githubApi": {
+                    "id": "github-credentials",
+                    "name": "GitHub API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "unit": "minutes",
+                "amount": 30
+            },
+            "id": "wait-30min",
+            "name": "Wait 30 Minutes",
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1.1,
+            "position": [
+                1050,
+                300
+            ],
+            "webhookId": "wait-30min-webhook"
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "=INSERT INTO pr_tracking (pr_number, agent, status, delegated_at, repository)\\nVALUES ({{$json.pr_number}}, '{{$json.agent}}', 'delegated', NOW(), '{{$json.repository || 'Wallestars'}}')\\nON CONFLICT (pr_number) DO UPDATE SET\\n  agent = EXCLUDED.agent,\\n  status = EXCLUDED.status,\\n  last_updated = NOW();"
+            },
+            "id": "supabase-insert",
+            "name": "Supabase: Track PR",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.4,
+            "position": [
+                450,
+                400
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "supabase-credentials",
+                    "name": "Supabase DB"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "functionCode": "// Анализирай статус на агентите\\nconst agents = $json.agents;\\nconst alerts = [];\\n\\nfor (const [agentName, status] of Object.entries(agents)) {\\n  // Провери за неактивни агенти\\n  if (!status.is_active && status.assigned_prs > 0) {\\n    alerts.push({\\n      agent: agentName,\\n      type: 'inactive',\\n      message: `Агент ${agentName} е неактивен с ${status.assigned_prs} назначени PR-ове`,\\n      severity: 'warning'\\n    });\\n  }\\n  \\n  // Провери за претоварени агенти\\n  if (status.assigned_prs > 5) {\\n    alerts.push({\\n      agent: agentName,\\n      type: 'overloaded',\\n      message: `Агент ${agentName} има твърде много назначени PR-ове (${status.assigned_prs})`,\\n      severity: 'high'\\n    });\\n  }\\n}\\n\\nreturn alerts.map(alert => ({ json: alert }));"
+            },
+            "id": "analyze-agents",
+            "name": "Code: Analyze Agent Status",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                450,
+                500
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": false,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "condition-alert",
+                            "leftValue": "={{$json.severity}}",
+                            "rightValue": "high",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "or"
+                },
+                "options": {}
+            },
+            "id": "if-critical-alert",
+            "name": "IF: Critical Alert",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                650,
+                500
+            ]
+        },
+        {
+            "parameters": {
+                "resource": "issue",
+                "operation": "create",
+                "owner": "Wallesters-org",
+                "repository": "Wallestars",
+                "title": "=🚨 Критичен Alert: {{$json.agent}}",
+                "body": "=**Тип:** {{$json.type}}\\n\\n**Съобщение:**\\n{{$json.message}}\\n\\n**Severity:** {{$json.severity}}\\n\\n**Време:** {{$now.toISO()}}\\n\\n---\\n_Автоматично създаден от n8n monitoring system_",
+                "labels": "alert,automated,agent-monitoring"
+            },
+            "id": "github-create-alert-issue",
+            "name": "GitHub: Create Alert Issue",
+            "type": "n8n-nodes-base.github",
+            "typeVersion": 1,
+            "position": [
+                850,
+                450
+            ],
+            "credentials": {
+                "githubApi": {
+                    "id": "github-credentials",
+                    "name": "GitHub API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "functionCode": "// Обработи резултатите от тестовете\\nconst testData = $json;\\n\\nconst summary = {\\n  workflow: testData.workflow,\\n  pr_number: testData.pr_number,\\n  timestamp: testData.timestamp,\\n  all_passed: testData.tests_passed === 'success' && \\n              testData.code_quality === 'success' && \\n              testData.security_scan === 'success' && \\n              testData.build_verification === 'success',\\n  results: {\\n    tests: testData.tests_passed,\\n    quality: testData.code_quality,\\n    security: testData.security_scan,\\n    build: testData.build_verification\\n  }\\n};\\n\\nconst emoji = summary.all_passed ? '✅' : '❌';\\nconst status = summary.all_passed ? 'Всички тестове преминати успешно' : 'Някои тестове се провалиха';\\n\\nsummary.comment = `${emoji} **Резултати от тестовете**\\n\\n${status}\\n\\n**Детайли:**\\n- Тестове: ${testData.tests_passed === 'success' ? '✅' : '❌'}\\n- Code Quality: ${testData.code_quality === 'success' ? '✅' : '❌'}\\n- Security Scan: ${testData.security_scan === 'success' ? '✅' : '❌'}\\n- Build: ${testData.build_verification === 'success' ? '✅' : '❌'}\\n\\n**Време:** ${testData.timestamp}\\n\\n---\\n_Автоматично генерирано от n8n testing system_`;\\n\\nreturn { json: summary };"
+            },
+            "id": "process-test-results",
+            "name": "Code: Process Test Results",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                450,
+                700
+            ]
+        },
+        {
+            "parameters": {
+                "resource": "issue",
+                "operation": "createComment",
+                "owner": "Wallesters-org",
+                "repository": "Wallestars",
+                "issueNumber": "={{$json.pr_number}}",
+                "body": "={{$json.comment}}"
+            },
+            "id": "github-test-comment",
+            "name": "GitHub: Post Test Results",
+            "type": "n8n-nodes-base.github",
+            "typeVersion": 1,
+            "position": [
+                650,
+                700
+            ],
+            "credentials": {
+                "githubApi": {
+                    "id": "github-credentials",
+                    "name": "GitHub API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "=INSERT INTO test_results (pr_number, workflow, all_passed, tests_passed, code_quality, security_scan, build_verification, timestamp)\\nVALUES ({{$json.pr_number}}, '{{$json.workflow}}', {{$json.all_passed}}, '{{$json.results.tests}}', '{{$json.results.quality}}', '{{$json.results.security}}', '{{$json.results.build}}', '{{$json.timestamp}}');"
+            },
+            "id": "supabase-test-results",
+            "name": "Supabase: Store Test Results",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.4,
+            "position": [
+                850,
+                700
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "supabase-credentials",
+                    "name": "Supabase DB"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ { \"status\": \"success\", \"message\": \"PR delegated webhook processed\" } }}"
+            },
+            "id": "respond-delegated",
+            "name": "Respond: Delegated",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                1250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ { \"status\": \"success\", \"message\": \"Agent status webhook processed\" } }}"
+            },
+            "id": "respond-status",
+            "name": "Respond: Status",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                1050,
+                500
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ { \"status\": \"success\", \"message\": \"Test results webhook processed\" } }}"
+            },
+            "id": "respond-tests",
+            "name": "Respond: Tests",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                1050,
+                700
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook: PR Delegated": {
+            "main": [
+                [
+                    {
+                        "node": "GitHub: Comment on Delegated PR",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Supabase: Track PR",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "GitHub: Comment on Delegated PR": {
+            "main": [
+                [
+                    {
+                        "node": "Check PR Status",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check PR Status": {
+            "main": [
+                [
+                    {
+                        "node": "IF: PR Open",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "IF: PR Open": {
+            "main": [
+                [
+                    {
+                        "node": "Wait 30 Minutes",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait 30 Minutes": {
+            "main": [
+                [
+                    {
+                        "node": "GitHub: Send Reminder",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "GitHub: Send Reminder": {
+            "main": [
+                [
+                    {
+                        "node": "Respond: Delegated",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Webhook: Agent Status": {
+            "main": [
+                [
+                    {
+                        "node": "Code: Analyze Agent Status",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code: Analyze Agent Status": {
+            "main": [
+                [
+                    {
+                        "node": "IF: Critical Alert",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "IF: Critical Alert": {
+            "main": [
+                [
+                    {
+                        "node": "GitHub: Create Alert Issue",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "GitHub: Create Alert Issue": {
+            "main": [
+                [
+                    {
+                        "node": "Respond: Status",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Webhook: Test Results": {
+            "main": [
+                [
+                    {
+                        "node": "Code: Process Test Results",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code: Process Test Results": {
+            "main": [
+                [
+                    {
+                        "node": "GitHub: Post Test Results",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "GitHub: Post Test Results": {
+            "main": [
+                [
+                    {
+                        "node": "Supabase: Store Test Results",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Supabase: Store Test Results": {
+            "main": [
+                [
+                    {
+                        "node": "Respond: Tests",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "pinData": {},
+    "settings": {
+        "executionOrder": "v1",
+        "saveManualExecutions": true,
+        "callerPolicy": "workflowsFromSameOwner",
+        "errorWorkflow": ""
+    },
+    "staticData": null,
+    "tags": [],
+    "triggerCount": 3,
+    "updatedAt": "2026-01-12T05:33:00.000Z",
+    "versionId": "1"
+}
