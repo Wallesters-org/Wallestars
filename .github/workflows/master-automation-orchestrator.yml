@@ -266,13 +266,17 @@ jobs:
               (todayRuns.filter(r => r.conclusion === 'success').length / todayRuns.length * 100).toFixed(1) :
               0;
             
+            const avgDuration = todayRuns.length > 0 ?
+              Math.floor(todayRuns.reduce((acc, r) => acc + (r.run_duration_ms || 0), 0) / todayRuns.length / 1000) :
+              0;
+            
             await core.summary
               .addHeading('📊 Daily Automation Summary')
               .addRaw(`**Date:** ${new Date().toISOString().split('T')[0]}\n\n`)
               .addHeading('Metrics', 3)
               .addRaw(`- Total Runs: ${todayRuns.length}\n`)
               .addRaw(`- Success Rate: ${successRate}%\n`)
-              .addRaw(`- Average Duration: ${Math.floor(todayRuns.reduce((acc, r) => acc + (r.run_duration_ms || 0), 0) / todayRuns.length / 1000)}s\n\n`)
+              .addRaw(`- Average Duration: ${avgDuration}s\n\n`)
               .addHeading('Status', 3)
               .addRaw(successRate > 90 ? '✅ Excellent\n' : successRate > 75 ? '🟡 Good\n' : '🔴 Needs Improvement\n')
               .write();

@@ -83,19 +83,23 @@ jobs:
             
             // Notify n8n
             if (process.env.N8N_WEBHOOK_URL) {
-              await fetch(`${process.env.N8N_WEBHOOK_URL}/webhook/pr-session-start`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  session_id: sessionId,
-                  pr_number: pr.number,
-                  pr_title: pr.title,
-                  author: pr.user.login,
-                  url: pr.html_url,
-                  session_issue: session.number,
-                  timestamp: new Date().toISOString()
-                })
-              });
+              try {
+                await fetch(`${process.env.N8N_WEBHOOK_URL}/webhook/pr-session-start`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    session_id: sessionId,
+                    pr_number: pr.number,
+                    pr_title: pr.title,
+                    author: pr.user.login,
+                    url: pr.html_url,
+                    session_issue: session.number,
+                    timestamp: new Date().toISOString()
+                  })
+                });
+              } catch (error) {
+                console.log(`Warning: Could not notify N8N: ${error.message}`);
+              }
             }
             
             core.setOutput('session_id', sessionId);
@@ -428,13 +432,17 @@ jobs:
             
             // Notify n8n
             if (process.env.N8N_WEBHOOK_URL) {
-              await fetch(`${process.env.N8N_WEBHOOK_URL}/webhook/pr-session-end`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  pr_number: pr.number,
-                  merged: pr.merged,
-                  timestamp: new Date().toISOString()
-                })
-              });
+              try {
+                await fetch(`${process.env.N8N_WEBHOOK_URL}/webhook/pr-session-end`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    pr_number: pr.number,
+                    merged: pr.merged,
+                    timestamp: new Date().toISOString()
+                  })
+                });
+              } catch (error) {
+                console.log(`Warning: Could not notify N8N: ${error.message}`);
+              }
             }

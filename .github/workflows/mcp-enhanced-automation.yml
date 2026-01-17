@@ -72,7 +72,7 @@ jobs:
         run: |
           # Check .mcp.json exists and is valid
           if [ -f ".mcp.json" ]; then
-            cat .mcp.json | jq empty && echo "✅ .mcp.json is valid JSON"
+            jq empty .mcp.json && echo "✅ .mcp.json is valid JSON"
           else
             echo "❌ .mcp.json not found"
             exit 1
@@ -80,7 +80,7 @@ jobs:
           
           # Check example config
           if [ -f "claude_desktop_config.json.example" ]; then
-            cat claude_desktop_config.json.example | jq empty && echo "✅ Example config is valid JSON"
+            jq empty claude_desktop_config.json.example && echo "✅ Example config is valid JSON"
           else
             echo "⚠️ Example config not found"
           fi
