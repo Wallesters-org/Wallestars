@@ -8,8 +8,8 @@ on:
   check_suite:
     types: [completed]
   schedule:
-    # Run every 10 minutes to check active PR sessions
-    - cron: '*/10 * * * *'
+    # Run every 10 minutes to check active PR sessions (offset to avoid collisions)
+    - cron: '2,12,22,32,42,52 * * * *'
   workflow_dispatch:
     inputs:
       pr_number:
@@ -165,7 +165,7 @@ jobs:
                 ref: pr.head.sha
               });
               
-              const allChecksPassed = checks.check_runs.length === 0 || 
+              const allChecksPassed = checks.check_runs.length > 0 && 
                                       checks.check_runs.every(c => 
                                         c.conclusion === 'success' || c.conclusion === 'neutral'
                                       );
