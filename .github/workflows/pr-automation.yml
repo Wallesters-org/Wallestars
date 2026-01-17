@@ -38,7 +38,7 @@ jobs:
               per_page: 100
             });
             
-            core.setOutput('prs', JSON.stringify(pullRequests));
+            core.setOutput('pr_numbers', pullRequests.map(pr => pr.number).join(','));
             core.setOutput('count', pullRequests.length);
             
             // Създай summary
@@ -62,14 +62,21 @@ jobs:
       - name: Делегирай PR без агент
         uses: actions/github-script@v7
         env:
-          PRS_JSON: ${{ steps.get_prs.outputs.prs }}
+          PR_NUMBERS: ${{ steps.get_prs.outputs.pr_numbers }}
         with:
           script: |
-            const pullRequests = JSON.parse(process.env.PRS_JSON);
+            const prNumbers = process.env.PR_NUMBERS ? process.env.PR_NUMBERS.split(',').filter(n => n).map(n => parseInt(n)) : [];
             const agents = ['copilot-agent-1', 'copilot-agent-2', 'copilot-agent-3', 'copilot-agent-4'];
             let agentIndex = 0;
             
-            for (const pr of pullRequests) {
+            for (const prNumber of prNumbers) {
+              // Fetch individual PR
+              const { data: pr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber
+              });
+              
               // Провери дали PR има назначен агент
               const hasAgent = pr.labels.some(label => label.name.startsWith('agent:'));
               
