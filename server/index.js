@@ -8,6 +8,8 @@ import { computerUseRouter } from './routes/computerUse.js';
 import { androidRouter } from './routes/android.js';
 import { documentScannerRouter } from './routes/documentScanner.js';
 import { n8nWebhooksRouter } from './routes/n8nWebhooks.js';
+import { sseRouter } from './routes/sse.js';
+import { hostingerRouter } from './routes/hostinger.js';
 import { setupSocketHandlers } from './socket/handlers.js';
 
 dotenv.config();
@@ -41,7 +43,8 @@ app.get('/api/health', (req, res) => {
       claude: !!process.env.ANTHROPIC_API_KEY,
       computerUse: process.env.ENABLE_COMPUTER_USE === 'true',
       android: process.env.ENABLE_ANDROID === 'true',
-      documentScanner: !!process.env.ANTHROPIC_API_KEY
+      documentScanner: !!process.env.ANTHROPIC_API_KEY,
+      hostinger: !!process.env.HOSTINGER_API_TOKEN
     }
   });
 });
@@ -52,6 +55,7 @@ app.use('/api/computer', computerUseRouter);
 app.use('/api/android', androidRouter);
 app.use('/api/document-scanner', documentScannerRouter);
 app.use('/api/webhooks/n8n', n8nWebhooksRouter);
+app.use('/api/hostinger', hostingerRouter);
 
 // SSE Route for MCP SuperAssistant
 app.use('/sse', sseRouter);
@@ -87,6 +91,7 @@ httpServer.listen(PORT, () => {
 ║   ${process.env.ANTHROPIC_API_KEY ? '✅' : '❌'} Claude API                                ║
 ║   ${process.env.ENABLE_COMPUTER_USE === 'true' ? '✅' : '❌'} Computer Use (Linux)                     ║
 ║   ${process.env.ENABLE_ANDROID === 'true' ? '✅' : '❌'} Android Control                            ║
+║   ${process.env.HOSTINGER_API_TOKEN ? '✅' : '❌'} Hostinger API                              ║
 ║   ✅ SSE (MCP SuperAssistant)                         ║
 ║                                                       ║
 ╚═══════════════════════════════════════════════════════╝
