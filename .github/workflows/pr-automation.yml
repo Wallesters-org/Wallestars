@@ -38,7 +38,6 @@ jobs:
               per_page: 100
             });
             
-            core.setOutput('prs', JSON.stringify(pullRequests));
             core.setOutput('count', pullRequests.length);
             
             // Създай summary
@@ -61,12 +60,16 @@ jobs:
 
       - name: Делегирай PR без агент
         uses: actions/github-script@v7
-        env:
-          PRS_JSON: ${{ steps.get_prs.outputs.prs }}
         with:
           script: |
             const pullRequests = JSON.parse(process.env.PRS_JSON);
-            const agents = ['copilot-agent-1', 'copilot-agent-2', 'copilot-agent-3', 'copilot-agent-4'];
+            // Fetch PRs directly (avoid memory limit issues)
+                        const { data: pullRequests } = await github.rest.pulls.list({
+                                      owner: context.repo.owner,
+                                                    repo: context.repo.repo,
+                                                                  state: 'open',
+                                                                                per_page: 100
+                                                                                            });const agents = ['copilot-agent-1', 'copilot-agent-2', 'copilot-agent-3', 'copilot-agent-4'];
             let agentIndex = 0;
             
             for (const pr of pullRequests) {
