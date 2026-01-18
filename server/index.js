@@ -8,6 +8,8 @@ import { computerUseRouter } from './routes/computerUse.js';
 import { androidRouter } from './routes/android.js';
 import { documentScannerRouter } from './routes/documentScanner.js';
 import { n8nWebhooksRouter } from './routes/n8nWebhooks.js';
+import { sseRouter } from './routes/sse.js';
+import categorizationRouter from './routes/categorization.js';
 import { setupSocketHandlers } from './socket/handlers.js';
 
 dotenv.config();
@@ -41,7 +43,8 @@ app.get('/api/health', (req, res) => {
       claude: !!process.env.ANTHROPIC_API_KEY,
       computerUse: process.env.ENABLE_COMPUTER_USE === 'true',
       android: process.env.ENABLE_ANDROID === 'true',
-      documentScanner: !!process.env.ANTHROPIC_API_KEY
+      documentScanner: !!process.env.ANTHROPIC_API_KEY,
+      categorization: !!process.env.ANTHROPIC_API_KEY
     }
   });
 });
@@ -51,6 +54,7 @@ app.use('/api/claude', claudeRouter);
 app.use('/api/computer', computerUseRouter);
 app.use('/api/android', androidRouter);
 app.use('/api/document-scanner', documentScannerRouter);
+app.use('/api/categorization', categorizationRouter);
 app.use('/api/webhooks/n8n', n8nWebhooksRouter);
 
 // SSE Route for MCP SuperAssistant
