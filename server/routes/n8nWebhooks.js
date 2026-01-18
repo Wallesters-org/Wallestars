@@ -1,4 +1,6 @@
 import express from 'express';
+import { delegateTask, getDelegatedTasks, getDelegationStats, updateTaskStatus } from '../services/agentDelegation.js';
+import { getActiveAgents, getAgentById } from '../services/agentRegistry.js';
 
 const router = express.Router();
 
@@ -118,10 +120,31 @@ router.post('/github-event', (req, res) => {
       global.io.emit('n8n:github-event', event);
     }
 
+    // 🤖 Delegate task to available agent
+    const delegatedTask = delegateTask(event);
+    
+    if (delegatedTask) {
+      console.log(`🎯 Task delegated: ${delegatedTask.id} -> ${delegatedTask.agentName}`);
+      
+      // Emit delegation event
+      if (global.io) {
+        global.io.emit('n8n:task-delegated', {
+          task: delegatedTask,
+          event: event
+        });
+      }
+    }
+
     res.json({
       success: true,
       message: 'GitHub event received',
-      eventId: githubEvents.length
+      eventId: githubEvents.length,
+      delegatedTask: delegatedTask ? {
+        taskId: delegatedTask.id,
+        agentName: delegatedTask.agentName,
+        taskType: delegatedTask.taskType,
+        priority: delegatedTask.priority
+      } : null
     });
   } catch (error) {
     console.error('Error processing GitHub event:', error);
@@ -276,6 +299,7 @@ router.get('/dashboard', (req, res) => {
     const recentAlerts = alerts.slice(-5);
     const recentGithubEvents = githubEvents.slice(-5);
     const latestAgentActivity = agentActivity[agentActivity.length - 1];
+    const delegationStats = getDelegationStats();
 
     res.json({
       timestamp: new Date().toISOString(),
@@ -290,11 +314,96 @@ router.get('/dashboard', (req, res) => {
         totalEvents: githubEvents.length,
         recent: recentGithubEvents
       },
-      agents: latestAgentActivity || null
+      agents: latestAgentActivity || null,
+      delegation: delegationStats
     });
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
     res.status(500).json({ error: 'Failed to fetch dashboard data' });
+  }
+});
+
+// Get Available Agents
+router.get('/agents', (req, res) => {
+  try {
+    const agents = getActiveAgents();
+    res.json({
+      success: true,
+      count: agents.length,
+      agents
+    });
+  } catch (error) {
+    console.error('Error fetching agents:', error);
+    res.status(500).json({ error: 'Failed to fetch agents' });
+  }
+});
+
+// Get Delegated Tasks
+router.get('/delegated-tasks', (req, res) => {
+  try {
+    const filters = {
+      agentId: req.query.agentId,
+      status: req.query.status,
+      taskType: req.query.taskType,
+      priority: req.query.priority
+    };
+
+    const tasks = getDelegatedTasks(filters);
+    const stats = getDelegationStats();
+
+    res.json({
+      success: true,
+      count: tasks.length,
+      tasks,
+      stats
+    });
+  } catch (error) {
+    console.error('Error fetching delegated tasks:', error);
+    res.status(500).json({ error: 'Failed to fetch delegated tasks' });
+  }
+});
+
+// Update Task Status
+router.patch('/delegated-tasks/:taskId', (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const { status, result } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ error: 'Status is required' });
+    }
+
+    const validStatuses = ['delegated', 'in-progress', 'completed', 'failed', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ 
+        error: 'Invalid status',
+        validStatuses
+      });
+    }
+
+    const details = {
+      result,
+      completedAt: status === 'completed' ? new Date().toISOString() : undefined
+    };
+
+    const updatedTask = updateTaskStatus(taskId, status, details);
+
+    if (!updatedTask) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    // Emit update event
+    if (global.io) {
+      global.io.emit('n8n:task-updated', updatedTask);
+    }
+
+    res.json({
+      success: true,
+      task: updatedTask
+    });
+  } catch (error) {
+    console.error('Error updating task status:', error);
+    res.status(500).json({ error: 'Failed to update task status' });
   }
 });
 
@@ -313,7 +422,10 @@ router.get('/test', (req, res) => {
       alerts: 'GET /api/webhooks/n8n/alerts',
       githubEvents: 'GET /api/webhooks/n8n/github-events',
       agentActivity: 'GET /api/webhooks/n8n/agent-activity',
-      dashboard: 'GET /api/webhooks/n8n/dashboard'
+      dashboard: 'GET /api/webhooks/n8n/dashboard',
+      agents: 'GET /api/webhooks/n8n/agents',
+      delegatedTasks: 'GET /api/webhooks/n8n/delegated-tasks',
+      updateTaskStatus: 'PATCH /api/webhooks/n8n/delegated-tasks/:taskId'
     }
   });
 });
