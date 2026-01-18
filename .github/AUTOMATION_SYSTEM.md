@@ -1,52 +1,114 @@
-# 🤖 Автоматизирана Система за PR Мониторинг и Делегиране
+# 🤖 Enhanced Automation System for PR Management & Workflow Orchestration
 
-## Общ Преглед
+## Overview
 
-Тази система използва комбинация от **GitHub Actions**, **N8N Workflows** и **Supabase Database** за автоматично делегиране, мониторинг и тестване на Pull Requests.
+This comprehensive automation system uses **GitHub Actions**, **N8N Workflows**, **Supabase Database**, and **MCP (Model Context Protocol)** for intelligent PR management, monitoring, testing, and automated merging.
 
-## 🎯 Основни Компоненти
+## 🎯 Core Components
 
 ### 1. GitHub Actions Workflows
 
 #### 📋 PR Automation (`pr-automation.yml`)
-**Функции:**
-- Автоматично делегиране на нови PR-ове към агенти по ротация
-- 4 активни агента: `copilot-agent-1`, `copilot-agent-2`, `copilot-agent-3`, `copilot-agent-4`
-- Automated code review (проверка за console.log, debugger statements)
-- Автоматични коментари с инструкции
-- Интеграция с n8n чрез webhooks
+**Functions:**
+- Automatic PR delegation to agents using rotation
+- 4 active agents: `copilot-agent-1`, `copilot-agent-2`, `copilot-agent-3`, `copilot-agent-4`
+- Automated code review (checks for console.log, debugger statements)
+- Automatic comments with instructions
+- N8N webhook integration
 
-**Тригери:**
-- При отваряне/обновяване на PR
-- Schedule: На всеки 15 минути
+**Triggers:**
+- On PR open/update
+- Schedule: Every 15 minutes
 - Manual trigger
 
 #### 🔍 Agent Monitoring (`agent-monitoring.yml`)
-**Функции:**
-- Мониторинг на активност на агентите
-- Проверка за стари PR-ове (stale detection)
-- Генериране на дневни доклади
-- Създаване на alerts за неактивни агенти
+**Functions:**
+- Agent activity monitoring
+- Stale PR detection (>7 days)
+- Daily report generation
+- Alert creation for inactive agents
 
-**Тригери:**
-- Schedule: На всеки 10 минути
-- Дневен доклад: 09:00 UTC
+**Triggers:**
+- Schedule: Every 10 minutes
+- Daily report: 09:00 UTC
 - Manual trigger
 
 #### 🧪 Testing Automation (`testing-automation.yml`)
-**Функции:**
-- Матрица от тестове: Unit, Integration, E2E
-- Множество Node.js версии: 20.x, 22.x
+**Functions:**
+- Test matrix: Unit, Integration, E2E
+- Multiple Node.js versions: 20.x, 22.x
 - Code quality checks (ESLint, formatting)
 - Security scanning (npm audit, dependency review)
 - Build verification
-- Автоматично създаване на Test Sessions
+- Automatic test session creation
 
-**Тригери:**
-- При PR промени
-- Push към main/develop
-- Schedule: На всеки 30 минути
+**Triggers:**
+- On PR changes
+- Push to main/develop
+- Schedule: Every 30 minutes
 - Manual trigger
+
+#### 🎯 Active PR Session Manager (`pr-active-session-manager.yml`) **[NEW]**
+**Functions:**
+- Track all active PR sessions in real-time
+- Auto-merge approved PRs with proper checks
+- PR health monitoring and metrics
+- Merge conflict detection
+- Stale PR identification
+- Health alert generation
+
+**Triggers:**
+- On PR events (opened, review, checks)
+- Schedule: Every 10 minutes
+- Manual trigger
+
+**Key Features:**
+- **Auto-Merge Logic:**
+  - Requires at least 1 approval
+  - All checks must pass
+  - No changes requested
+  - Has `auto-merge` or `ready-to-merge` label
+  - Uses squash merge by default
+  
+- **Health Monitoring:**
+  - Stale PRs (>7 days)
+  - Merge conflicts
+  - PRs needing attention
+  - Automated alert issues
+
+#### 🎭 MCP Workflow Orchestrator (`mcp-workflow-orchestrator.yml`) **[NEW]**
+**Functions:**
+- Coordinate all automation workflows
+- MCP tool integration status
+- Agent workload balancing
+- Code quality analysis
+- System health scoring
+- Workflow triggering
+
+**Triggers:**
+- On PR events and pushes
+- Schedule: Every 20 minutes
+- Manual trigger with full scan option
+
+**Key Features:**
+- **MCP Integration:**
+  - Claude AI availability
+  - Computer Use capabilities
+  - Android control tools
+  - GitHub API integration
+  - N8N webhooks
+  - Supabase database
+  
+- **Orchestration:**
+  - Triggers dependent workflows
+  - Balances agent workload
+  - Generates comprehensive reports
+  - Health score calculation
+
+- **Tool Validation:**
+  - MCP configuration check
+  - Server startup validation
+  - Tool availability verification
 
 ### 2. N8N Workflows
 
