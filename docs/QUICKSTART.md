@@ -131,7 +131,7 @@ curl http://localhost:3000/api/android/devices
 
 📚 **Full Documentation**: [MCP_SETUP.md](MCP_SETUP.md)  
 🐛 **Issues**: [GitHub Issues](https://github.com/Wallesters-org/Wallestars/issues)  
-📖 **README**: [README.md](README.md)
+📖 **README**: [README.md](../README.md)
 
 ---
 
