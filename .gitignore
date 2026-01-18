@@ -22,6 +22,9 @@ dist/
 build/
 .vite/
 
+# Test coverage
+coverage/
+
 # Logs
 logs/
 *.log
