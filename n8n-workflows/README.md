@@ -1,7 +1,21 @@
 # N8N Workflows Architecture for Wallestars
 
 ## Overview
-This directory contains n8n workflow definitions for automating Wallestars Control Center operations.
+This directory contains n8n workflow definitions for automating Wallestars Control Center operations, including the complete **Registry & Verification Architecture** for business verification with Email and SMS OTP workflows.
+
+## 📚 Documentation
+
+### Core Guides
+- **[VERIFICATION_WORKFLOWS_GUIDE.md](./VERIFICATION_WORKFLOWS_GUIDE.md)** - Complete guide for Registry & Verification workflows (SMS/Email OTP)
+- **[WORKFLOW_VALIDATION_CHECKLIST.md](./WORKFLOW_VALIDATION_CHECKLIST.md)** - Pre-deployment validation checklist
+- **[IMPLEMENTATION_GUIDE.md](./IMPLEMENTATION_GUIDE.md)** - Step-by-step deployment guide
+- **[QUICK_START.md](./QUICK_START.md)** - 5-minute quick start
+- **[IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md)** - Implementation summary and status
+
+### Quick Links
+- 🔍 **Verification Workflows**: See [VERIFICATION_WORKFLOWS_GUIDE.md](./VERIFICATION_WORKFLOWS_GUIDE.md)
+- ✅ **Validation Checklist**: See [WORKFLOW_VALIDATION_CHECKLIST.md](./WORKFLOW_VALIDATION_CHECKLIST.md)
+- 🚀 **Deploy**: See [IMPLEMENTATION_GUIDE.md](./IMPLEMENTATION_GUIDE.md)
 
 ## Workflow Structure
 
@@ -19,7 +33,41 @@ This directory contains n8n workflow definitions for automating Wallestars Contr
   - Send notifications to Wallestars dashboard
   - Auto-approve PRs from trusted agents
 
-#### 2. **System Health Monitor Workflow** (`system-health-monitor.json`)
+#### 2. **Registry Local Worker Workflow** (`registry-local-worker.json`) ⭐ NEW
+- **Purpose**: Validate business information via CompanyBook API
+- **Triggers**: Webhook (`/webhook/registry-check`)
+- **Actions**:
+  - Read pending users from Supabase
+  - Search CompanyBook API for business information
+  - Validate business type (EOOD/ET only)
+  - Generate VAT number and 33mail alias
+  - Upsert to verified_business_profiles
+  - Initiate SMS/Email verification flow
+- **Status**: ✅ Fully implemented and documented
+
+#### 3. **SMS Monitor Workflow** (`sms-monitor.json`) ⭐ NEW
+- **Purpose**: Capture SMS OTP codes for verification
+- **Triggers**: Scheduled every 30 seconds
+- **Actions**:
+  - Poll Smstome.com API for new SMS
+  - Extract OTP codes using regex (4-6 digits)
+  - Match phone numbers to pending verifications
+  - Update Supabase with verification code
+  - Mark SMS as verified
+- **Status**: ✅ Fully implemented and documented
+
+#### 4. **Email Monitor Workflow** (`email-monitor.json`) ⭐ NEW
+- **Purpose**: Capture email verification codes and links
+- **Triggers**: Real-time IMAP watcher (Hostinger)
+- **Actions**:
+  - Watch INBOX for new emails
+  - Extract verification codes and links
+  - Match 33mail aliases to profiles
+  - Update Supabase with verification data
+  - Mark email as verified
+- **Status**: ✅ Fully implemented and documented
+
+#### 5. **System Health Monitor Workflow** (`system-health-monitor.json`)
 - **Purpose**: Monitor Wallestars and n8n health
 - **Triggers**: Scheduled every 5 minutes
 - **Actions**:
@@ -30,7 +78,19 @@ This directory contains n8n workflow definitions for automating Wallestars Contr
   - Auto-restart services via PM2 API
   - Log health status to database
 
-#### 3. **Deployment Automation Workflow** (`deployment-automation.json`)
+#### 6. **GitHub Automation Workflow** (`github-automation.json`)
+- **Purpose**: Monitor and automate GitHub operations
+- **Triggers**:
+  - Webhook from GitHub (PR created, issue opened, etc.)
+  - Scheduled: Every 15 minutes
+- **Actions**:
+  - Monitor pull requests and auto-review
+  - Track agent sessions in issues
+  - Auto-label and categorize issues
+  - Send notifications to Wallestars dashboard
+  - Auto-approve PRs from trusted agents
+
+#### 7. **Deployment Automation Workflow** (`deployment-automation.json`)
 - **Purpose**: Automate deployment processes
 - **Triggers**:
   - Git push to main branch
