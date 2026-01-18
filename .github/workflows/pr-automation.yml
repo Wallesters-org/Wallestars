@@ -62,14 +62,15 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const pullRequests = JSON.parse(process.env.PRS_JSON);
-            // Fetch PRs directly (avoid memory limit issues)
-                        const { data: pullRequests } = await github.rest.pulls.list({
-                                      owner: context.repo.owner,
-                                                    repo: context.repo.repo,
-                                                                  state: 'open',
-                                                                                per_page: 100
-                                                                                            });const agents = ['copilot-agent-1', 'copilot-agent-2', 'copilot-agent-3', 'copilot-agent-4'];
+            // Fetch PRs directly
+            const { data: pullRequests } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+
+            const agents = ['copilot-agent-1', 'copilot-agent-2', 'copilot-agent-3', 'copilot-agent-4'];
             let agentIndex = 0;
             
             for (const pr of pullRequests) {
@@ -97,19 +98,25 @@ jobs:
                   body: `🤖 **Автоматично делегиране**\n\nТози PR е делегиран към: \`${assignedAgent}\`\n\n**Инструкции за агента:**\n- [ ] Направи code review\n- [ ] Провери за конфликти\n- [ ] Тествай промените\n- [ ] Одобри или поискай промени\n\n**Статус:** 🔄 В процес на ревю\n\n---\n_Автоматично генерирано от GitHub Actions_`
                 });
                 
-                // Изпрати webhook към n8n
-                await fetch(`${process.env.N8N_WEBHOOK_URL}/webhook/pr-delegated`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    pr_number: pr.number,
-                    pr_title: pr.title,
-                    agent: assignedAgent,
-                    url: pr.html_url,
-                    timestamp: new Date().toISOString()
-                  })
-                });
-                
+                // Изпрати webhook към n8n (ако е конфигуриран)
+                if (process.env.N8N_WEBHOOK_URL) {
+                  try {
+                    await fetch(`${process.env.N8N_WEBHOOK_URL}/webhook/pr-delegated`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        pr_number: pr.number,
+                        pr_title: pr.title,
+                        agent: assignedAgent,
+                        url: pr.html_url,
+                        timestamp: new Date().toISOString()
+                      })
+                    });
+                  } catch (error) {
+                    console.log(`⚠️ N8n webhook failed: ${error.message}`);
+                  }
+                }
+
                 console.log(`✅ Делегиран PR #${pr.number} към ${assignedAgent}`);
               }
             }
