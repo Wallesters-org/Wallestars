@@ -1,0 +1,74 @@
+## SMS Monitor Workflow Details
+
+### Architecture
+```
+┌─────────────────────────────────┐
+│  Schedule Trigger (30s)         │
+└────────────┬────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────┐
+│  Poll Smstome.com API           │
+│  GET /api/messages              │
+└────────────┬────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────┐
+│  Regex Extract Code             │
+│  Pattern: /\d{4,6}/             │
+│  Extracts:  4-6 digit OTP        │
+└────────────┬────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────┐
+│  Match Pending Request          │
+│  Query Supabase:                 │
+│  users_pending table            │
+└────────────┬────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────┐
+│  If Match Found                 │
+│  (length > 0)                   │
+└────────┬──────────┬─────────────┘
+         │ YES      │ NO (skip)
+         ▼          ▼
+┌─────────────────┐ ┌─────────────┐
+│ Set Verification│ │  End        │
+│ Code + Timestamp│ │             │
+└────────┬────────┘ └─────────────┘
+         │
+         ▼
+┌─────────────────────────────────┐
+│  Update SMS Code (Supabase)     │
+│  SET sms_verification_code=...  │
+│  SET sms_verified_at=NOW()      │
+└─────────────────────────────────┘
+```
+
+### Regex Pattern Used
+```javascript
+const smsText = $input.first().json. body;
+const otpMatch = smsText.match(/\d{4,6}/);
+const code = otpMatch ? otpMatch[0] : null;
+```
+
+### Update Query
+```json
+{
+  "operation": "update",
+  "tableId": "verified_business_profiles",
+  "filterType": "string",
+  "filterString": "user_id=eq.{{$json[0].id}}",
+  "values": {
+    "sms_verification_code": "{{extracted_code}}",
+    "sms_verified_at": "{{$now}}"
+  }
+}
+```
+
+### Status:  ✅ FULLY FUNCTIONAL
+- Polling interval: 30 seconds
+- OTP extraction:  Regex-based
+- Auto-update: Yes
+- Real-time:  Near real-time (30s delay)

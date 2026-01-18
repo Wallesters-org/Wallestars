@@ -1,0 +1,118 @@
+{
+    "name": "Wallestars MCP Server (Redis Registry)",
+    "nodes": [
+        {
+            "parameters": {
+                "options": {}
+            },
+            "id": "trigger",
+            "name": "Execute Input",
+            "type": "n8n-nodes-base.executeWorkflow",
+            "typeVersion": 1,
+            "position": [
+                100,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "dataType": "string",
+                "value1": "={{ $json.operation }}",
+                "rules": {
+                    "rules": [
+                        {
+                            "value2": "listWorkflows"
+                        },
+                        {
+                            "value2": "addWorkflow",
+                            "output": 1
+                        },
+                        {
+                            "value2": "removeWorkflow",
+                            "output": 2
+                        },
+                        {
+                            "value2": "executeWorkflow",
+                            "output": 3
+                        }
+                    ]
+                }
+            },
+            "id": "operation-switch",
+            "name": "Operation Switch",
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 1,
+            "position": [
+                300,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "get",
+                "key": "mcp_n8n_tools"
+            },
+            "id": "redis-get-tools",
+            "name": "Redis: Get Tools",
+            "type": "n8n-nodes-base.redis",
+            "typeVersion": 1,
+            "position": [
+                500,
+                100
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "set",
+                "key": "mcp_n8n_tools",
+                "value": "={{ JSON.stringify($json.tools) }}"
+            },
+            "id": "redis-save-tools",
+            "name": "Redis: Save Tools",
+            "type": "n8n-nodes-base.redis",
+            "typeVersion": 1,
+            "position": [
+                700,
+                100
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Logic to handle different operations\nconst operation = $input.first().json.operation;\nconst params = $input.first().json.params;\n\nreturn { json: { operation, params, timestamp: new Date().toISOString() } };"
+            },
+            "id": "logic-bridge",
+            "name": "Logic Bridge",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                500,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Execute Input": {
+            "main": [
+                [
+                    {
+                        "node": "Operation Switch",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "meta": {
+        "templateId": "wallestars-mcp-server-v1"
+    },
+    "tags": [
+        "mcp",
+        "infrastructure",
+        "redis"
+    ]
+}

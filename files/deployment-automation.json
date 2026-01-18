@@ -1,0 +1,38 @@
+{
+  "name": "Deployment Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "github-deployment",
+        "options": {}
+      },
+      "id": "github-webhook",
+      "name": "GitHub Push Webhook",
+      "type":  "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.ref}}",
+              "operation": "equals",
+              "value2": "refs/heads/main"
+            }
+          ]
+        }
+      },
+      "id":  "if-main-branch",
+      "name": "If Push to Main",
+      "type":  "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 300]
+    }
+    // ... още nodes
+  ],
+  "connections": {},
+  "active": false
+}

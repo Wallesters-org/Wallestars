@@ -8,6 +8,7 @@ import { computerUseRouter } from './routes/computerUse.js';
 import { androidRouter } from './routes/android.js';
 import { documentScannerRouter } from './routes/documentScanner.js';
 import { n8nWebhooksRouter } from './routes/n8nWebhooks.js';
+import { sseRouter } from './routes/sse.js';
 import { setupSocketHandlers } from './socket/handlers.js';
 
 dotenv.config();
@@ -29,7 +30,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static('dist'));
 
 // Health check

@@ -2,9 +2,17 @@ import { Router } from 'express';
 import Anthropic from '@anthropic-ai/sdk';
 
 const router = Router();
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+
+// Lazy initialization to ensure dotenv has loaded
+let anthropic = null;
+function getAnthropicClient() {
+  if (!anthropic) {
+    anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+  }
+  return anthropic;
+}
 
 // Chat with Claude
 router.post('/chat', async (req, res) => {
@@ -16,7 +24,7 @@ router.post('/chat', async (req, res) => {
       { role: 'user', content: message }
     ];
 
-    const response = await anthropic.messages.create({
+    const response = await getAnthropicClient().messages.create({
       model: 'claude-sonnet-4-5-20250929',
       max_tokens: 4096,
       messages: messages,
@@ -63,7 +71,7 @@ router.post('/computer-use', async (req, res) => {
       ]
     }];
 
-    const response = await anthropic.messages.create({
+    const response = await getAnthropicClient().messages.create({
       model: 'claude-sonnet-4-5-20250929',
       max_tokens: 1024,
       messages: messages,

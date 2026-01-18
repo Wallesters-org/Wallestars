@@ -94,14 +94,22 @@ jobs:
             await core.summary.addRaw(summary).write();
             
             // Изпрати към n8n
-            await fetch(`${process.env.N8N_WEBHOOK_URL}/webhook/agent-status`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                agents: agentStatus,
-                timestamp: new Date().toISOString()
-              })
-            });
+            const n8nUrl = process.env.N8N_WEBHOOK_URL || 'https://n8n.srv1201204.hstgr.cloud';
+            
+            try {
+              await fetch(`${n8nUrl}/webhook/agent-status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  agents: agentStatus,
+                  timestamp: new Date().toISOString()
+                })
+              });
+              console.log(`Successfully sent status to ${n8nUrl}`);
+            } catch (error) {
+              console.error('Failed to send status to n8n:', error);
+              // Don't fail the workflow if n8n is unreachable
+            }
 
   check-stale-prs:
     runs-on: ubuntu-latest

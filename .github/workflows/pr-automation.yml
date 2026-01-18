@@ -95,17 +95,23 @@ jobs:
                 });
                 
                 // Изпрати webhook към n8n
-                await fetch(`${process.env.N8N_WEBHOOK_URL}/webhook/pr-delegated`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    pr_number: pr.number,
-                    pr_title: pr.title,
-                    agent: assignedAgent,
-                    url: pr.html_url,
-                    timestamp: new Date().toISOString()
-                  })
-                });
+                const n8nUrl = process.env.N8N_WEBHOOK_URL || 'https://n8n.srv1201204.hstgr.cloud';
+                
+                try {
+                  await fetch(`${n8nUrl}/webhook/pr-delegated`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      pr_number: pr.number,
+                      pr_title: pr.title,
+                      agent: assignedAgent,
+                      url: pr.html_url,
+                      timestamp: new Date().toISOString()
+                    })
+                  });
+                } catch (error) {
+                  console.error('Failed to send webhook to n8n:', error);
+                }
                 
                 console.log(`✅ Делегиран PR #${pr.number} към ${assignedAgent}`);
               }
@@ -203,7 +209,9 @@ jobs:
     steps:
       - name: Изпрати статус към n8n
         run: |
-          curl -X POST "${N8N_WEBHOOK_URL}/webhook/github-pr-status" \
+          N8N_URL="${N8N_WEBHOOK_URL:-https://n8n.srv1201204.hstgr.cloud}"
+          
+          curl -X POST "${N8N_URL}/webhook/github-pr-status" \
             -H "Content-Type: application/json" \
             -d '{
               "workflow": "pr-automation",

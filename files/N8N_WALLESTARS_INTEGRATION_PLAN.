@@ -1,0 +1,462 @@
+# 🚀 N8N Workflows Integration Plan for Wallestars
+
+## Executive Summary
+
+This plan integrates the existing n8n infrastructure (113 workflows on https://n8n.srv1201204.hstgr.cloud) with the Wallestars Control Center project. 
+
+---
+
+## 🎯 Phase 1: Activate Main Automation (Week 1)
+
+### Agent 1: Main Orchestrator
+**Agent ID**: `agent-n8n-main-orchestrator`
+**Repository**:  Wallesters-org/Wallestars
+**Task**: Activate and integrate "Wallester Combined Automation (MAIN)"
+
+#### Action Items:
+1. **Review Wallester Combined Automation workflow**
+   - Access: https://n8n.srv1201204.hstgr.cloud
+   - Current Status:  INACTIVE
+   - Components: Airtop, Supabase, Google Sheets integration
+
+2. **Update workflow endpoints**
+   ```json
+   {
+     "wallestersAPIEndpoint": "https://srv1201204.hstgr.cloud/api/webhooks/n8n/verification",
+     "supabaseURL": "${SUPABASE_URL}",
+     "airtopAPIKey": "${AIRTOP_API_KEY}"
+   }
+   ```
+
+3. **Create new Wallestars API endpoint**
+   - File: `server/routes/n8nWebhooks.js`
+   - Add: `POST /api/webhooks/n8n/verification`
+   - Purpose: Receive verification events from main workflow
+
+4. **Test activation**
+   ```bash
+   # Verify workflow is active
+   curl https://n8n.srv1201204.hstgr.cloud/api/v1/workflows
+   
+   # Test webhook
+   curl -X POST https://srv1201204.hstgr.cloud/api/webhooks/n8n/verification \
+     -H "Content-Type: application/json" \
+     -d '{"test": true}'
+   ```
+
+**Deliverables**:
+- ✅ Wallester Combined Automation activated
+- ✅ New API endpoint in Wallestars
+- ✅ Documentation:  `n8n-workflows/wallester-main-integration.md`
+
+---
+
+## 🔍 Phase 2: Registry & Verification Workflows (Week 2)
+
+### Agent 2: Registry Local Worker
+**Agent ID**: `agent-registry-worker`
+**Task**:  Implement CompanyBook API integration
+
+#### Action Items:
+1. **Create workflow file**
+   ```bash
+   n8n-workflows/registry-local-worker.json
+   ```
+
+2. **CompanyBook API Integration**
+   ```json
+   {
+     "nodes": [
+       {
+         "name": "CompanyBook API Call",
+         "type": "n8n-nodes-base.httpRequest",
+         "parameters": {
+           "url": "https://companybook.bg/api/search",
+           "method": "POST",
+           "authentication": "headerAuth",
+           "headerAuth": {
+             "name": "X-API-Key",
+             "value": "${COMPANYBOOK_API_KEY}"
+           }
+         }
+       }
+     ]
+   }
+   ```
+
+3. **Required Environment Variables**
+   - Add to `.env.example`:
+   ```env
+   # CompanyBook Integration
+   COMPANYBOOK_API_KEY=your_companybook_api_key
+   COMPANYBOOK_API_URL=https://companybook.bg/api
+   ```
+
+4. **Integration with Wallestars**
+   - New endpoint: `POST /api/webhooks/n8n/registry-result`
+   - Store results in database or forward to dashboard
+
+**Deliverables**: 
+- ✅ `registry-local-worker.json` workflow
+- ✅ CompanyBook API integration
+- ✅ Wallestars API endpoint
+- ✅ Documentation
+
+---
+
+### Agent 3: SMS Monitor
+**Agent ID**: `agent-sms-monitor`
+**Task**: Implement Smstome.com OTP polling
+
+#### Action Items:
+1. **Create workflow file**
+   ```bash
+   n8n-workflows/sms-monitor.json
+   ```
+
+2. **Smstome.com Polling**
+   ```json
+   {
+     "nodes": [
+       {
+         "name": "Poll SMS Service",
+         "type": "n8n-nodes-base.httpRequest",
+         "parameters": {
+           "url": "https://smstome.com/api/messages",
+           "method": "GET",
+           "authentication": "genericCredentialType",
+           "genericAuthType": "httpBasicAuth"
+         }
+       },
+       {
+         "name":  "Extract OTP",
+         "type":  "n8n-nodes-base.code",
+         "parameters": {
+           "jsCode": "const sms = $input.first().json;\nconst otpMatch = sms.body.match(/\\d{4,6}/);\nreturn { otp: otpMatch ? otpMatch[0] : null };"
+         }
+       }
+     ]
+   }
+   ```
+
+3. **Schedule polling**
+   - Every 30 seconds for active verification sessions
+   - Trigger:  Webhook from Wallestars when verification starts
+
+4. **Wallestars Integration**
+   - Endpoint: `POST /api/webhooks/n8n/otp-received`
+   - WebSocket emit: `verification:otp` for real-time updates
+
+**Deliverables**:
+- ✅ `sms-monitor.json` workflow
+- ✅ OTP extraction logic
+- ✅ Real-time WebSocket integration
+- ✅ Documentation
+
+---
+
+### Agent 4: Email Monitor
+**Agent ID**: `agent-email-monitor`
+**Task**: Implement Hostinger IMAP email verification
+
+#### Action Items:
+1. **Create workflow file**
+   ```bash
+   n8n-workflows/email-monitor.json
+   ```
+
+2. **Hostinger IMAP Integration**
+   ```json
+   {
+     "nodes": [
+       {
+         "name": "Check Email",
+         "type": "n8n-nodes-base. emailReadImap",
+         "parameters": {
+           "host": "imap.hostinger. com",
+           "port": 993,
+           "secure": true,
+           "user": "${HOSTINGER_EMAIL}",
+           "password": "${HOSTINGER_PASSWORD}",
+           "folder": "INBOX"
+         }
+       },
+       {
+         "name": "Extract Verification Link",
+         "type": "n8n-nodes-base.code",
+         "parameters": {
+           "jsCode": "const email = $input.first().json;\nconst linkMatch = email.html.match(/href=\"(https:\\/\\/.*?verify.*?)\"/i);\nreturn { verificationLink: linkMatch ? linkMatch[1] : null };"
+         }
+       }
+     ]
+   }
+   ```
+
+3. **Environment Variables**
+   ```env
+   # Hostinger Email
+   HOSTINGER_EMAIL=verification@yourdomain.com
+   HOSTINGER_PASSWORD=your_password
+   HOSTINGER_IMAP_HOST=imap.hostinger. com
+   ```
+
+4. **Integration**
+   - Endpoint: `POST /api/webhooks/n8n/email-verified`
+   - Auto-click verification links (optional with Airtop)
+
+**Deliverables**:
+- ✅ `email-monitor.json` workflow
+- ✅ IMAP integration
+- ✅ Link extraction
+- ✅ Documentation
+
+---
+
+## 🔗 Phase 3: Supabase Integration (Week 3)
+
+### Agent 5: Supabase Connector
+**Agent ID**: `agent-supabase-connector`
+**Task**: Integrate with existing "Supabase Verified Owners → n8n" workflow
+
+#### Action Items:
+1. **Review existing workflow**
+   - Already ACTIVE on n8n dashboard
+   - Understand trigger mechanism
+
+2. **Create Wallestars database layer**
+   ```javascript
+   // server/db/supabase.js
+   import { createClient } from '@supabase/supabase-js';
+   
+   const supabase = createClient(
+     process. env.SUPABASE_URL,
+     process.env. SUPABASE_KEY
+   );
+   
+   export async function storeVerificationResult(data) {
+     return await supabase
+       .from('verification_results')
+       .insert(data);
+   }
+   ```
+
+3. **Webhook endpoint**
+   ```javascript
+   // server/routes/n8nWebhooks.js
+   router.post('/supabase-update', async (req, res) => {
+     const { verificationData } = req.body;
+     await storeVerificationResult(verificationData);
+     
+     // Emit real-time update
+     global.io.emit('verification:complete', verificationData);
+     
+     res.json({ success: true });
+   });
+   ```
+
+4. **Environment Variables**
+   ```env
+   # Supabase
+   SUPABASE_URL=https://your-project.supabase.co
+   SUPABASE_KEY=your_supabase_anon_key
+   ```
+
+**Deliverables**:
+- ✅ Supabase client integration
+- ✅ Database schema for verification results
+- ✅ Real-time updates via WebSocket
+- ✅ Documentation
+
+---
+
+## 📋 Phase 4: Template Workflows (Week 4)
+
+### Agent 6: Template Integrator
+**Agent ID**: `agent-template-integrator`
+**Task**: Import n8n templates and adapt to Wallestars
+
+#### Available Templates (from n8n dashboard):
+1. **RAG in n8n** (currently active - Demo)
+2. **Webhook → Processing → Storage** patterns
+3. **Browser automation** (Airtop patterns)
+
+#### Action Items:
+1. **Export templates from n8n**
+   ```bash
+   # Access n8n dashboard
+   # Navigate to each template
+   # Export as JSON
+   ```
+
+2. **Create adapted versions**
+   - `n8n-workflows/templates/rag-workflow.json`
+   - `n8n-workflows/templates/browser-automation.json`
+   - `n8n-workflows/templates/webhook-processor.json`
+
+3. **Documentation**
+   - Create `n8n-workflows/TEMPLATES_GUIDE.md`
+   - Include usage examples
+   - Integration patterns with Wallestars
+
+**Deliverables**:
+- ✅ Exported template files
+- ✅ Adaptation guide
+- ✅ Example implementations
+
+---
+
+## 🛠️ MCP Configuration Updates
+
+### Required MCP Sources
+
+Your current MCP configuration is good, but we should add n8n integration:
+
+```json name=. mcp-updated.json
+{
+  "mcpServers": {
+    "wallestars-control":  {
+      "command": "node",
+      "args": ["server/index.js"],
+      "env": {
+        "ANTHROPIC_API_KEY": "${ANTHROPIC_API_KEY}",
+        "PORT": "3000",
+        "NODE_ENV": "production",
+        "ENABLE_COMPUTER_USE": "true",
+        "ENABLE_ANDROID":  "false",
+        
+        // New:  N8N Integration
+        "N8N_WEBHOOK_URL": "https://n8n.srv1201204.hstgr.cloud",
+        "N8N_API_KEY": "${N8N_API_KEY}",
+        
+        // New: External Services
+        "COMPANYBOOK_API_KEY": "${COMPANYBOOK_API_KEY}",
+        "SUPABASE_URL": "${SUPABASE_URL}",
+        "SUPABASE_KEY":  "${SUPABASE_KEY}",
+        "HOSTINGER_EMAIL": "${HOSTINGER_EMAIL}",
+        "HOSTINGER_PASSWORD": "${HOSTINGER_PASSWORD}",
+        "AIRTOP_API_KEY": "${AIRTOP_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+---
+
+## 📊 Agent Delegation Matrix
+
+| Agent ID | Phase | Task | Priority | Dependencies | Estimated Time |
+|----------|-------|------|----------|--------------|----------------|
+| `agent-n8n-main-orchestrator` | 1 | Activate Main Workflow | 🔴 Critical | None | 2 days |
+| `agent-registry-worker` | 2 | CompanyBook Integration | 🟠 High | Agent 1 | 3 days |
+| `agent-sms-monitor` | 2 | SMS OTP Monitoring | 🟠 High | Agent 1 | 2 days |
+| `agent-email-monitor` | 2 | Email Verification | 🟠 High | Agent 1 | 2 days |
+| `agent-supabase-connector` | 3 | Database Layer | 🟡 Medium | Agent 2,3,4 | 3 days |
+| `agent-template-integrator` | 4 | Template Import | 🟢 Low | None | 2 days |
+
+---
+
+## ✅ Success Criteria
+
+### Phase 1 Complete When:
+- [ ] Wallester Combined Automation (MAIN) is ACTIVE
+- [ ] New webhook endpoint responds successfully
+- [ ] Test verification flow completes
+
+### Phase 2 Complete When: 
+- [ ] All 3 monitoring workflows (Registry, SMS, Email) are deployed
+- [ ] OTP codes are successfully extracted
+- [ ] Email verification links are captured
+
+### Phase 3 Complete When:
+- [ ] Supabase integration stores verification results
+- [ ] Real-time WebSocket updates work
+- [ ] Dashboard displays verification status
+
+### Phase 4 Complete When:
+- [ ] At least 3 templates are exported and documented
+- [ ] Template adaptation guide is complete
+
+---
+
+## 🔒 Security Checklist
+
+- [ ] All API keys stored in `.env` (not committed)
+- [ ] `.env. example` updated with placeholders
+- [ ] Webhook endpoints have authentication
+- [ ] Rate limiting implemented
+- [ ] CORS properly configured
+- [ ] Sensitive data encrypted in transit
+
+---
+
+## 📞 Communication Plan
+
+### Daily Standups (Agents)
+- Each agent reports progress
+- Blockers identified
+- Dependencies coordinated
+
+### Weekly Review
+- Phase completion status
+- Next week planning
+- Architecture decisions
+
+---
+
+## 🚀 Getting Started
+
+### For Each Agent:
+
+1. **Clone Repository**
+   ```bash
+   git clone https://github.com/Wallesters-org/Wallestars.git
+   cd Wallestars
+   ```
+
+2. **Create Feature Branch**
+   ```bash
+   git checkout -b feature/n8n-[agent-task-name]
+   ```
+
+3. **Review Assignment**
+   - Read this plan
+   - Check your specific phase section
+   - Note dependencies
+
+4. **Start Implementation**
+   - Follow action items
+   - Commit regularly
+   - Update progress in `PROGRESS.md`
+
+5. **Submit PR**
+   - Title: `[N8N] [Phase X] Your Task Description`
+   - Link to this plan
+   - Tag dependencies
+
+---
+
+## 📚 Resources
+
+- **N8N Dashboard**: https://n8n.srv1201204.hstgr.cloud
+- **Wallestars API**: https://srv1201204.hstgr.cloud/api
+- **Documentation**: `/n8n-workflows/` directory
+- **Current Workflows**: Already in repo
+
+---
+
+## 🎯 Next Actions (Right Now)
+
+### Immediate Tasks:
+1. **@agent-n8n-main-orchestrator**: Review Wallester Combined Automation workflow
+2. **@agent-registry-worker**: Research CompanyBook API documentation
+3. **@agent-sms-monitor**: Research Smstome.com API
+4. **@agent-email-monitor**: Set up Hostinger IMAP credentials
+5. **@agent-supabase-connector**: Review existing Supabase schema
+6. **@agent-template-integrator**: Access n8n dashboard and list available templates
+
+---
+
+**Last Updated**: 2026-01-12
+**Status**: Ready for Agent Delegation
+**Approval**: Pending user confirmation

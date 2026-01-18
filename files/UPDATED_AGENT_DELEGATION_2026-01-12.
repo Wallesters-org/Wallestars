@@ -1,0 +1,487 @@
+# 🤖 АКТУАЛИЗИРАНА ДЕЛЕГАЦИЯ НА АГЕНТИ
+**Дата**: 2026-01-12  
+**След обновяване**: GitHub + N8N workflows review
+
+---
+
+## ✅ ЗАВЪРШЕНИ ЗАДАЧИ (Ready for Verification)
+
+### TASK-N8N-1:  N8N Workflows Implementation ✅
+**Status**: ✅ **COMPLETED**  
+**Agent**: Antigravity  
+**Commit**: 2c17373  
+**Files Created**: 10 workflow files + documentation
+
+**Deliverables:**
+- ✅ `system-health-monitor.json` (393 lines)
+- ✅ `github-automation.json` (446 lines)
+- ✅ `email-monitor.json` (216 lines) - EMAIL OTP  
+- ✅ `sms-monitor.json` (223 lines) - SMS OTP
+- ✅ `registry-local-worker.json` (286 lines) - CompanyBook API
+- ✅ `IMPLEMENTATION_GUIDE.md` (399 lines)
+- ✅ `IMPLEMENTATION_SUMMARY.md` (298 lines)
+- ✅ `POSTMAN_COLLECTION.json` (353 requests)
+- ✅ API endpoints:  `/api/webhooks/n8n/*` (9 endpoints)
+- ✅ WebSocket integration for real-time updates
+
+**Verification Needed**:  See TASK-V1 below
+
+---
+
+## 🔄 НОВИ VERIFICATION ЗАДАЧИ (Priority After GitHub Update)
+
+### TASK-V1: N8N Workflow Verification & Activation
+**Priority**: 🔴 **P0 - CRITICAL**  
+**Agent**: `agent-n8n-verification`  
+**ETA**: 1-2 hours  
+**SLA**: 24 hours
+
+**Objective:** Verify all N8N workflows are correctly configured and active
+
+**Checklist:**
+1. **Access N8N Dashboard**
+   ```bash
+   https://n8n.srv1201204.hstgr.cloud
+   ```
+   - [ ] Login successful
+   - [ ] Can view workflows list
+
+2. **Verify System Health Monitor**
+   ```yaml
+   Workflow: system-health-monitor. json
+   Expected State:  ACTIVE
+   Schedule: Every 5 minutes
+   ```
+   - [ ] Workflow imported
+   - [ ] Schedule trigger configured (5 min)
+   - [ ] All nodes connected properly
+   - [ ] HTTP endpoints working: 
+     - [ ] `http://localhost:3000/api/health`
+     - [ ] `http://localhost:5678/healthz`
+   - [ ] Execute workflow manually - SUCCESS
+   - [ ] Toggle ACTIVE - ON
+   - [ ] Wait 5 minutes, check execution history
+   - [ ] Verify health report sent to Wallestars API: 
+     ```bash
+     curl http://localhost:3000/api/webhooks/n8n/health-report/latest
+     ```
+
+3. **Verify GitHub Automation**
+   ```yaml
+   Workflow: github-automation.json
+   Expected State: ACTIVE
+   Triggers: Webhook + Schedule (15 min)
+   ```
+   - [ ] Workflow imported
+   - [ ] GitHub OAuth2 credentials configured
+   - [ ] Webhook URL obtained:  `https://n8n.srv1201204.hstgr.cloud/webhook/github-webhook`
+   - [ ] GitHub webhook configured in repo settings
+   - [ ] Test webhook with test issue/PR
+   - [ ] Schedule trigger configured (15 min)
+   - [ ] Toggle ACTIVE - ON
+   - [ ] Create test issue - verify workflow triggers
+   - [ ] Check events received:
+     ```bash
+     curl http://localhost:3000/api/webhooks/n8n/github-events? limit=5
+     ```
+
+4. **Verify Email Monitor (OTP)**
+   ```yaml
+   Workflow: email-monitor.json
+   Expected State: ACTIVE
+   Trigger:  IMAP Watcher (Real-time)
+   ```
+   - [ ] Workflow imported
+   - [ ] Hostinger IMAP credentials configured: 
+     - Host: `imap.hostinger.com`
+     - Port: 993 (SSL)
+     - User: `${HOSTINGER_EMAIL}`
+     - Password: `${HOSTINGER_PASSWORD}`
+   - [ ] IMAP connection test successful
+   - [ ] Toggle ACTIVE - ON
+   - [ ] Send test email to configured inbox
+   - [ ] Verify email processing:
+     - [ ] Extracts verification code
+     - [ ] Extracts verification link
+     - [ ] Matches 33mail alias
+     - [ ] Updates Supabase profile
+   - [ ] Check Supabase table:  `verified_business_profiles`
+
+5. **Verify SMS Monitor (OTP)**
+   ```yaml
+   Workflow: sms-monitor.json
+   Expected State: ACTIVE
+   Trigger: Schedule (Every 30 seconds)
+   ```
+   - [ ] Workflow imported
+   - [ ] Smstome. com API credentials configured
+   - [ ] Schedule trigger configured (30s)
+   - [ ] Toggle ACTIVE - ON
+   - [ ] Test SMS flow:
+     - [ ] Send test SMS to Smstome number
+     - [ ] Wait 30 seconds
+     - [ ] Check workflow execution
+     - [ ] Verify OTP extracted (regex:  `/\d{4,6}/`)
+     - [ ] Verify Supabase update
+   - [ ] Check Supabase table: `verified_business_profiles`
+
+6. **Verify Registry Local Worker**
+   ```yaml
+   Workflow: registry-local-worker.json
+   Expected State: ACTIVE (Webhook)
+   Trigger: Webhook
+   ```
+   - [ ] Workflow imported
+   - [ ] CompanyBook API credentials configured: 
+     - API URL: `https://api.companybook.bg`
+     - API Key: `${COMPANYBOOK_API_KEY}`
+   - [ ] Supabase credentials configured
+   - [ ] Webhook URL obtained
+   - [ ] Toggle ACTIVE - ON
+   - [ ] Test webhook with test data: 
+     ```bash
+     curl -X POST https://n8n.srv1201204.hstgr.cloud/webhook/registry-check \
+       -H "Content-Type: application/json" \
+       -d '{"user_id": "test", "company_name": "Test EOOD"}'
+     ```
+   - [ ] Verify CompanyBook API call
+   - [ ] Verify Supabase data enrichment
+
+7. **Integration Testing**
+   - [ ] Test all workflows together
+   - [ ] Verify WebSocket events:  `n8n:alert`, `n8n:github-event`
+   - [ ] Check Wallestars dashboard data: 
+     ```bash
+     curl http://localhost:3000/api/webhooks/n8n/dashboard
+     ```
+   - [ ] Verify PM2 processes running: 
+     ```bash
+     pm2 status
+     pm2 logs n8n
+     pm2 logs wallestars
+     ```
+
+8. **Documentation Verification**
+   - [ ] Test all commands from `IMPLEMENTATION_GUIDE.md`
+   - [ ] Verify Postman collection works: 
+     - Import `POSTMAN_COLLECTION.json`
+     - Run all 20+ test requests
+   - [ ] Update status in `IMPLEMENTATION_SUMMARY.md`
+
+**Success Criteria:**
+- ✅ All 5 workflows ACTIVE
+- ✅ Health monitor sends reports every 5 minutes
+- ✅ GitHub events captured in real-time
+- ✅ Email OTP processing works
+- ✅ SMS OTP processing works
+- ✅ Registry check functional
+- ✅ No errors in n8n execution logs
+- ✅ Wallestars API receives all data
+- ✅ WebSocket events firing
+
+**Deliverables:**
+1.  Verification Report:  `N8N_VERIFICATION_REPORT_2026-01-12.md`
+2. Updated `IMPLEMENTATION_SUMMARY.md` with verification status
+3. Screenshot:   N8N dashboard showing all workflows ACTIVE
+4. Test results:   Postman collection execution results
+
+**Rollback Plan:**
+If workflows fail: 
+1. Check n8n logs:  `pm2 logs n8n`
+2. Check Nginx logs: `/var/log/nginx/n8n_error.log`
+3. Verify credentials in n8n UI
+4. Test endpoints manually with curl
+5. Report issues in Issue #XX (create new issue)
+
+---
+
+### TASK-V2: Sub-Workflow Implementation
+**Priority**: 🟡 **P1 - HIGH**  
+**Agent**: `agent-n8n-subworkflows`  
+**ETA**: 2-3 hours  
+**Dependencies**: TASK-V1 must complete
+
+**Objective:** Create missing sub-workflows from architecture
+
+**Sub-Workflows to Create:**
+1. `sub-github-pr-review.json`
+   - Called by:  GitHub Automation
+   - Actions: PR validation, CI/CD check, auto-approve logic
+
+2. `sub-alert-notification.json`
+   - Called by: Multiple workflows
+   - Actions: Format alerts, send to Slack/Email/Webhook
+
+3. `sub-service-restart.json`
+   - Called by: System Health Monitor
+   - Actions: PM2 restart, verify success, log event
+
+4. `sub-metrics-collection.json`
+   - Called by: Multiple workflows
+   - Actions: Collect metrics, store in DB, update dashboard
+
+**Checklist:**
+- [ ] Create each sub-workflow JSON file
+- [ ] Import into n8n
+- [ ] Configure sub-workflow calls in main workflows
+- [ ] Test each sub-workflow independently
+- [ ] Test main workflows calling sub-workflows
+- [ ] Document in `SUB_WORKFLOWS_GUIDE.md`
+
+**Success Criteria:**
+- ✅ 4 sub-workflows created and active
+- ✅ Main workflows successfully call sub-workflows
+- ✅ All tests pass
+
+---
+
+### TASK-V3: MCP Configuration Verification
+**Priority**: 🟡 **P1 - HIGH**  
+**Agent**: `agent-mcp-verification`  
+**ETA**: 1 hour  
+**Dependencies**: None
+
+**Objective:** Verify MCP configuration is correct with proper sources
+
+**Checklist:**
+1. **Review Current Configuration**
+   ```bash
+   cat . mcp. json
+   ```
+   - [ ] Verify all required environment variables present
+   - [ ] Check n8n integration variables: 
+     ```env
+     N8N_WEBHOOK_URL=https://n8n.srv1201204.hstgr. cloud
+     N8N_API_KEY=${N8N_API_KEY}
+     COMPANYBOOK_API_KEY=${COMPANYBOOK_API_KEY}
+     SUPABASE_URL=${SUPABASE_URL}
+     SUPABASE_KEY=${SUPABASE_KEY}
+     HOSTINGER_EMAIL=${HOSTINGER_EMAIL}
+     HOSTINGER_PASSWORD=${HOSTINGER_PASSWORD}
+     ```
+
+2. **Test MCP Server**
+   ```bash
+   # Test if MCP server starts
+   node server/index.js
+   
+   # Test if MCP endpoints respond
+   curl http://localhost:3000/api/health
+   ```
+
+3. **Verify Claude Desktop Integration**
+   - [ ] Check if `claude_desktop_config.json` references correct path
+   - [ ] Test MCP tools from Claude Desktop
+
+**Success Criteria:**
+- ✅ MCP configuration valid
+- ✅ All required env vars present
+- ✅ MCP server starts without errors
+- ✅ Claude Desktop can use MCP tools
+
+---
+
+## 🔴 EXISTING P0 TASKS (Still Pending)
+
+### TASK-1: agent-security-cleanup
+**Status**: ✅ **COMPLETED** (per ORCHESTRATION_DASHBOARD)  
+**Verified**: Git history clean, no exposed credentials
+
+### TASK-2: agent-vps-deploy  
+**Status**: ⏳ **PENDING** (ready after TASK-V1)  
+**Next Actions:**
+1. Wait for TASK-V1 to complete
+2. Deploy Wallestars frontend
+3. Configure Nginx  
+4. Setup SSL
+5. Test end-to-end
+
+### TASK-3: agent-qr-feature-completion (PR #65)
+**Status**: ⏳ **PENDING**  
+**Next Actions:**
+1. Review PR #65
+2. Complete QR scanner implementation
+3. Add security hardening
+4. Integration tests
+
+---
+
+## 🟡 P1 TASKS (This Week)
+
+### TASK-4: agent-n8n-email-classifier
+**Status**: ⏳ **QUEUED** (after TASK-V1)  
+**Objective:** Email classification workflow
+**ETA**: 2-3 hours
+
+### TASK-5: agent-github-issue-sync
+**Status**: ⏳ **QUEUED**  
+**Objective:** Sync GitHub issues with internal tracking
+**ETA**: 2-3 hours
+
+---
+
+## 📈 PROGRESS TRACKING (Updated)
+
+| # | Task | Status | Agent | Started | Completed | Verification |
+|---|------|--------|-------|---------|-----------|--------------|
+| V1 | N8N Workflow Verification | ⏳ **URGENT** | `agent-n8n-verification` | - | - | REQUIRED |
+| V2 | Sub-Workflows Implementation | ⏳ Queued | `agent-n8n-subworkflows` | - | - | After V1 |
+| V3 | MCP Configuration Check | ⏳ Queued | `agent-mcp-verification` | - | - | Parallel |
+| 1 | Security Cleanup | ✅ **DONE** | `antigravity` | 01: 19 | 01:20 | ✓ |
+| 2 | VPS Deploy | ⏳ Pending | `agent-vps-deploy` | - | - | After V1 |
+| 3 | QR Feature (PR #65) | ⏳ Pending | `agent-qr-feature` | - | - | - |
+| 4 | N8N Email Classifier | ⏳ Queued | - | - | - | After V1 |
+| 5 | GitHub Issue Sync | ⏳ Queued | - | - | - | - |
+
+---
+
+## 🎯 EXECUTION ORDER (Post-GitHub Update)
+
+### Immediate (Next 24 hours):
+```
+1. TASK-V1: Verify N8N Workflows (1-2h) 🔴 CRITICAL
+2. TASK-V3: MCP Configuration (1h) 🔴 CRITICAL (parallel)
+3. TASK-2: VPS Deploy (2h) - After V1
+```
+
+### This Week: 
+```
+4. TASK-V2: Sub-Workflows (2-3h)
+5. TASK-3: QR Feature (4-6h)
+6. TASK-4: Email Classifier (2-3h)
+7. TASK-5: GitHub Issue Sync (2-3h)
+```
+
+---
+
+## 📊 Workflow Architecture Review
+
+### Current Workflows (Implemented):
+```
+┌──────────────────────────────────────┐
+│  N8N Workflows (5 Active)            │
+├──────────────────────────────────────┤
+│ ✅ System Health Monitor (5min)      │
+│ ✅ GitHub Automation (webhook+15min) │
+│ ✅ Email Monitor (IMAP real-time)    │
+│ ✅ SMS Monitor (polling 30s)         │
+│ ✅ Registry Local Worker (webhook)   │
+└──────────────┬───────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────┐
+│  Wallestars API (/api/webhooks/n8n)  │
+├──────────────────────────────────────┤
+│ • POST /health-report                │
+│ • POST /alert                        │
+│ • POST /github-event                 │
+│ • POST /agent-activity               │
+│ • GET /dashboard                     │
+└──────────────┬───────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────┐
+│  Supabase Database                   │
+├──────────────────────────────────────┤
+│ • verified_business_profiles         │
+│ • users_pending                      │
+│ • verification_logs                  │
+└──────────────────────────────────────┘
+```
+
+### Missing Sub-Workflows (To Implement):
+```
+┌──────────────────────────────────────┐
+│  Sub-Workflows (4 To Create)         │
+├──────────────────────────────────────┤
+│ ⏳ sub-github-pr-review.json         │
+│ ⏳ sub-alert-notification.json       │
+│ ⏳ sub-service-restart.json          │
+│ ⏳ sub-metrics-collection. json       │
+└──────────────────────────────────────┘
+```
+
+---
+
+## 🔧 Technical Details for Agents
+
+### Environment Variables Needed:
+```env
+# N8N
+N8N_WEBHOOK_URL=https://n8n.srv1201204.hstgr.cloud
+N8N_API_KEY=<from n8n settings>
+
+# GitHub
+GITHUB_TOKEN=<personal access token>
+GITHUB_OWNER=Wallesters-org
+GITHUB_REPO=Wallestars
+
+# Wallestars
+WALLESTARS_API_URL=https://srv1201204.hstgr.cloud/api
+
+# CompanyBook
+COMPANYBOOK_API_KEY=<api key>
+
+# Supabase
+SUPABASE_URL=<project url>
+SUPABASE_KEY=<anon key>
+
+# Hostinger Email
+HOSTINGER_EMAIL=<email>
+HOSTINGER_PASSWORD=<password>
+
+# Smstome
+SMSTOME_API_KEY=<api key>
+```
+
+### Credentials to Configure in N8N:
+1. **GitHub OAuth2** - For GitHub Automation workflow
+2. **Supabase API** - For all database operations
+3. **Hostinger IMAP** - For Email Monitor
+4. **Smstome API** - For SMS Monitor (HTTP Basic Auth)
+5. **CompanyBook API** - For Registry Local Worker
+
+---
+
+## 📞 Coordination
+
+### Agent Communication:
+- **Primary**: GitHub Issue #XX (create new for verification tasks)
+- **Secondary**: This document
+- **Real-time**: N8N dashboard, PM2 logs
+
+### Reporting Format:
+When verification complete, update with:
+```markdown
+## ✅ TASK-V1 Verification Report
+
+**Agent**: agent-n8n-verification
+**Date**: 2026-01-12
+**Duration**: X hours
+
+### Results:
+- ✅ System Health Monitor:  ACTIVE, sending reports every 5 min
+- ✅ GitHub Automation: ACTIVE, webhook configured
+- ✅ Email Monitor: ACTIVE, IMAP connected
+- ✅ SMS Monitor: ACTIVE, polling every 30s
+- ✅ Registry Worker: ACTIVE, webhook ready
+
+### Tests Performed:
+- Manual workflow execution:  ✅ SUCCESS
+- Webhook test: ✅ SUCCESS
+- API endpoint test: ✅ SUCCESS
+- Supabase integration: ✅ SUCCESS
+
+### Issues Found:
+- None
+
+### Next Steps:
+- Proceed to TASK-V2: Sub-Workflows
+- Deploy to production (TASK-2)
+```
+
+---
+
+**Last Updated**: 2026-01-12  
+**Status**: Ready for agent assignment  
+**Priority**:  TASK-V1 is CRITICAL - must start immediately

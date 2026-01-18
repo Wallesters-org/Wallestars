@@ -19,6 +19,8 @@ permissions:
 jobs:
   run-tests:
     runs-on: ubuntu-latest
+    env:
+      N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
     strategy:
       matrix:
         node-version: [20.x, 22.x]
@@ -224,7 +226,10 @@ jobs:
     steps:
       - name: Изпрати резултати към n8n
         run: |
-          curl -X POST "${N8N_WEBHOOK_URL}/webhook/test-results" \
+          N8N_URL="${N8N_WEBHOOK_URL:-https://n8n.srv1201204.hstgr.cloud}"
+          echo "Sending results to: $N8N_URL"
+          
+          curl -X POST "${N8N_URL}/webhook/test-results" \
             -H "Content-Type: application/json" \
             -d '{
               "workflow": "testing-automation",

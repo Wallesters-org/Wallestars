@@ -6,11 +6,26 @@ import screenshot from 'screenshot-desktop';
 const execAsync = promisify(exec);
 const router = Router();
 
-// Take screenshot
+// Take screenshot (Wayland-compatible with gnome-screenshot)
 router.get('/screenshot', async (req, res) => {
   try {
-    const img = await screenshot({ format: 'png' });
+    const tempFile = `/tmp/screenshot_${Date.now()}.png`;
+    const fs = await import('fs/promises');
+
+    // Try gnome-screenshot first (works on Wayland and X11)
+    try {
+      await execAsync(`gnome-screenshot -f ${tempFile}`);
+    } catch (e) {
+      // Fallback to scrot for X11-only systems
+      const env = { ...process.env, DISPLAY: process.env.DISPLAY || ':0' };
+      await execAsync(`scrot -o ${tempFile}`, { env });
+    }
+
+    const img = await fs.readFile(tempFile);
     const base64 = img.toString('base64');
+
+    // Clean up temp file
+    await fs.unlink(tempFile).catch(() => { });
 
     res.json({
       success: true,
@@ -19,10 +34,22 @@ router.get('/screenshot', async (req, res) => {
     });
   } catch (error) {
     console.error('Screenshot error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+
+    // Final fallback: try screenshot-desktop library
+    try {
+      const img = await screenshot({ format: 'png' });
+      const base64 = img.toString('base64');
+      res.json({
+        success: true,
+        screenshot: base64,
+        timestamp: new Date().toISOString()
+      });
+    } catch (fallbackError) {
+      res.status(500).json({
+        success: false,
+        error: `Primary: ${error.message}, Fallback: ${fallbackError.message}`
+      });
+    }
   }
 });
 

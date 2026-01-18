@@ -1,0 +1,148 @@
+{
+    "name": "Wallestars Quality Scoring (AI Evaluation)",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "score-response",
+                "responseMode": "lastNode",
+                "options": {}
+            },
+            "id": "webhook-trigger",
+            "name": "Webhook Trigger",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                100,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "modelId": "gpt-4o-mini",
+                "messages": {
+                    "values": [
+                        {
+                            "role": "system",
+                            "content": "You are an AI Quality Evaluator. Analyze the provided response against the original query. \nRate from 0-100 for:\n1. Relevance (Matches intent)\n2. Confidence (Accuracy)\n3. Completeness (Solves problem)\n\nReturn JSON: { \"relevance\": 90, \"confidence\": 85, \"completeness\": 95, \"rationale\": \"...\" }"
+                        },
+                        {
+                            "content": "=Query: {{ $json.body.original_query }}\nResponse: {{ $json.body.response_text }}",
+                            "role": "user"
+                        }
+                    ]
+                },
+                "jsonOutput": true,
+                "options": {
+                    "temperature": 0.3
+                }
+            },
+            "id": "ai-evaluator",
+            "name": "AI Evaluator",
+            "type": "@n8n/n8n-nodes-langchain.openAi",
+            "typeVersion": 1,
+            "position": [
+                300,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Scoring Algorithm\nconst body = $node[\"Webhook Trigger\"].json.body;\nconst eval = $input.first().json;\n\nconst relevance = eval.relevance || 0;\nconst confidence = eval.confidence || 0;\nconst completeness = eval.completeness || 0;\n\nlet finalScore = (relevance * 0.4) + (confidence * 0.3) + (completeness * 0.3);\n\n// Apply penalties\nif (body.execution_time_ms > 30000) finalScore *= 0.95;\nif (body.token_count > 4000) finalScore *= 0.90;\n\nreturn {\n  json: {\n    session_id: body.session_id,\n    agent_type: body.agent_type,\n    original_query: body.original_query,\n    response_text: body.response_text,\n    relevance_score: relevance,\n    confidence_score: confidence,\n    completeness_score: completeness,\n    final_score: Math.round(finalScore),\n    execution_time_ms: body.execution_time_ms,\n    token_count: body.token_count,\n    metadata: { rationale: eval.rationale }\n  }\n};"
+            },
+            "id": "calculate-score",
+            "name": "Calculate Final Score",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                500,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "insert",
+                "tableId": "ai_response_scores",
+                "columns": "session_id,agent_type,original_query,response_text,relevance_score,confidence_score,completeness_score,final_score,execution_time_ms,token_count,metadata"
+            },
+            "id": "supabase-insert",
+            "name": "Supabase: Save Score",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                700,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ JSON.stringify($json) }}"
+            },
+            "id": "respond",
+            "name": "Respond with Result",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                900,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "AI Evaluator",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "AI Evaluator": {
+            "main": [
+                [
+                    {
+                        "node": "Calculate Final Score",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Calculate Final Score": {
+            "main": [
+                [
+                    {
+                        "node": "Supabase: Save Score",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Supabase: Save Score": {
+            "main": [
+                [
+                    {
+                        "node": "Respond with Result",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": [
+        "quality",
+        "ai",
+        "eval",
+        "supabase"
+    ]
+}

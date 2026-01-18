@@ -1,0 +1,9 @@
+1. System Health Monitor (system-health-monitor. json)
+   - Статус: ✅ Внедрен
+   - Тригер: На всеки 5 минути
+   - Функции: Проверява здравето на Wallestars, N8N, диск, памет
+
+2. GitHub Automation (github-automation.json)
+   - Статус: ✅ Частично внедрен
+   - Тригер: Webhook от GitHub + на всеки 15 мин
+   - Функции:  Следи PR-ове, Issues, Agent sessions
