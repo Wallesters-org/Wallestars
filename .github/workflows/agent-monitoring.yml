@@ -4,6 +4,8 @@ on:
   schedule:
     # Провери агентите на всеки 10 минути
     - cron: '*/10 * * * *'
+    # Дневен доклад в 9:00 UTC
+    - cron: '0 9 * * *'
   workflow_dispatch:
 
 permissions:
@@ -82,30 +84,32 @@ jobs:
             }
             
             // Създай summary
-            let summary = `## 🤖 Статус на агентите\\n\\n`;
-            summary += `**Време на проверка:** ${new Date().toISOString()}\\n\\n`;
-            summary += `| Агент | Назначени PR-ове | Последна активност | Статус |\\n`;
-            summary += `|---|---|---|---|\\n`;
-            
+            let summary = `## 🤖 Статус на агентите\n\n`;
+            summary += `**Време на проверка:** ${new Date().toISOString()}\n\n`;
+            summary += `| Агент | Назначени PR-ове | Последна активност | Статус |\n`;
+            summary += `|---|---|---|---|\n`;
+
             for (const [agent, status] of Object.entries(agentStatus)) {
-              summary += `| ${agent} | ${status.assigned_prs} | ${status.last_activity || 'Няма'} | ${status.status} |\\n`;
+              summary += `| ${agent} | ${status.assigned_prs} | ${status.last_activity || 'Няма'} | ${status.status} |\n`;
             }
-            
+
             await core.summary.addRaw(summary).write();
 
-                        // Изпрати към n8n само ако URL-ът е настроен
-                                    if (process.env.N8N_WEBHOOK_URL) {
-            
-            // Изпрати към n8n
-              await fetch(`${process.env.N8N_WEBHOOK_URL}/webhook/agent-status`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  agents: agentStatus,
-                  timestamp: new Date().toISOString()
-                })
-              });
-                          }
+            // Изпрати към n8n само ако URL-ът е настроен
+            if (process.env.N8N_WEBHOOK_URL) {
+              try {
+                await fetch(`${process.env.N8N_WEBHOOK_URL}/webhook/agent-status`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    agents: agentStatus,
+                    timestamp: new Date().toISOString()
+                  })
+                });
+              } catch (error) {
+                console.log(`⚠️ N8n webhook failed: ${error.message}`);
+              }
+            }
 
   check-stale-prs:
     runs-on: ubuntu-latest
