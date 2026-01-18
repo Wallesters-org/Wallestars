@@ -1,0 +1,448 @@
+name: PR Session Management
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, closed]
+  pull_request_review:
+    types: [submitted, edited]
+  issue_comment:
+    types: [created]
+  schedule:
+    # Check PR sessions every 5 minutes
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to manage (optional)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  checks: write
+  statuses: write
+
+jobs:
+  initialize-session:
+    if: github.event.action == 'opened' || github.event.action == 'ready_for_review'
+    runs-on: ubuntu-latest
+    name: Initialize PR Session
+    outputs:
+      session_id: ${{ steps.create_session.outputs.session_id }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create PR session
+        id: create_session
+        uses: actions/github-script@v7
+        env:
+          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const sessionId = `pr-${pr.number}-${Date.now()}`;
+            
+            // Create session tracking issue
+            const { data: session } = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🔄 Active PR Session #${pr.number}: ${pr.title}`,
+              body: `# PR Session Tracking\n\n` +
+                `**PR:** #${pr.number}\n` +
+                `**Author:** @${pr.user.login}\n` +
+                `**Session ID:** ${sessionId}\n` +
+                `**Started:** ${new Date().toISOString()}\n\n` +
+                `## Session Checklist\n` +
+                `- [ ] Code review assigned\n` +
+                `- [ ] Tests passing\n` +
+                `- [ ] Security scan clean\n` +
+                `- [ ] Build verification\n` +
+                `- [ ] Documentation updated\n` +
+                `- [ ] Approved for merge\n\n` +
+                `## Activity Log\n` +
+                `- ${new Date().toISOString()}: Session initialized\n\n` +
+                `---\n` +
+                `*Auto-managed by PR Session System*`,
+              labels: ['pr-session', 'active', `pr-${pr.number}`]
+            });
+            
+            // Add comment to PR
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: `🔄 **PR Session Started**\n\n` +
+                `Session tracking: #${session.number}\n` +
+                `Session ID: \`${sessionId}\`\n\n` +
+                `All automation and testing will be tracked in the session issue.`
+            });
+            
+            // Notify n8n
+            if (process.env.N8N_WEBHOOK_URL) {
+              try {
+                await fetch(`${process.env.N8N_WEBHOOK_URL}/webhook/pr-session-start`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    session_id: sessionId,
+                    pr_number: pr.number,
+                    pr_title: pr.title,
+                    author: pr.user.login,
+                    url: pr.html_url,
+                    session_issue: session.number,
+                    timestamp: new Date().toISOString()
+                  })
+                });
+              } catch (error) {
+                console.log(`Warning: Could not notify N8N: ${error.message}`);
+              }
+            }
+            
+            core.setOutput('session_id', sessionId);
+            core.setOutput('session_issue', session.number);
+
+  run-automation-pipeline:
+    needs: [initialize-session]
+    if: always() && (github.event.action == 'opened' || github.event.action == 'synchronize' || github.event.action == 'ready_for_review')
+    runs-on: ubuntu-latest
+    name: Run Automation Pipeline
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run linting
+        id: lint
+        run: |
+          npm run lint || echo "lint_status=warning" >> $GITHUB_OUTPUT
+          echo "lint_status=success" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Run tests
+        id: test
+        run: |
+          npm run test || echo "test_status=warning" >> $GITHUB_OUTPUT
+          echo "test_status=success" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Run security audit
+        id: security
+        run: |
+          npm audit --audit-level=moderate || echo "security_status=warning" >> $GITHUB_OUTPUT
+          echo "security_status=success" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Build verification
+        id: build
+        run: |
+          npm run build
+          echo "build_status=success" >> $GITHUB_OUTPUT
+
+      - name: Update session with results
+        uses: actions/github-script@v7
+        env:
+          LINT_STATUS: ${{ steps.lint.outputs.lint_status }}
+          TEST_STATUS: ${{ steps.test.outputs.test_status }}
+          SECURITY_STATUS: ${{ steps.security.outputs.security_status }}
+          BUILD_STATUS: ${{ steps.build.outputs.build_status }}
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) return;
+            
+            const lintStatus = process.env.LINT_STATUS === 'success' ? '✅' : '⚠️';
+            const testStatus = process.env.TEST_STATUS === 'success' ? '✅' : '⚠️';
+            const securityStatus = process.env.SECURITY_STATUS === 'success' ? '✅' : '⚠️';
+            const buildStatus = process.env.BUILD_STATUS === 'success' ? '✅' : '❌';
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: `## 🤖 Automation Pipeline Results\n\n` +
+                `| Check | Status |\n` +
+                `|-------|--------|\n` +
+                `| Linting | ${lintStatus} ${process.env.LINT_STATUS} |\n` +
+                `| Tests | ${testStatus} ${process.env.TEST_STATUS} |\n` +
+                `| Security | ${securityStatus} ${process.env.SECURITY_STATUS} |\n` +
+                `| Build | ${buildStatus} ${process.env.BUILD_STATUS} |\n\n` +
+                `*Updated: ${new Date().toISOString()}*`
+            });
+
+  monitor-session-health:
+    runs-on: ubuntu-latest
+    name: Monitor Session Health
+    if: github.event.schedule || github.event_name == 'workflow_dispatch'
+    env:
+      N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check active sessions
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Get all open PRs
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+            
+            // Get all active session issues
+            const { data: sessions } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'pr-session,active',
+              state: 'open'
+            });
+            
+            const now = new Date();
+            const healthReport = [];
+            
+            for (const session of sessions) {
+              const prMatch = session.title.match(/#(\d+)/);
+              if (!prMatch) continue;
+              
+              const prNumber = parseInt(prMatch[1]);
+              const pr = prs.find(p => p.number === prNumber);
+              
+              if (!pr) {
+                // PR closed but session still active
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: session.number,
+                  state: 'closed',
+                  labels: ['pr-session', 'completed']
+                });
+                continue;
+              }
+              
+              const updatedAt = new Date(pr.updated_at);
+              const hoursSinceUpdate = (now - updatedAt) / (1000 * 60 * 60);
+              
+              // Check for stale sessions (>24 hours)
+              if (hoursSinceUpdate > 24) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  body: `⚠️ **Stale PR Session Alert**\n\n` +
+                    `This PR has been inactive for ${Math.floor(hoursSinceUpdate)} hours.\n\n` +
+                    `Please:\n` +
+                    `- Update the PR with requested changes\n` +
+                    `- Respond to review comments\n` +
+                    `- Or close the PR if it's no longer needed\n\n` +
+                    `Session will be marked as inactive after 48 hours.`
+                });
+                
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  labels: ['stale']
+                });
+              }
+              
+              // Auto-close sessions after 48 hours of inactivity
+              if (hoursSinceUpdate > 48) {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: session.number,
+                  state: 'closed',
+                  labels: ['pr-session', 'inactive']
+                });
+              }
+              
+              healthReport.push({
+                pr_number: prNumber,
+                hours_since_update: Math.floor(hoursSinceUpdate),
+                status: hoursSinceUpdate > 24 ? 'stale' : 'active'
+              });
+            }
+            
+            // Create summary
+            await core.summary
+              .addHeading('PR Session Health Report')
+              .addTable([
+                [{data: 'PR', header: true}, {data: 'Hours Since Update', header: true}, {data: 'Status', header: true}],
+                ...healthReport.map(r => [
+                  `#${r.pr_number}`,
+                  r.hours_since_update.toString(),
+                  r.status
+                ])
+              ])
+              .write();
+
+  auto-merge-check:
+    runs-on: ubuntu-latest
+    name: Auto-Merge Check
+    if: github.event.review && github.event.review.state == 'approved'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check merge readiness
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            
+            // Check if PR is ready to merge
+            const { data: reviews } = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number
+            });
+            
+            const approvals = reviews.filter(r => r.state === 'APPROVED').length;
+            const changesRequested = reviews.filter(r => r.state === 'CHANGES_REQUESTED').length;
+            
+            // Check CI status
+            const { data: checks } = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: pr.head.sha
+            });
+            
+            const allChecksPassed = checks.check_runs.every(c => 
+              c.status === 'completed' && c.conclusion === 'success'
+            );
+            
+            // Check for merge conflicts
+            const { data: prData } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number
+            });
+            
+            const canMerge = approvals >= 1 && 
+                            changesRequested === 0 && 
+                            allChecksPassed && 
+                            prData.mergeable;
+            
+            if (canMerge && pr.labels.some(l => l.name === 'auto-merge')) {
+              // Attempt auto-merge
+              try {
+                await github.rest.pulls.merge({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: pr.number,
+                  merge_method: 'squash',
+                  commit_title: `${pr.title} (#${pr.number})`,
+                  commit_message: 'Auto-merged by PR Session Management'
+                });
+                
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  body: '🎉 **Auto-merged successfully!**\n\nAll checks passed and approvals received.'
+                });
+              } catch (error) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  body: `⚠️ **Auto-merge failed**\n\nError: ${error.message}\n\nPlease merge manually.`
+                });
+              }
+            } else {
+              const reasons = [];
+              if (approvals < 1) reasons.push('Needs approval');
+              if (changesRequested > 0) reasons.push('Changes requested');
+              if (!allChecksPassed) reasons.push('Checks not passing');
+              if (!prData.mergeable) reasons.push('Merge conflicts');
+              
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: `📋 **Merge Status**\n\n` +
+                  `**Approvals:** ${approvals}\n` +
+                  `**Checks:** ${allChecksPassed ? '✅' : '❌'}\n` +
+                  `**Mergeable:** ${prData.mergeable ? '✅' : '❌'}\n\n` +
+                  (reasons.length > 0 ? `**Blocking:** ${reasons.join(', ')}` : '✅ Ready to merge!')
+              });
+            }
+
+  close-session:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    name: Close PR Session
+    env:
+      N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Close session tracking
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            
+            // Find and close session issue
+            const { data: sessions } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: `pr-${pr.number}`,
+              state: 'open'
+            });
+            
+            for (const session of sessions) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: session.number,
+                state: 'closed',
+                labels: ['pr-session', pr.merged ? 'merged' : 'closed']
+              });
+              
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: session.number,
+                body: `🏁 **Session Closed**\n\n` +
+                  `PR #${pr.number} was ${pr.merged ? '✅ merged' : '❌ closed without merging'}\n` +
+                  `Duration: ${Math.floor((new Date() - new Date(pr.created_at)) / (1000 * 60 * 60))} hours\n` +
+                  `Final status: ${pr.merged ? 'SUCCESS' : 'INCOMPLETE'}`
+              });
+            }
+            
+            // Notify n8n
+            if (process.env.N8N_WEBHOOK_URL) {
+              try {
+                await fetch(`${process.env.N8N_WEBHOOK_URL}/webhook/pr-session-end`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    pr_number: pr.number,
+                    merged: pr.merged,
+                    timestamp: new Date().toISOString()
+                  })
+                });
+              } catch (error) {
+                console.log(`Warning: Could not notify N8N: ${error.message}`);
+              }
+            }

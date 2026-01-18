@@ -232,6 +232,36 @@ MCP is an open protocol that standardizes how AI applications interact with loca
 
 ---
 
+## 🤖 Automation System
+
+Wallestars includes a **comprehensive automation system** for PR management, CI/CD, and workflow orchestration:
+
+### Features
+- 🔄 **Automated PR Sessions** - Complete lifecycle management
+- 🧪 **Continuous Testing** - Automated test execution
+- 🔍 **Health Monitoring** - System and agent monitoring
+- 🎯 **Auto-Merge** - Conditional automatic merging
+- 📊 **Daily Reports** - Comprehensive metrics and health checks
+
+### Quick Start
+```bash
+# Setup automation
+./scripts/setup-automation.sh
+
+# Manage workflows
+./scripts/manage-workflows.sh list
+```
+
+### Documentation
+- [Automation Status Dashboard](AUTOMATION_STATUS.md) - Live system status
+- [Complete Automation Guide](COMPLETE_AUTOMATION_GUIDE.md) - Full documentation
+- [Repository Consolidation Roadmap](REPOSITORY_CONSOLIDATION_ROADMAP.md) - Multi-repo strategy
+- [Scripts Documentation](scripts/README.md) - Helper scripts
+
+**New to automation?** Check out the [Automation Implementation Summary](AUTOMATION_IMPLEMENTATION_SUMMARY.md) for an overview.
+
+---
+
 ## 🛠️ Development
 
 ### Scripts
@@ -242,6 +272,14 @@ npm run server       # Start backend only
 npm run client       # Start frontend only
 npm run build        # Build for production
 npm start            # Start production server
+```
+
+### Workflow Management
+
+```bash
+./scripts/manage-workflows.sh list      # List workflows
+./scripts/manage-workflows.sh validate  # Validate YAML
+gh workflow run pr-session-management   # Trigger workflow
 ```
 
 ---
