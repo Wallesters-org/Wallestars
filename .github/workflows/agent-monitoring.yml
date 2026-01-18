@@ -17,7 +17,7 @@ jobs:
     name: Мониторинг на агенти
     env:
       N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
-    
+
     steps:
       - name: Checkout код
         uses: actions/checkout@v4
@@ -29,50 +29,50 @@ jobs:
           script: |
             const agents = ['copilot-agent-1', 'copilot-agent-2', 'copilot-agent-3', 'copilot-agent-4'];
             const agentStatus = {};
-            
+
             // Провери PR-ове за всеки агент
             const { data: pullRequests } = await github.rest.pulls.list({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open'
             });
-            
+
             for (const agent of agents) {
-              const agentPRs = pullRequests.filter(pr => 
+              const agentPRs = pullRequests.filter(pr =>
                 pr.labels.some(label => label.name === `agent:${agent}`)
               );
-              
+
               // Провери последната активност
               let lastActivity = null;
               let isActive = false;
-              
+
               for (const pr of agentPRs) {
                 const { data: comments } = await github.rest.issues.listComments({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: pr.number
                 });
-                
-                const agentComments = comments.filter(c => 
+
+                const agentComments = comments.filter(c =>
                   c.body.includes(agent) || c.user.login.includes('bot')
                 );
-                
+
                 if (agentComments.length > 0) {
                   const latestComment = agentComments[agentComments.length - 1];
                   const commentDate = new Date(latestComment.created_at);
                   const now = new Date();
                   const hoursSinceActivity = (now - commentDate) / (1000 * 60 * 60);
-                  
+
                   if (hoursSinceActivity < 1) {
                     isActive = true;
                   }
-                  
+
                   if (!lastActivity || commentDate > new Date(lastActivity)) {
                     lastActivity = latestComment.created_at;
                   }
                 }
               }
-              
+
               agentStatus[agent] = {
                 assigned_prs: agentPRs.length,
                 last_activity: lastActivity,
@@ -80,19 +80,19 @@ jobs:
                 status: isActive ? '🟢 Active' : '🟡 Idle'
               };
             }
-            
+
             // Създай summary
             let summary = `## 🤖 Статус на агентите\\n\\n`;
             summary += `**Време на проверка:** ${new Date().toISOString()}\\n\\n`;
             summary += `| Агент | Назначени PR-ове | Последна активност | Статус |\\n`;
             summary += `|---|---|---|---|\\n`;
-            
+
             for (const [agent, status] of Object.entries(agentStatus)) {
               summary += `| ${agent} | ${status.assigned_prs} | ${status.last_activity || 'Няма'} | ${status.status} |\\n`;
             }
-            
+
             await core.summary.addRaw(summary).write();
-            
+
             // Изпрати към n8n
             await fetch(`${process.env.N8N_WEBHOOK_URL}/webhook/agent-status`, {
               method: 'POST',
@@ -106,7 +106,7 @@ jobs:
   check-stale-prs:
     runs-on: ubuntu-latest
     name: Провери стари PR-ове
-    
+
     steps:
       - name: Checkout код
         uses: actions/checkout@v4
@@ -120,13 +120,13 @@ jobs:
               repo: context.repo.repo,
               state: 'open'
             });
-            
+
             const twoDaysAgo = new Date();
             twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-            
+
             for (const pr of pullRequests) {
               const updatedAt = new Date(pr.updated_at);
-              
+
               if (updatedAt < twoDaysAgo) {
                 // Добави stale label
                 await github.rest.issues.addLabels({
@@ -135,7 +135,7 @@ jobs:
                   issue_number: pr.number,
                   labels: ['stale', 'needs-attention']
                 });
-                
+
                 // Създай коментар
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
@@ -143,7 +143,7 @@ jobs:
                   issue_number: pr.number,
                   body: `⚠️ **Stale PR Alert**\n\nТози PR няма активност повече от 2 дни.\n\n**Моля:**\n- Актуализирай PR\n- Отговори на коментари\n- или затвори PR ако не е актуален\n\n---\n_Автоматично генерирано от Agent Monitoring System_`
                 });
-                
+
                 console.log(`⚠️ Marked PR #${pr.number} as stale`);
               }
             }
@@ -152,7 +152,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Дневен доклад
     if: github.event.schedule == '0 9 * * *' || github.event_name == 'workflow_dispatch'
-    
+
     steps:
       - name: Checkout код
         uses: actions/checkout@v4
@@ -163,21 +163,21 @@ jobs:
           script: |
             const oneDayAgo = new Date();
             oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-            
+
             const { data: allPRs } = await github.rest.pulls.list({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'all',
               per_page: 100
             });
-            
-            const recentPRs = allPRs.filter(pr => 
+
+            const recentPRs = allPRs.filter(pr =>
               new Date(pr.updated_at) > oneDayAgo
             );
-            
+
             const openPRs = recentPRs.filter(pr => pr.state === 'open');
             const closedPRs = recentPRs.filter(pr => pr.state === 'closed' && pr.merged_at);
-            
+
             const reportBody = [
               `# 📊 Дневен доклад за агенти - ${new Date().toLocaleDateString('bg-BG')}`,
               '',
@@ -195,7 +195,7 @@ jobs:
               '---',
               '_Автоматично генерирано от Agent Monitoring System_'
             ].join('\n');
-            
+
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
