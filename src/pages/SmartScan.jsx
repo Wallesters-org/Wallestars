@@ -221,14 +221,14 @@ export default function SmartScan() {
           const blob = new Blob([result.fileContent], {
             type: exportFormat === 'delta-bg' ? 'text/csv' : 'application/xml'
           });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = result.fileName;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
+          const downloadUrl = URL.createObjectURL(blob);
+          const downloadLink = document.createElement('a');
+          downloadLink.href = downloadUrl;
+          downloadLink.download = result.fileName;
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          document.body.removeChild(downloadLink);
+          URL.revokeObjectURL(downloadUrl);
 
           alert('File exported successfully and validated!');
         } else {

@@ -24,16 +24,16 @@ router.get('/', (req, res) => {
     res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
 
     // Send initial connection message
-    const id = ++clientId;
-    clients.set(id, res);
+    const newClientId = ++clientId;
+    clients.set(newClientId, res);
 
-    console.log(`[SSE] Client ${id} connected. Total clients: ${clients.size}`);
+    console.log(`[SSE] Client ${newClientId} connected. Total clients: ${clients.size}`);
 
     // Send connection confirmation
     res.write(`data: ${JSON.stringify({
         type: 'connection',
         status: 'connected',
-        clientId: id,
+        clientId: newClientId,
         timestamp: new Date().toISOString(),
         server: 'wallestars-nexus',
         version: '1.0.0'
@@ -49,14 +49,14 @@ router.get('/', (req, res) => {
     // Handle client disconnect
     req.on('close', () => {
         clearInterval(keepAlive);
-        clients.delete(id);
-        console.log(`[SSE] Client ${id} disconnected. Total clients: ${clients.size}`);
+        clients.delete(newClientId);
+        console.log(`[SSE] Client ${newClientId} disconnected. Total clients: ${clients.size}`);
     });
 
     req.on('error', (err) => {
         clearInterval(keepAlive);
-        clients.delete(id);
-        console.error(`[SSE] Client ${id} error:`, err.message);
+        clients.delete(newClientId);
+        console.error(`[SSE] Client ${newClientId} error:`, err.message);
     });
 });
 
@@ -70,14 +70,14 @@ export function broadcast(eventType, data) {
         timestamp: new Date().toISOString()
     });
 
-    clients.forEach((res, id) => {
+    clients.forEach((clientResponse, clientId) => {
         try {
-            if (!res.writableEnded) {
-                res.write(`data: ${message}\n\n`);
+            if (!clientResponse.writableEnded) {
+                clientResponse.write(`data: ${message}\n\n`);
             }
         } catch (err) {
-            console.error(`[SSE] Broadcast error to client ${id}:`, err.message);
-            clients.delete(id);
+            console.error(`[SSE] Broadcast error to client ${clientId}:`, err.message);
+            clients.delete(clientId);
         }
     });
 }

@@ -174,7 +174,7 @@ export default function ClaudeChat() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/claude/chat', {
+      const chatResponse = await fetch('/api/claude/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -183,16 +183,16 @@ export default function ClaudeChat() {
         })
       });
 
-      const data = await response.json();
+      const chatData = await chatResponse.json();
 
-      if (data.success) {
+      if (chatData.success) {
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: data.response,
+          content: chatData.response,
           timestamp: new Date()
         }]);
       } else {
-        throw new Error(data.error);
+        throw new Error(chatData.error);
       }
     } catch (error) {
       console.error('Chat error:', error);
