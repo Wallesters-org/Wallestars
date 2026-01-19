@@ -1,0 +1,555 @@
+{
+  "name": "AI Agents Orchestration - Platform Registration",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "platform-registration",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Platform Registration Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "orchestration-batch",
+        "options": {}
+      },
+      "id": "batch-webhook",
+      "name": "Batch Orchestration Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 500]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agent-heartbeat",
+        "options": {}
+      },
+      "id": "heartbeat-webhook",
+      "name": "Agent Heartbeat Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 700]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract platform and task data\nconst platform = $input.first().json.platform;\nconst taskData = $input.first().json.taskData;\nconst template = $input.first().json.template;\nconst agentId = $input.first().json.agentId;\n\n// Generate unique session ID\nconst sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;\n\n// Prepare registration data\nconst registrationData = {\n  sessionId,\n  platform: {\n    id: platform.id,\n    name: platform.platform_name,\n    type: platform.platform_type,\n    registrationUrl: platform.registration_url,\n    requiresCreditCard: platform.requires_credit_card,\n    requiresPhoneVerification: platform.requires_phone_verification,\n    requiresEmailVerification: platform.requires_email_verification\n  },\n  workspace: {\n    id: taskData?.workspace_id || 'default',\n    email: taskData?.email || process.env.DEFAULT_REGISTRATION_EMAIL\n  },\n  agent: {\n    id: agentId\n  },\n  template: template?.registration_steps || [],\n  timestamp: new Date().toISOString()\n};\n\nreturn [{ json: registrationData }];"
+      },
+      "id": "prepare-registration",
+      "name": "Prepare Registration Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.platform.type }}",
+              "operation": "equals",
+              "value2": "ai_agent"
+            }
+          ]
+        }
+      },
+      "id": "route-by-platform-type",
+      "name": "Route by Platform Type",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.platform.registrationUrl }}",
+        "authentication": "none",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "check-platform-availability",
+      "name": "Check Platform Availability",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1000, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.airtop.ai/v1/sessions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.AIRTOP_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "configuration",
+              "value": "={{ JSON.stringify({ timeoutMinutes: 30, screenConfig: { width: 1920, height: 1080 } }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "create-browser-session",
+      "name": "Create Airtop Browser Session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// AI Agent Registration Logic\nconst input = $input.first().json;\nconst sessionData = $input.all()[1]?.json;\nconst platform = input.platform;\n\n// Define registration steps for AI platforms\nconst aiPlatformSteps = {\n  'OpenAI': [\n    { action: 'navigate', url: 'https://platform.openai.com/signup' },\n    { action: 'wait', selector: '[data-testid=\"login-button\"]' },\n    { action: 'click', selector: '[data-testid=\"signup-button\"]' },\n    { action: 'fill', selector: 'input[name=\"email\"]', value: '{{email}}' },\n    { action: 'click', selector: 'button[type=\"submit\"]' },\n    { action: 'wait_verification', type: 'email' }\n  ],\n  'Anthropic Claude': [\n    { action: 'navigate', url: 'https://console.anthropic.com/signup' },\n    { action: 'wait', selector: 'input[type=\"email\"]' },\n    { action: 'fill', selector: 'input[type=\"email\"]', value: '{{email}}' },\n    { action: 'click', selector: 'button[type=\"submit\"]' },\n    { action: 'wait_verification', type: 'email' }\n  ],\n  'Google AI Studio': [\n    { action: 'navigate', url: 'https://aistudio.google.com/' },\n    { action: 'google_oauth', email: '{{email}}' }\n  ],\n  'Mistral AI': [\n    { action: 'navigate', url: 'https://console.mistral.ai/signup' },\n    { action: 'wait', selector: 'input[type=\"email\"]' },\n    { action: 'fill', selector: 'input[type=\"email\"]', value: '{{email}}' },\n    { action: 'click', selector: 'button[type=\"submit\"]' },\n    { action: 'wait_verification', type: 'email' }\n  ]\n};\n\nconst steps = aiPlatformSteps[platform.name] || input.template || [];\n\nreturn [{\n  json: {\n    ...input,\n    browserSession: sessionData,\n    registrationSteps: steps,\n    status: 'ready_to_register'\n  }\n}];"
+      },
+      "id": "ai-platform-registration",
+      "name": "AI Platform Registration Steps",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Automation Platform Registration Logic\nconst input = $input.first().json;\nconst platform = input.platform;\n\n// Define registration steps for automation platforms\nconst automationPlatformSteps = {\n  'Make (Integromat)': [\n    { action: 'navigate', url: 'https://www.make.com/en/register' },\n    { action: 'fill', selector: 'input[name=\"email\"]', value: '{{email}}' },\n    { action: 'fill', selector: 'input[name=\"password\"]', value: '{{password}}' },\n    { action: 'click', selector: 'button[type=\"submit\"]' },\n    { action: 'wait_verification', type: 'email' }\n  ],\n  'Zapier': [\n    { action: 'navigate', url: 'https://zapier.com/sign-up' },\n    { action: 'fill', selector: 'input[name=\"email\"]', value: '{{email}}' },\n    { action: 'click', selector: 'button[type=\"submit\"]' },\n    { action: 'wait_verification', type: 'email' }\n  ],\n  'N8n Cloud': [\n    { action: 'navigate', url: 'https://app.n8n.cloud/register' },\n    { action: 'fill', selector: 'input[name=\"email\"]', value: '{{email}}' },\n    { action: 'fill', selector: 'input[name=\"password\"]', value: '{{password}}' },\n    { action: 'click', selector: 'button[type=\"submit\"]' },\n    { action: 'wait_verification', type: 'email' }\n  ],\n  'Airtop': [\n    { action: 'navigate', url: 'https://www.airtop.ai/signup' },\n    { action: 'fill', selector: 'input[name=\"email\"]', value: '{{email}}' },\n    { action: 'click', selector: 'button[type=\"submit\"]' },\n    { action: 'wait_verification', type: 'email' }\n  ]\n};\n\nconst steps = automationPlatformSteps[platform.name] || input.template || [];\n\nreturn [{\n  json: {\n    ...input,\n    registrationSteps: steps,\n    status: 'ready_to_register'\n  }\n}];"
+      },
+      "id": "automation-platform-registration",
+      "name": "Automation Platform Registration Steps",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 600]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Execute registration steps using browser automation\nconst input = $json;\nconst steps = input.registrationSteps;\nconst browserSession = input.browserSession;\n\n// This would integrate with Airtop/Puppeteer for actual browser automation\n// For now, we'll simulate the process and return status\n\nconst executionLog = [];\nlet currentStatus = 'in_progress';\n\nfor (const step of steps) {\n  executionLog.push({\n    step: step.action,\n    timestamp: new Date().toISOString(),\n    status: 'executed'\n  });\n  \n  // Check for verification steps\n  if (step.action === 'wait_verification') {\n    currentStatus = 'awaiting_verification';\n    break;\n  }\n}\n\nreturn {\n  json: {\n    sessionId: input.sessionId,\n    platform: input.platform,\n    workspace: input.workspace,\n    executionLog,\n    status: currentStatus,\n    requiresManualIntervention: currentStatus === 'awaiting_verification',\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "execute-registration",
+      "name": "Execute Registration Steps",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1500, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.WALLESTARS_API_URL }}/api/orchestration/registration-status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "update-registration-status",
+      "name": "Update Registration Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1750, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.status }}",
+              "operation": "equals",
+              "value2": "awaiting_verification"
+            }
+          ]
+        }
+      },
+      "id": "check-verification-needed",
+      "name": "Check Verification Needed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [2000, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.WALLESTARS_API_URL }}/api/webhooks/n8n/email-verification-request",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"sessionId\": \"{{ $json.sessionId }}\",\n  \"platform\": \"{{ $json.platform.name }}\",\n  \"email\": \"{{ $json.workspace.email }}\",\n  \"verificationType\": \"email\",\n  \"timestamp\": \"{{ $json.timestamp }}\"\n}",
+        "options": {}
+      },
+      "id": "request-email-verification",
+      "name": "Request Email Verification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2250, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Registration complete - extract API keys/credentials\nconst input = $json;\n\nreturn [{\n  json: {\n    sessionId: input.sessionId,\n    platform: input.platform,\n    workspace: input.workspace,\n    status: 'completed',\n    credentials: {\n      // Placeholder - actual credentials would be extracted from browser session\n      apiKey: null,\n      accessToken: null\n    },\n    completedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "complete-registration",
+      "name": "Complete Registration",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2250, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.WALLESTARS_API_URL }}/api/orchestration/registration-complete",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "finalize-registration",
+      "name": "Finalize Registration",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2500, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process batch orchestration request\nconst batchData = $input.first().json;\n\nconst batch = {\n  id: batchData.batchId,\n  name: batchData.batchName,\n  type: batchData.batchType,\n  platforms: batchData.platforms || [],\n  parallelLimit: batchData.parallelLimit || 5,\n  workspace: batchData.workspaceId || 'default',\n  startedAt: new Date().toISOString()\n};\n\n// Split platforms into parallel groups\nconst platformGroups = [];\nfor (let i = 0; i < batch.platforms.length; i += batch.parallelLimit) {\n  platformGroups.push(batch.platforms.slice(i, i + batch.parallelLimit));\n}\n\nreturn platformGroups.map((group, index) => ({\n  json: {\n    batch,\n    groupIndex: index,\n    platforms: group,\n    isLastGroup: index === platformGroups.length - 1\n  }\n}));"
+      },
+      "id": "process-batch",
+      "name": "Process Batch Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 500]
+    },
+    {
+      "parameters": {
+        "batchSize": 5,
+        "options": {}
+      },
+      "id": "split-batch",
+      "name": "Split Into Parallel Groups",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [750, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Execute parallel platform registrations\nconst input = $json;\nconst platforms = input.platforms;\n\n// Trigger individual registrations via sub-workflow or direct HTTP\nconst results = platforms.map(platform => ({\n  platformId: platform.id,\n  platformName: platform.name,\n  status: 'queued',\n  queuedAt: new Date().toISOString()\n}));\n\nreturn [{\n  json: {\n    batch: input.batch,\n    groupIndex: input.groupIndex,\n    results,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "parallel-registration",
+      "name": "Execute Parallel Registrations",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process agent heartbeat\nconst heartbeat = $input.first().json;\n\nconst response = {\n  agentId: heartbeat.agentId,\n  agentName: heartbeat.agentName,\n  status: heartbeat.status,\n  taskCount: heartbeat.currentTaskCount,\n  healthScore: heartbeat.healthScore,\n  receivedAt: new Date().toISOString(),\n  acknowledged: true\n};\n\nreturn [{ json: response }];"
+      },
+      "id": "process-heartbeat",
+      "name": "Process Heartbeat",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 700]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.WALLESTARS_API_URL }}/api/webhooks/n8n/agent-heartbeat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "forward-heartbeat",
+      "name": "Forward Heartbeat to Wallestars",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [750, 700]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, executionId: $execution.id, timestamp: new Date().toISOString() }) }}",
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2750, 300]
+    }
+  ],
+  "connections": {
+    "Platform Registration Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Registration Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Registration Data": {
+      "main": [
+        [
+          {
+            "node": "Route by Platform Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Platform Type": {
+      "main": [
+        [
+          {
+            "node": "Check Platform Availability",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Automation Platform Registration Steps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Platform Availability": {
+      "main": [
+        [
+          {
+            "node": "Create Airtop Browser Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Airtop Browser Session": {
+      "main": [
+        [
+          {
+            "node": "AI Platform Registration Steps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Platform Registration Steps": {
+      "main": [
+        [
+          {
+            "node": "Execute Registration Steps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Automation Platform Registration Steps": {
+      "main": [
+        [
+          {
+            "node": "Execute Registration Steps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Registration Steps": {
+      "main": [
+        [
+          {
+            "node": "Update Registration Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Registration Status": {
+      "main": [
+        [
+          {
+            "node": "Check Verification Needed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Verification Needed": {
+      "main": [
+        [
+          {
+            "node": "Request Email Verification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Complete Registration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Request Email Verification": {
+      "main": [
+        [
+          {
+            "node": "Finalize Registration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Complete Registration": {
+      "main": [
+        [
+          {
+            "node": "Finalize Registration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalize Registration": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Batch Orchestration Webhook": {
+      "main": [
+        [
+          {
+            "node": "Process Batch Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Batch Request": {
+      "main": [
+        [
+          {
+            "node": "Split Into Parallel Groups",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Into Parallel Groups": {
+      "main": [
+        [
+          {
+            "node": "Execute Parallel Registrations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent Heartbeat Webhook": {
+      "main": [
+        [
+          {
+            "node": "Process Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Heartbeat": {
+      "main": [
+        [
+          {
+            "node": "Forward Heartbeat to Wallestars",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "orchestration"
+    },
+    {
+      "name": "automation"
+    },
+    {
+      "name": "platform-registration"
+    }
+  ],
+  "triggerCount": 3,
+  "updatedAt": "2026-01-18T00:00:00.000Z",
+  "versionId": "1"
+}
