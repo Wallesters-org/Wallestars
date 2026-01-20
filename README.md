@@ -232,6 +232,44 @@ MCP is an open protocol that standardizes how AI applications interact with loca
 
 ---
 
+## 🤖 Automation & Workflows
+
+**Wallestars features a comprehensive automation system** for PR management, testing, and deployment.
+
+### Key Automation Features
+
+- **🔄 Automatic PR Assignment** - PRs automatically assigned to agents in rotation
+- **🚀 Auto-Merge** - Approved PRs merge automatically (add `auto-merge` label)
+- **🧪 Continuous Testing** - Tests run on every PR and schedule
+- **📊 Health Monitoring** - Real-time tracking of PRs and agents
+- **🎭 MCP Integration** - Full Model Context Protocol support
+- **📈 Daily Reports** - Automated activity summaries
+
+### Quick Start with Automation
+
+1. **Create a PR** - Automatically assigned to an agent
+2. **Get Reviews** - Request and receive reviews
+3. **Add `auto-merge` label** - When ready for merge
+4. **Wait ~10 minutes** - Automatic merge after checks pass
+
+📚 **For detailed automation guide, see:**
+- [AUTOMATION_QUICKSTART.md](AUTOMATION_QUICKSTART.md) - Quick reference
+- [WORKFLOW_STATUS.md](WORKFLOW_STATUS.md) - Complete workflow documentation
+- [AUTOMATION_SYSTEM.md](.github/AUTOMATION_SYSTEM.md) - System architecture
+
+### Active Workflows
+
+| Workflow | Schedule | Purpose |
+|----------|----------|---------|
+| CI | On PR/Push | Build & test |
+| PR Automation | Every 15 min | Agent assignment |
+| Agent Monitoring | Every 10 min | Activity tracking |
+| Testing | Every 30 min | Comprehensive tests |
+| PR Session Manager | Every 10 min | Auto-merge & health |
+| MCP Orchestrator | Every 20 min | Workflow coordination |
+
+---
+
 ## 🛠️ Development
 
 ### Scripts
@@ -242,6 +280,8 @@ npm run server       # Start backend only
 npm run client       # Start frontend only
 npm run build        # Build for production
 npm start            # Start production server
+npm test             # Run tests
+npm run test:ci      # Run tests with coverage
 ```
 
 ---
