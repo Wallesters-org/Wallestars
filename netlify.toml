@@ -4,8 +4,8 @@
   publish = "dist"
   
   # Build command for the application
-  # Note: Netlify automatically runs npm install before this command
-  command = "npm run build"
+  # Explicitly run npm install with --legacy-peer-deps before building
+  command = "npm install --legacy-peer-deps && npm run build"
   
   # Functions directory (for serverless backend)
   functions = "netlify/functions"
