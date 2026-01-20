@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { OrchestrationManager } from '../../server/orchestration/OrchestrationManager.js';
 
 describe('OrchestrationManager', () => {
