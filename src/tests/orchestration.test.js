@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { OrchestrationManager } from '../../../server/orchestration/OrchestrationManager.js';
+import { OrchestrationManager } from '../../server/orchestration/OrchestrationManager.js';
 
 describe('OrchestrationManager', () => {
   let manager;
@@ -39,13 +39,16 @@ describe('OrchestrationManager', () => {
       expect(stats.tasksFailed).toBe(0);
     });
 
-    it('should emit event when agent is registered', (done) => {
-      manager.once('agent:registered', (agent) => {
-        expect(agent.id).toBe('agent-1');
-        done();
+    it('should emit event when agent is registered', async () => {
+      const eventPromise = new Promise((resolve) => {
+        manager.once('agent:registered', (agent) => {
+          expect(agent.id).toBe('agent-1');
+          resolve();
+        });
       });
 
       manager.registerAgent('agent-1', { platform: 'linux' });
+      await eventPromise;
     });
   });
 
@@ -184,22 +187,26 @@ describe('OrchestrationManager', () => {
   });
 
   describe('Task Execution', () => {
-    it('should emit task started event', (done) => {
+    it('should emit task started event', async () => {
       manager.registerAgent('agent-1', {
         platform: 'linux',
         capabilities: ['test-task']
       });
 
-      manager.once('task:started', ({ task, agent }) => {
-        expect(task).toBeDefined();
-        expect(agent.id).toBe('agent-1');
-        done();
+      const eventPromise = new Promise((resolve) => {
+        manager.once('task:started', ({ task, agent }) => {
+          expect(task).toBeDefined();
+          expect(agent.id).toBe('agent-1');
+          resolve();
+        });
       });
 
       manager.submitTask({
         type: 'test-task',
         platform: 'linux'
       });
+
+      await eventPromise;
     });
 
     it('should handle task execution via event', async () => {
