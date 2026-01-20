@@ -10,7 +10,8 @@ import {
   QrCode,
   Sparkles,
   ScanLine,
-  Server
+  Server,
+  Network
 } from 'lucide-react';
 
 const menuItems = [
@@ -22,6 +23,7 @@ const menuItems = [
   { id: 'smartscan', name: 'Smart Scan', icon: ScanLine },
   { id: 'promptgen', name: 'Prompt Generator', icon: Sparkles },
   { id: 'hostinger', name: 'Hostinger VPS', icon: Server },
+  { id: 'orchestration', name: 'Orchestration Farm', icon: Network },
   { id: 'settings', name: 'Settings', icon: Settings },
 ];
 
