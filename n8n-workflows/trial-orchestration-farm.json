@@ -1,0 +1,680 @@
+{
+  "name": "AI Agents Orchestration Farm - Trial Activation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "trial-orchestration/start",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook - Start Orchestration",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 300],
+      "webhookId": "trial-orchestration-start"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule - Health Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse incoming request for platform configuration\nconst body = $input.first().json.body || {};\n\n// Default platforms to activate (all available)\nconst allPlatforms = [\n  { slug: 'claude-ai', name: 'Claude AI', category: 'AI Assistant', priority: 1 },\n  { slug: 'github-copilot', name: 'GitHub Copilot', category: 'AI Development', priority: 2 },\n  { slug: 'cursor-ide', name: 'Cursor IDE', category: 'AI Development', priority: 3 },\n  { slug: 'n8n-cloud', name: 'n8n Cloud', category: 'Automation', priority: 1 },\n  { slug: 'zapier', name: 'Zapier', category: 'Automation', priority: 2 },\n  { slug: 'make', name: 'Make (Integromat)', category: 'Automation', priority: 3 },\n  { slug: 'supabase', name: 'Supabase', category: 'Database', priority: 1 },\n  { slug: 'airtable', name: 'Airtable', category: 'Database', priority: 2 },\n  { slug: 'vercel', name: 'Vercel', category: 'Deployment', priority: 1 },\n  { slug: 'railway', name: 'Railway', category: 'Deployment', priority: 2 },\n  { slug: 'slack', name: 'Slack', category: 'Communication', priority: 1 },\n  { slug: 'discord', name: 'Discord', category: 'Communication', priority: 2 },\n  { slug: 'notion', name: 'Notion', category: 'Productivity', priority: 1 },\n  { slug: 'linear', name: 'Linear', category: 'Project Management', priority: 2 }\n];\n\n// Filter platforms based on request\nlet selectedPlatforms = allPlatforms;\nif (body.platforms && Array.isArray(body.platforms) && body.platforms.length > 0) {\n  selectedPlatforms = allPlatforms.filter(p => body.platforms.includes(p.slug));\n}\n\n// Filter by category if specified\nif (body.category) {\n  selectedPlatforms = selectedPlatforms.filter(p => p.category === body.category);\n}\n\n// Create batch ID\nconst batchId = `batch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;\n\n// Prepare orchestration config\nconst orchestrationConfig = {\n  batchId,\n  batchName: body.batchName || 'Trial Activation Batch',\n  platforms: selectedPlatforms,\n  totalPlatforms: selectedPlatforms.length,\n  config: {\n    parallelExecution: body.parallelExecution !== false,\n    maxConcurrent: body.maxConcurrent || 5,\n    retryAttempts: body.retryAttempts || 3,\n    notifyOnComplete: body.notifyOnComplete !== false\n  },\n  createdAt: new Date().toISOString(),\n  requestedBy: body.requestedBy || 'system'\n};\n\nreturn [orchestrationConfig];"
+      },
+      "id": "parse-request",
+      "name": "Parse Request & Configure",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": "public",
+        "table": "orchestration_batches",
+        "columns": "id, batch_name, batch_type, total_tasks, status, config, created_by",
+        "options": {}
+      },
+      "id": "create-batch-record",
+      "name": "Create Batch Record",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [660, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-creds",
+          "name": "Supabase Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 5,
+        "options": {}
+      },
+      "id": "split-platforms",
+      "name": "Split Into Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [880, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare individual platform registration tasks\nconst platforms = $input.all();\nconst batchId = $('Parse Request & Configure').first().json.batchId;\n\nconst tasks = platforms.map((item, index) => {\n  const platform = item.json;\n  const taskId = `task_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 6)}`;\n  \n  return {\n    taskId,\n    batchId,\n    platformSlug: platform.slug,\n    platformName: platform.name,\n    category: platform.category,\n    priority: platform.priority,\n    status: 'queued',\n    automationSteps: getAutomationSteps(platform.slug),\n    createdAt: new Date().toISOString()\n  };\n});\n\n// Automation steps for each platform\nfunction getAutomationSteps(slug) {\n  const stepsByPlatform = {\n    'claude-ai': [\n      { step: 1, action: 'navigate', target: 'https://claude.ai/signup' },\n      { step: 2, action: 'oauth_flow', provider: 'google' },\n      { step: 3, action: 'generate_api_key' },\n      { step: 4, action: 'store_credentials' }\n    ],\n    'github-copilot': [\n      { step: 1, action: 'github_oauth', scopes: ['copilot'] },\n      { step: 2, action: 'enable_trial' },\n      { step: 3, action: 'configure_ide' },\n      { step: 4, action: 'store_credentials' }\n    ],\n    'n8n-cloud': [\n      { step: 1, action: 'navigate', target: 'https://app.n8n.cloud/register' },\n      { step: 2, action: 'fill_form', fields: ['email', 'password', 'name'] },\n      { step: 3, action: 'verify_email' },\n      { step: 4, action: 'generate_api_key' },\n      { step: 5, action: 'store_credentials' }\n    ],\n    'supabase': [\n      { step: 1, action: 'github_oauth' },\n      { step: 2, action: 'create_project' },\n      { step: 3, action: 'wait_provisioning', timeout: 120000 },\n      { step: 4, action: 'extract_credentials', keys: ['url', 'anon_key', 'service_role'] },\n      { step: 5, action: 'store_credentials' }\n    ],\n    'vercel': [\n      { step: 1, action: 'github_oauth' },\n      { step: 2, action: 'import_project' },\n      { step: 3, action: 'generate_api_token' },\n      { step: 4, action: 'store_credentials' }\n    ],\n    'slack': [\n      { step: 1, action: 'navigate', target: 'https://slack.com/get-started' },\n      { step: 2, action: 'create_workspace' },\n      { step: 3, action: 'verify_email' },\n      { step: 4, action: 'create_app' },\n      { step: 5, action: 'configure_bot' },\n      { step: 6, action: 'store_credentials' }\n    ],\n    'notion': [\n      { step: 1, action: 'oauth_flow', provider: 'google' },\n      { step: 2, action: 'create_integration' },\n      { step: 3, action: 'configure_permissions' },\n      { step: 4, action: 'store_credentials' }\n    ]\n  };\n  \n  return stepsByPlatform[slug] || [\n    { step: 1, action: 'navigate', target: `https://${slug}.com/signup` },\n    { step: 2, action: 'fill_form', fields: ['email', 'password'] },\n    { step: 3, action: 'verify_email' },\n    { step: 4, action: 'store_credentials' }\n  ];\n}\n\nreturn tasks;"
+      },
+      "id": "prepare-tasks",
+      "name": "Prepare Registration Tasks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": "public",
+        "table": "orchestration_tasks",
+        "columns": "id, batch_id, platform_id, task_type, task_priority, task_config, status",
+        "options": {}
+      },
+      "id": "create-task-records",
+      "name": "Create Task Records",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1320, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-creds",
+          "name": "Supabase Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "parallel-check",
+              "leftValue": "={{ $('Parse Request & Configure').first().json.config.parallelExecution }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-parallel",
+      "name": "Parallel Execution?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1540, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Execute all platforms in parallel using Promise.all simulation\nconst tasks = $input.all();\nconst config = $('Parse Request & Configure').first().json.config;\n\n// Group tasks for parallel execution\nconst parallelGroups = [];\nconst maxConcurrent = config.maxConcurrent || 5;\n\nfor (let i = 0; i < tasks.length; i += maxConcurrent) {\n  parallelGroups.push(tasks.slice(i, i + maxConcurrent));\n}\n\n// Return execution plan\nreturn [{\n  executionMode: 'parallel',\n  totalTasks: tasks.length,\n  groups: parallelGroups.length,\n  maxConcurrent,\n  tasks: tasks.map(t => t.json)\n}];"
+      },
+      "id": "parallel-executor",
+      "name": "Parallel Executor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1760, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Execute platforms sequentially\nconst tasks = $input.all();\n\nreturn [{\n  executionMode: 'sequential',\n  totalTasks: tasks.length,\n  tasks: tasks.map(t => t.json)\n}];"
+      },
+      "id": "sequential-executor",
+      "name": "Sequential Executor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1760, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.WALLESTARS_API_URL }}/api/orchestration/execute-task",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "taskId",
+              "value": "={{ $json.taskId }}"
+            },
+            {
+              "name": "platformSlug",
+              "value": "={{ $json.platformSlug }}"
+            },
+            {
+              "name": "automationSteps",
+              "value": "={{ $json.automationSteps }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "execute-registration",
+      "name": "Execute Registration",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1980, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate results from all registrations\nconst results = $input.all();\nconst batchId = $('Parse Request & Configure').first().json.batchId;\n\nconst summary = {\n  batchId,\n  totalProcessed: results.length,\n  successful: results.filter(r => r.json.success).length,\n  failed: results.filter(r => !r.json.success).length,\n  results: results.map(r => ({\n    taskId: r.json.taskId,\n    platform: r.json.platformSlug,\n    success: r.json.success,\n    credentials: r.json.credentials || null,\n    error: r.json.error || null\n  })),\n  completedAt: new Date().toISOString()\n};\n\nreturn [summary];"
+      },
+      "id": "aggregate-results",
+      "name": "Aggregate Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2200, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": "public",
+        "table": "orchestration_batches",
+        "filters": {
+          "filter": [
+            {
+              "field": "id",
+              "condition": "eq",
+              "value": "={{ $json.batchId }}"
+            }
+          ]
+        },
+        "updateColumns": "completed_tasks, failed_tasks, status, completed_at",
+        "options": {}
+      },
+      "id": "update-batch-status",
+      "name": "Update Batch Status",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [2420, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-creds",
+          "name": "Supabase Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "notify-check",
+              "leftValue": "={{ $('Parse Request & Configure').first().json.config.notifyOnComplete }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-notify",
+      "name": "Send Notification?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2640, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#automation-alerts",
+        "text": "=:rocket: *Trial Orchestration Complete*\n\n*Batch ID:* `{{ $json.batchId }}`\n*Total Platforms:* {{ $json.totalProcessed }}\n*Successful:* {{ $json.successful }} :white_check_mark:\n*Failed:* {{ $json.failed }} :x:\n\n*Completed At:* {{ $json.completedAt }}",
+        "otherOptions": {}
+      },
+      "id": "slack-notification",
+      "name": "Slack Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [2860, 200],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-creds",
+          "name": "Slack Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [3080, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Health check for all registered trial accounts\nconst healthReport = {\n  checkTime: new Date().toISOString(),\n  checks: [],\n  summary: {\n    total: 0,\n    healthy: 0,\n    expiring: 0,\n    expired: 0,\n    errors: 0\n  }\n};\n\n// This would query the database for all trial accounts\n// and check their status\n\nreturn [healthReport];"
+      },
+      "id": "health-check",
+      "name": "Run Health Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 500]
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": "public",
+        "table": "trial_accounts",
+        "returnAll": true,
+        "filters": {
+          "filter": [
+            {
+              "field": "status",
+              "condition": "in",
+              "value": "active,expiring_soon"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-active-trials",
+      "name": "Get Active Trials",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [660, 500],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-creds",
+          "name": "Supabase Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check each trial account's status\nconst trials = $input.all();\nconst today = new Date();\nconst warningDays = 3;\n\nconst results = trials.map(trial => {\n  const t = trial.json;\n  const endDate = new Date(t.trial_end_date);\n  const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));\n  \n  let status = 'active';\n  if (daysRemaining <= 0) {\n    status = 'expired';\n  } else if (daysRemaining <= warningDays) {\n    status = 'expiring_soon';\n  }\n  \n  return {\n    accountId: t.id,\n    platformId: t.platform_id,\n    daysRemaining,\n    status,\n    needsAction: status !== 'active'\n  };\n});\n\n// Aggregate summary\nconst summary = {\n  total: results.length,\n  active: results.filter(r => r.status === 'active').length,\n  expiringSoon: results.filter(r => r.status === 'expiring_soon').length,\n  expired: results.filter(r => r.status === 'expired').length,\n  needsAction: results.filter(r => r.needsAction)\n};\n\nreturn [{ summary, trials: results }];"
+      },
+      "id": "check-trial-status",
+      "name": "Check Trial Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "expiring-check",
+              "leftValue": "={{ $json.summary.needsAction.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "needs-action-check",
+      "name": "Needs Action?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1100, 500]
+    },
+    {
+      "parameters": {
+        "channel": "#trial-alerts",
+        "text": "=:warning: *Trial Expiration Alert*\n\n{{ $json.summary.expiringSoon }} trials expiring soon\n{{ $json.summary.expired }} trials expired\n\n*Action Required:* Review and renew trials",
+        "otherOptions": {}
+      },
+      "id": "expiry-alert",
+      "name": "Send Expiry Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1320, 400],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-creds",
+          "name": "Slack Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": "public",
+        "table": "orchestration_activity_log",
+        "columns": "entity_type, entity_id, action, details",
+        "options": {}
+      },
+      "id": "log-health-check",
+      "name": "Log Health Check",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1320, 600],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-creds",
+          "name": "Supabase Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook - Start Orchestration": {
+      "main": [
+        [
+          {
+            "node": "Parse Request & Configure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Request & Configure": {
+      "main": [
+        [
+          {
+            "node": "Create Batch Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Batch Record": {
+      "main": [
+        [
+          {
+            "node": "Split Into Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Into Batches": {
+      "main": [
+        [
+          {
+            "node": "Prepare Registration Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Registration Tasks": {
+      "main": [
+        [
+          {
+            "node": "Create Task Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Task Records": {
+      "main": [
+        [
+          {
+            "node": "Parallel Execution?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parallel Execution?": {
+      "main": [
+        [
+          {
+            "node": "Parallel Executor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sequential Executor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parallel Executor": {
+      "main": [
+        [
+          {
+            "node": "Execute Registration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sequential Executor": {
+      "main": [
+        [
+          {
+            "node": "Execute Registration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Registration": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Results": {
+      "main": [
+        [
+          {
+            "node": "Update Batch Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Batch Status": {
+      "main": [
+        [
+          {
+            "node": "Send Notification?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Notification?": {
+      "main": [
+        [
+          {
+            "node": "Slack Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Notification": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule - Health Check": {
+      "main": [
+        [
+          {
+            "node": "Run Health Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Health Check": {
+      "main": [
+        [
+          {
+            "node": "Get Active Trials",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Active Trials": {
+      "main": [
+        [
+          {
+            "node": "Check Trial Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Trial Status": {
+      "main": [
+        [
+          {
+            "node": "Needs Action?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Action?": {
+      "main": [
+        [
+          {
+            "node": "Send Expiry Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Health Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Expiry Alert": {
+      "main": [
+        [
+          {
+            "node": "Log Health Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "wallestars-orchestration"
+  },
+  "id": "trial-orchestration-farm",
+  "tags": [
+    {
+      "name": "orchestration",
+      "id": "tag-orchestration"
+    },
+    {
+      "name": "trial-automation",
+      "id": "tag-trial-automation"
+    },
+    {
+      "name": "agents",
+      "id": "tag-agents"
+    }
+  ]
+}

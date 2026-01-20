@@ -9,6 +9,7 @@ import AndroidControl from './pages/AndroidControl';
 import Settings from './pages/Settings';
 import PromptGenerator from './pages/PromptGenerator';
 import SmartScan from './pages/SmartScan';
+import OrchestrationFarm from './pages/OrchestrationFarm';
 import { SocketProvider } from './context/SocketContext';
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
     android: <AndroidControl />,
     smartscan: <SmartScan />,
     promptgen: <PromptGenerator />,
+    orchestration: <OrchestrationFarm />,
     settings: <Settings />
   };
 
