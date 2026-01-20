@@ -1,0 +1,595 @@
+{
+    "name": "AI Agent Orchestration Farm",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "orchestration/execute",
+                "options": {}
+            },
+            "id": "webhook-execute",
+            "name": "Webhook: Execute Task",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                250,
+                200
+            ],
+            "webhookId": "orchestration-execute"
+        },
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "orchestration/parallel",
+                "options": {}
+            },
+            "id": "webhook-parallel",
+            "name": "Webhook: Parallel Execution",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                250,
+                400
+            ],
+            "webhookId": "orchestration-parallel"
+        },
+        {
+            "parameters": {
+                "httpMethod": "GET",
+                "path": "orchestration/status",
+                "options": {}
+            },
+            "id": "webhook-status",
+            "name": "Webhook: Get Farm Status",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                250,
+                600
+            ],
+            "webhookId": "orchestration-status"
+        },
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "minutes",
+                            "minutesInterval": 10
+                        }
+                    ]
+                }
+            },
+            "id": "schedule-monitor",
+            "name": "Schedule: Monitor Farm",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.2,
+            "position": [
+                250,
+                800
+            ]
+        },
+        {
+            "parameters": {
+                "functionCode": "// Parse incoming task request\nconst body = $input.first().json.body;\n\nconst task = {\n  id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,\n  prompt: body.prompt,\n  systemPrompt: body.systemPrompt || 'You are a helpful AI assistant.',\n  preferredPlatform: body.preferredPlatform || null,\n  maxTokens: body.maxTokens || 4096,\n  workflow: body.workflow || null,\n  timestamp: new Date().toISOString()\n};\n\nreturn { json: task };"
+            },
+            "id": "parse-task",
+            "name": "Code: Parse Task",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                500,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "functionCode": "// Parse parallel execution request\nconst body = $input.first().json.body;\nconst tasks = body.tasks || [];\n\n// Generate unique IDs for each task\nconst processedTasks = tasks.map((task, index) => ({\n  id: `parallel_${Date.now()}_${index}`,\n  prompt: task.prompt,\n  systemPrompt: task.systemPrompt || 'You are a helpful AI assistant.',\n  preferredPlatform: task.preferredPlatform || null,\n  maxTokens: task.maxTokens || 4096\n}));\n\nreturn processedTasks.map(task => ({ json: task }));"
+            },
+            "id": "parse-parallel-tasks",
+            "name": "Code: Parse Parallel Tasks",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                500,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{$env.WALLESTARS_API_URL}}/api/orchestration/execute",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "prompt",
+                            "value": "={{$json.prompt}}"
+                        },
+                        {
+                            "name": "systemPrompt",
+                            "value": "={{$json.systemPrompt}}"
+                        },
+                        {
+                            "name": "preferredPlatform",
+                            "value": "={{$json.preferredPlatform}}"
+                        },
+                        {
+                            "name": "maxTokens",
+                            "value": "={{$json.maxTokens}}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "call-orchestration-api",
+            "name": "HTTP: Execute via Farm API",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                750,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "batchSize": 5,
+                "options": {}
+            },
+            "id": "split-batches",
+            "name": "Split Into Batches",
+            "type": "n8n-nodes-base.splitInBatches",
+            "typeVersion": 3,
+            "position": [
+                700,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{$env.WALLESTARS_API_URL}}/api/orchestration/execute",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "prompt",
+                            "value": "={{$json.prompt}}"
+                        },
+                        {
+                            "name": "systemPrompt",
+                            "value": "={{$json.systemPrompt}}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "parallel-execution",
+            "name": "HTTP: Parallel Farm Execute",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                900,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "method": "GET",
+                "url": "={{$env.WALLESTARS_API_URL}}/api/orchestration/status",
+                "options": {}
+            },
+            "id": "get-farm-status",
+            "name": "HTTP: Get Farm Status",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                500,
+                600
+            ]
+        },
+        {
+            "parameters": {
+                "method": "GET",
+                "url": "={{$env.WALLESTARS_API_URL}}/api/orchestration/metrics",
+                "options": {}
+            },
+            "id": "get-farm-metrics",
+            "name": "HTTP: Get Farm Metrics",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                500,
+                800
+            ]
+        },
+        {
+            "parameters": {
+                "functionCode": "// Aggregate parallel execution results\nconst items = $input.all();\n\nconst results = {\n  totalTasks: items.length,\n  successful: items.filter(i => i.json.success).length,\n  failed: items.filter(i => !i.json.success).length,\n  results: items.map(i => i.json),\n  completedAt: new Date().toISOString()\n};\n\nreturn { json: results };"
+            },
+            "id": "aggregate-results",
+            "name": "Code: Aggregate Results",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1100,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "functionCode": "// Analyze farm health\nconst status = $input.first().json;\n\nconst healthReport = {\n  timestamp: new Date().toISOString(),\n  isHealthy: status.orchestrator?.isRunning || false,\n  totalAgents: status.orchestrator?.totalAgents || 0,\n  agentsByState: status.orchestrator?.agentsByState || {},\n  queuedTasks: status.orchestrator?.queuedTasks || 0,\n  completedTasks: status.orchestrator?.completedTasks || 0,\n  platformsConfigured: status.platforms?.configured || 0,\n  platformsAvailable: status.platforms?.available || 0,\n  alerts: []\n};\n\n// Check for issues\nif (!status.orchestrator?.isRunning) {\n  healthReport.alerts.push({\n    level: 'critical',\n    message: 'Farm is not running'\n  });\n}\n\nif (status.orchestrator?.agentsByState?.error > 0) {\n  healthReport.alerts.push({\n    level: 'warning',\n    message: `${status.orchestrator.agentsByState.error} agents in error state`\n  });\n}\n\nif (status.orchestrator?.queuedTasks > 100) {\n  healthReport.alerts.push({\n    level: 'warning',\n    message: `High queue depth: ${status.orchestrator.queuedTasks} tasks pending`\n  });\n}\n\nreturn { json: healthReport };"
+            },
+            "id": "analyze-health",
+            "name": "Code: Analyze Farm Health",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                700,
+                800
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "has-alerts",
+                            "leftValue": "={{$json.alerts.length}}",
+                            "rightValue": 0,
+                            "operator": {
+                                "type": "number",
+                                "operation": "gt"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "id": "check-alerts",
+            "name": "IF: Has Alerts",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                900,
+                800
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{$env.WALLESTARS_API_URL}}/api/webhooks/n8n/alert",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "source",
+                            "value": "orchestration-farm"
+                        },
+                        {
+                            "name": "level",
+                            "value": "={{$json.alerts[0].level}}"
+                        },
+                        {
+                            "name": "message",
+                            "value": "={{$json.alerts.map(a => a.message).join(', ')}}"
+                        },
+                        {
+                            "name": "data",
+                            "value": "={{JSON.stringify($json)}}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "send-alert",
+            "name": "HTTP: Send Alert",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1100,
+                750
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "insert",
+                "schema": {
+                    "__rl": true,
+                    "value": "public",
+                    "mode": "list",
+                    "cachedResultName": "public"
+                },
+                "table": {
+                    "__rl": true,
+                    "value": "agent_farm_metrics",
+                    "mode": "list",
+                    "cachedResultName": "agent_farm_metrics"
+                },
+                "columns": {
+                    "mappingMode": "autoMapInputData",
+                    "value": {
+                        "timestamp": "={{$json.timestamp}}",
+                        "total_agents": "={{$json.totalAgents}}",
+                        "agents_idle": "={{$json.agentsByState?.idle || 0}}",
+                        "agents_working": "={{$json.agentsByState?.working || 0}}",
+                        "agents_error": "={{$json.agentsByState?.error || 0}}",
+                        "queued_tasks": "={{$json.queuedTasks}}",
+                        "completed_tasks": "={{$json.completedTasks}}",
+                        "is_healthy": "={{$json.isHealthy}}"
+                    },
+                    "matchingColumns": [],
+                    "schema": []
+                },
+                "options": {}
+            },
+            "id": "supabase-log-metrics",
+            "name": "Supabase: Log Metrics",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                1100,
+                900
+            ],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "supabase-credentials",
+                    "name": "Supabase"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{JSON.stringify($json)}}",
+                "options": {}
+            },
+            "id": "respond-execute",
+            "name": "Respond: Task Submitted",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                1000,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{JSON.stringify($json)}}",
+                "options": {}
+            },
+            "id": "respond-parallel",
+            "name": "Respond: Parallel Results",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                1300,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{JSON.stringify($json)}}",
+                "options": {}
+            },
+            "id": "respond-status",
+            "name": "Respond: Farm Status",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                750,
+                600
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook: Execute Task": {
+            "main": [
+                [
+                    {
+                        "node": "Code: Parse Task",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Webhook: Parallel Execution": {
+            "main": [
+                [
+                    {
+                        "node": "Code: Parse Parallel Tasks",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Webhook: Get Farm Status": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP: Get Farm Status",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Schedule: Monitor Farm": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP: Get Farm Metrics",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code: Parse Task": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP: Execute via Farm API",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code: Parse Parallel Tasks": {
+            "main": [
+                [
+                    {
+                        "node": "Split Into Batches",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP: Execute via Farm API": {
+            "main": [
+                [
+                    {
+                        "node": "Respond: Task Submitted",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Split Into Batches": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP: Parallel Farm Execute",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Code: Aggregate Results",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP: Parallel Farm Execute": {
+            "main": [
+                [
+                    {
+                        "node": "Split Into Batches",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP: Get Farm Status": {
+            "main": [
+                [
+                    {
+                        "node": "Respond: Farm Status",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP: Get Farm Metrics": {
+            "main": [
+                [
+                    {
+                        "node": "Code: Analyze Farm Health",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code: Aggregate Results": {
+            "main": [
+                [
+                    {
+                        "node": "Respond: Parallel Results",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code: Analyze Farm Health": {
+            "main": [
+                [
+                    {
+                        "node": "IF: Has Alerts",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "IF: Has Alerts": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP: Send Alert",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Supabase: Log Metrics",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP: Send Alert": {
+            "main": [
+                [
+                    {
+                        "node": "Supabase: Log Metrics",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "meta": {
+        "instanceId": "wallestars-orchestration"
+    },
+    "pinData": {},
+    "versionId": "1.0.0",
+    "triggerCount": 4,
+    "tags": [
+        {
+            "name": "orchestration"
+        },
+        {
+            "name": "ai-farm"
+        },
+        {
+            "name": "automation"
+        }
+    ]
+}
