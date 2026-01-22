@@ -1,0 +1,187 @@
+{
+  "name": "SMS Verification Agent - WORKING",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sms-check",
+        "responseMode": "lastNode"
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a helpful assistant that extracts verification codes from SMS messages on web pages. Always return JSON format.",
+          "maxIterations": 3
+        },
+        "agent": "conversationalAgent",
+        "promptType": "define",
+        "text": "=You are an SMS verification code scraper. Your task:\\n\\n1. Visit the URL: {{$json['phone_url']}}\\n2. Look for the latest SMS message\\n3. Extract any 4-6 digit verification code\\n4. Return ONLY the code as a number\\n\\nPhone URL: {{$json['phone_url']}}\\nTarget sender: {{$json['expected_sender'] || 'any'}}\\n\\nReturn format: {\\\"code\\\": \\\"123456\\\", \\\"timestamp\\\": \\\"ISO date\\\"}"
+      },
+      "id": "agent-sms",
+      "name": "AI Agent - SMS Scraper",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        300,
+        300
+      ],
+      "webhookId": "{{$node['Webhook Trigger'].json['webhookId']}}",
+      "credentials": {
+        "anthropicApi": {
+          "id": "{{ANTHROPIC_API_KEY_ID}}",
+          "name": "Anthropic Claude API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse agent response\\nconst response = $input.first().json;\\nconst agentOutput = response.output || response.text || '';\\n\\n// Try to extract JSON\\nlet result;\\ntry {\\n  const jsonMatch = agentOutput.match(/\\\\{[^}]+\\\\}/);\\n  result = jsonMatch ? JSON.parse(jsonMatch[0]) : {};\\n} catch(e) {\\n  // Fallback: extract any 4-6 digit code\\n   const codeMatch = agentOutput.match(/\\\\b(\\\\d{4,6})\\\\b/);\\n  result = {\\n    code: codeMatch ? codeMatch[1] : null,\\n    timestamp: new Date().toISOString(),\\n    raw_response: agentOutput\\n  };\\n}\\n\\nreturn {json: result};"
+      },
+      "id": "parse-result",
+      "name": "Parse Agent Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "verified_business_profiles",
+        "filterType": "string",
+        "filterString": "user_id=eq.{{$json['user_id']}}",
+        "includeColumns": "sms_verification_code,sms_verified_at"
+      },
+      "id": "supabase-update",
+      "name": "Update Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        700,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "{{SUPABASE_CREDENTIAL_ID}}",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "sms_verification_code",
+              "value": "={{$json.code}}"
+            },
+            {
+              "name": "sms_verified_at",
+              "value": "={{$json.timestamp}}"
+            }
+          ]
+        }
+      },
+      "id": "set-values",
+      "name": "Set Values",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        700,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify({success: true, code: $json.code, verified_at: $json.timestamp})}}"
+      },
+      "id": "respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - SMS Scraper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - SMS Scraper": {
+      "main": [
+        [
+          {
+            "node": "Parse Agent Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Agent Result": {
+      "main": [
+        [
+          {
+            "node": "Set Values",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Values": {
+      "main": [
+        [
+          {
+            "node": "Update Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Supabase": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    "sms",
+    "ai-agent",
+    "verification",
+    "working"
+  ]
+}

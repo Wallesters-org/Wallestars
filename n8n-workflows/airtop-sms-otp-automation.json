@@ -1,0 +1,380 @@
+{
+  "name": "Airtop SMS OTP Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "airtop-sms-otp",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 400],
+      "webhookId": "airtop-sms-otp"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "tableId": "verification_logs",
+        "dataMode": "defineInNode",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldName": "user_id",
+              "fieldValue": "={{ $json.user_id }}"
+            },
+            {
+              "fieldName": "profile_id",
+              "fieldValue": "={{ $json.profile_id }}"
+            },
+            {
+              "fieldName": "event_type",
+              "fieldValue": "sms_sent"
+            },
+            {
+              "fieldName": "event_data",
+              "fieldValue": "={{ JSON.stringify({ phone: $json.phone, name: $json.name }) }}"
+            }
+          ]
+        }
+      },
+      "id": "log-sms-start",
+      "name": "Log SMS Verification Start",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [450, 400],
+      "credentials": {
+        "supabaseApi": {
+          "id": "{{SUPABASE_CREDENTIAL_ID}}",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AIRTOP_API_URL || 'https://api.airtop.ai' }}/v1/sessions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtopApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"configuration\": {\n    \"browser\": \"chrome\",\n    \"viewport\": {\n      \"width\": 1920,\n      \"height\": 1080\n    },\n    \"timeout\": 120000\n  }\n}",
+        "options": {}
+      },
+      "id": "airtop-create-session",
+      "name": "Airtop: Create Browser Session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [650, 400],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract session data and prepare for SMS flow\nconst input = $input.first().json;\nconst webhookData = $('Webhook Trigger').first().json;\n\nconst sessionData = input.data || input;\n\nreturn {\n  json: {\n    ...webhookData,\n    session_id: sessionData.id || sessionData.sessionId,\n    cdp_url: sessionData.cdpWsUrl || sessionData.cdp_url,\n    created_at: new Date().toISOString()\n  }\n};"
+      },
+      "id": "extract-session",
+      "name": "Extract Session Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AIRTOP_API_URL || 'https://api.airtop.ai' }}/v1/sessions/{{ $json.session_id }}/windows",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtopApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"url\": \"{{ $env.SMS_PROVIDER_URL || 'https://receive-sms-online.info' }}\"\n}",
+        "options": {}
+      },
+      "id": "airtop-navigate",
+      "name": "Airtop: Navigate to SMS Provider",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1050, 400],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AIRTOP_API_URL || 'https://api.airtop.ai' }}/v1/sessions/{{ $json.session_id }}/windows/{{ $json.window_id }}/prompt",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtopApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"prompt\": \"Find the phone number {{ $json.phone }} on this page, click it to view messages. Then find the most recent SMS message containing a verification code (usually 4-6 digits). Extract that code and return it.\",\n  \"model\": \"claude-3-5-sonnet-20241022\"\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "airtop-extract-code",
+      "name": "Airtop: Extract SMS Code with AI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1250, 400],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI response and extract verification code\nconst input = $input.first().json;\nconst aiResponse = input.data?.response || input.response || '';\n\n// Try to extract a 4-6 digit code\nlet code = null;\nconst codeMatch = aiResponse.match(/\\b(\\d{4,6})\\b/);\n\nif (codeMatch) {\n  code = codeMatch[1];\n}\n\n// Also try to extract from JSON if AI returns structured data\ntry {\n  const jsonMatch = aiResponse.match(/\\{[^}]+\\}/);\n  if (jsonMatch) {\n    const parsed = JSON.parse(jsonMatch[0]);\n    code = parsed.code || parsed.verification_code || code;\n  }\n} catch (e) {\n  // Continue with regex match\n}\n\nconst webhookData = $('Webhook Trigger').first().json;\n\nreturn {\n  json: {\n    ...webhookData,\n    code: code,\n    raw_response: aiResponse,\n    extracted_at: new Date().toISOString(),\n    success: !!code\n  }\n};"
+      },
+      "id": "parse-sms-code",
+      "name": "Parse SMS Code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 400]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "verified_business_profiles",
+        "filterType": "string",
+        "filterString": "id=eq.{{ $json.profile_id }}",
+        "dataMode": "defineInNode",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldName": "sms_verification_code",
+              "fieldValue": "={{ $json.code }}"
+            },
+            {
+              "fieldName": "sms_verified_at",
+              "fieldValue": "={{ $json.code ? new Date().toISOString() : null }}"
+            }
+          ]
+        }
+      },
+      "id": "update-sms-code",
+      "name": "Update SMS Verification in DB",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1650, 400],
+      "credentials": {
+        "supabaseApi": {
+          "id": "{{SUPABASE_CREDENTIAL_ID}}",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "tableId": "verification_logs",
+        "dataMode": "defineInNode",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldName": "user_id",
+              "fieldValue": "={{ $json.user_id }}"
+            },
+            {
+              "fieldName": "profile_id",
+              "fieldValue": "={{ $json.profile_id }}"
+            },
+            {
+              "fieldName": "event_type",
+              "fieldValue": "={{ $json.success ? 'sms_verified' : 'sms_received' }}"
+            },
+            {
+              "fieldName": "event_data",
+              "fieldValue": "={{ JSON.stringify({ code: $json.code, success: $json.success }) }}"
+            }
+          ]
+        }
+      },
+      "id": "log-sms-result",
+      "name": "Log SMS Verification Result",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1850, 400],
+      "credentials": {
+        "supabaseApi": {
+          "id": "{{SUPABASE_CREDENTIAL_ID}}",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "={{ $env.AIRTOP_API_URL || 'https://api.airtop.ai' }}/v1/sessions/{{ $json.session_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtopApi",
+        "options": {}
+      },
+      "id": "airtop-cleanup",
+      "name": "Airtop: Cleanup Session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2050, 400],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  success: $json.success,\n  code: $json.code,\n  message: $json.success ? 'SMS verification code extracted successfully' : 'Failed to extract SMS code',\n  user_id: $json.user_id,\n  profile_id: $json.profile_id,\n  verified_at: $json.extracted_at,\n  timestamp: new Date().toISOString()\n}) }}"
+      },
+      "id": "respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2250, 400]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Log SMS Verification Start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log SMS Verification Start": {
+      "main": [
+        [
+          {
+            "node": "Airtop: Create Browser Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtop: Create Browser Session": {
+      "main": [
+        [
+          {
+            "node": "Extract Session Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Session Data": {
+      "main": [
+        [
+          {
+            "node": "Airtop: Navigate to SMS Provider",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtop: Navigate to SMS Provider": {
+      "main": [
+        [
+          {
+            "node": "Airtop: Extract SMS Code with AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtop: Extract SMS Code with AI": {
+      "main": [
+        [
+          {
+            "node": "Parse SMS Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse SMS Code": {
+      "main": [
+        [
+          {
+            "node": "Update SMS Verification in DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update SMS Verification in DB": {
+      "main": [
+        [
+          {
+            "node": "Log SMS Verification Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log SMS Verification Result": {
+      "main": [
+        [
+          {
+            "node": "Airtop: Cleanup Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtop: Cleanup Session": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    "airtop",
+    "sms",
+    "otp",
+    "automation",
+    "wallestars"
+  ],
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "1.0.0"
+}

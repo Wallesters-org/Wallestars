@@ -1,5 +1,24 @@
 # GitHub Pages DNS Setup - Quick Guide
 
+## ⚠️ Important: About the Verification Subdomain
+
+**DO NOT try to access the verification subdomain directly!**
+
+❌ **This is NOT the website URL:**
+- `github-pages-challenge-didi-ivanov-1.workmail.pro`
+- `_github-pages-challenge-DIDI-IVANOV-1.workmail.pro`
+
+These are **only DNS verification records** for GitHub Pages setup. They are not accessible websites.
+
+✅ **After setup, your site will be accessible at:**
+- `https://workmail.pro` (main domain)
+- `https://www.workmail.pro` (www subdomain)
+- `https://wallesters-org.github.io/Wallestars` (GitHub Pages default URL)
+
+📖 **For complete instructions**, see [SITE_ACCESS_INSTRUCTIONS.md](SITE_ACCESS_INSTRUCTIONS.md) (Available in Bulgarian and English)
+
+---
+
 ## 🎯 Quick Action Required
 
 To complete GitHub Pages setup for the custom domain **workmail.pro**, you need to add a DNS TXT record for verification.

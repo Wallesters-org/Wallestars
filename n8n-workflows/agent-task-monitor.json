@@ -1,0 +1,256 @@
+{
+    "name": "Agent Task Monitor",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "minutes",
+                            "minutesInterval": 15
+                        }
+                    ]
+                }
+            },
+            "id": "schedule-trigger",
+            "name": "Every 15 Minutes",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1,
+            "position": [
+                100,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "GET",
+                "url": "https://api.github.com/repos/Wallesters-org/Wallestars/issues",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "state",
+                            "value": "open"
+                        },
+                        {
+                            "name": "labels",
+                            "value": "agent-task,P0,P1"
+                        }
+                    ]
+                }
+            },
+            "id": "github-get-issues",
+            "name": "Get Open Agent Tasks",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                300,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Parse GitHub Issues for Agent Tasks\nconst items = $input.all();\nconst agentTasks = [];\n\nfor (const item of items) {\n  const issue = item.json;\n  \n  // Extract agent session from title or labels\n  const agentMatch = issue.title.match(/\\[(agent-[\\w-]+)\\]/);\n  const agentSession = agentMatch ? agentMatch[1] : 'unknown';\n  \n  // Determine priority\n  let priority = 'P3';\n  if (issue.labels.some(l => l.name === 'P0')) priority = 'P0';\n  else if (issue.labels.some(l => l.name === 'P1')) priority = 'P1';\n  else if (issue.labels.some(l => l.name === 'P2')) priority = 'P2';\n  \n  agentTasks.push({\n    issue_number: issue.number,\n    title: issue.title,\n    agent_session: agentSession,\n    priority: priority,\n    state: issue.state,\n    created_at: issue.created_at,\n    updated_at: issue.updated_at,\n    url: issue.html_url,\n    assignee: issue.assignee?.login || null\n  });\n}\n\nreturn agentTasks.map(task => ({json: task}));\n"
+            },
+            "id": "parse-issues",
+            "name": "Parse Agent Tasks",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                500,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "GET",
+                "url": "https://n8n.srv1201204.hstgr.cloud/api/v1/executions",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "limit",
+                            "value": "50"
+                        },
+                        {
+                            "name": "status",
+                            "value": "error,failed"
+                        }
+                    ]
+                }
+            },
+            "id": "n8n-get-executions",
+            "name": "Get Failed N8N Executions",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                300,
+                500
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Aggregate monitoring data\nconst issues = $input.first().json;\nconst executions = $input.last().json;\n\nconst report = {\n  timestamp: new Date().toISOString(),\n  summary: {\n    open_agent_tasks: issues.length || 0,\n    failed_executions: executions.data?.length || 0,\n    total_tasks_p0: issues.filter(i => i.priority === 'P0').length || 0,\n    total_tasks_p1: issues.filter(i => i.priority === 'P1').length || 0\n  },\n  agent_tasks: issues || [],\n  failed_workflows: (executions.data || []).map(ex => ({\n    id: ex.id,\n    workflow_name: ex.workflowData?.name,\n    status: ex.status,\n    error: ex.data?.resultData?.error,\n    started_at: ex.startedAt,\n    stopped_at: ex.stoppedAt\n  }))\n};\n\nreturn {json: report};\n"
+            },
+            "id": "aggregate-data",
+            "name": "Aggregate Monitoring Data",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                700,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://localhost:3000/api/webhooks/n8n/agent-monitoring",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "report",
+                            "value": "={{JSON.stringify($json)}}"
+                        }
+                    ]
+                }
+            },
+            "id": "send-to-wallestars",
+            "name": "Send to Wallestars API",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                900,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "number": [
+                        {
+                            "value1": "={{$json.summary.total_tasks_p0}}",
+                            "operation": "larger",
+                            "value2": 0
+                        }
+                    ]
+                }
+            },
+            "id": "check-p0-tasks",
+            "name": "Check P0 Tasks Exist",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                900,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "message": "🚨 ALERT: {{$json.summary.total_tasks_p0}} P0 tasks pending!",
+                "additionalFields": {
+                    "severity": "critical"
+                }
+            },
+            "id": "alert-p0",
+            "name": "Alert P0 Tasks",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3,
+            "position": [
+                1100,
+                150
+            ]
+        }
+    ],
+    "connections": {
+        "Every 15 Minutes": {
+            "main": [
+                [
+                    {
+                        "node": "Get Open Agent Tasks",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Get Failed N8N Executions",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Open Agent Tasks": {
+            "main": [
+                [
+                    {
+                        "node": "Parse Agent Tasks",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse Agent Tasks": {
+            "main": [
+                [
+                    {
+                        "node": "Aggregate Monitoring Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Failed N8N Executions": {
+            "main": [
+                [
+                    {
+                        "node": "Aggregate Monitoring Data",
+                        "type": "main",
+                        "index": 1
+                    }
+                ]
+            ]
+        },
+        "Aggregate Monitoring Data": {
+            "main": [
+                [
+                    {
+                        "node": "Send to Wallestars API",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Check P0 Tasks Exist",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check P0 Tasks Exist": {
+            "main": [
+                [
+                    {
+                        "node": "Alert P0 Tasks",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": [
+        "monitoring",
+        "agents",
+        "github"
+    ]
+}

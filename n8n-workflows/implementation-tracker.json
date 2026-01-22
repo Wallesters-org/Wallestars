@@ -1,0 +1,270 @@
+{
+    "name": "N8N Workflow Implementation Tracker",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "minutes",
+                            "minutesInterval": 10
+                        }
+                    ]
+                }
+            },
+            "id": "schedule-trigger",
+            "name": "Every 10 Minutes",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1,
+            "position": [
+                100,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "GET",
+                "url": "https://n8n.srv1201204.hstgr.cloud/api/v1/workflows",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth"
+            },
+            "id": "get-all-workflows",
+            "name": "Get All Workflows",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                300,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Check which required workflows exist\nconst workflows = $input.first().json.data || [];\n\nconst requiredWorkflows = [\n  'registry-local-worker',\n  'sms-monitor',\n  'email-monitor',\n  'agent-task-monitor'\n];\n\nconst status = requiredWorkflows.map(name => {\n  const workflow = workflows.find(w => \n    w.name.toLowerCase().includes(name.toLowerCase())\n  );\n  \n  return {\n    workflow_name: name,\n    exists: !!workflow,\n    active: workflow?.active || false,\n    id: workflow?.id || null,\n    last_updated: workflow?.updatedAt || null\n  };\n});\n\nconst summary = {\n  total_required: requiredWorkflows.length,\n  implemented: status.filter(s => s.exists).length,\n  active: status.filter(s => s.active).length,\n  missing: status.filter(s => !s.exists).map(s => s.workflow_name)\n};\n\nreturn {\n  json: {\n    timestamp: new Date().toISOString(),\n    summary,\n    workflows: status\n  }\n};\n"
+            },
+            "id": "check-implementation",
+            "name": "Check Implementation Status",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                500,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "GET",
+                "url": "https://n8n.srv1201204.hstgr.cloud/api/v1/executions",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "limit",
+                            "value": "100"
+                        }
+                    ]
+                }
+            },
+            "id": "get-recent-executions",
+            "name": "Get Recent Executions",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                300,
+                500
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Calculate execution statistics\nconst executions = $input.first().json.data || [];\n\nconst stats = {\n  total: executions.length,\n  success: executions.filter(e => e.status === 'success').length,\n  error: executions.filter(e => e.status === 'error').length,\n  running: executions.filter(e => e.status === 'running').length,\n  waiting: executions.filter(e => e.status === 'waiting').length\n};\n\nstats.success_rate = stats.total > 0 \n  ? ((stats.success / stats.total) * 100).toFixed(2) + '%'\n  : '0%';\n\n// Find recent failures\nconst recentFailures = executions\n  .filter(e => e.status === 'error')\n  .slice(0, 5)\n  .map(e => ({\n    workflow_name: e.workflowData?.name,\n    error: e.data?.resultData?.error?.message || 'Unknown error',\n    timestamp: e.stoppedAt\n  }));\n\nreturn {\n  json: {\n    execution_stats: stats,\n    recent_failures: recentFailures\n  }\n};\n"
+            },
+            "id": "calc-stats",
+            "name": "Calculate Stats",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                500,
+                500
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Merge implementation status with execution stats\nconst implementation = $input.first().json;\nconst execution = $input.last().json;\n\nconst fullReport = {\n  timestamp: new Date().toISOString(),\n  implementation_status: implementation,\n  execution_stats: execution.execution_stats,\n  recent_failures: execution.recent_failures,\n  health_score: calculateHealthScore(implementation, execution)\n};\n\nfunction calculateHealthScore(impl, exec) {\n  let score = 0;\n  \n  // Implementation completeness (40 points)\n  const implPercentage = impl.summary.implemented / impl.summary.total_required;\n  score += implPercentage * 40;\n  \n  // Active workflows (30 points)\n  const activePercentage = impl.summary.active / impl.summary.total_required;\n  score += activePercentage * 30;\n  \n  // Success rate (30 points)\n  const successRate = parseFloat(exec.execution_stats.success_rate) / 100;\n  score += successRate * 30;\n  \n  return Math.round(score);\n}\n\nreturn {json: fullReport};\n"
+            },
+            "id": "merge-data",
+            "name": "Merge Report Data",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                700,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://localhost:3000/api/webhooks/n8n/implementation-status",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "report",
+                            "value": "={{JSON.stringify($json)}}"
+                        }
+                    ]
+                }
+            },
+            "id": "send-report",
+            "name": "Send Implementation Report",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                900,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "number": [
+                        {
+                            "value1": "={{$json.health_score}}",
+                            "operation": "smaller",
+                            "value2": 70
+                        }
+                    ]
+                }
+            },
+            "id": "check-health",
+            "name": "Check Health Score",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                1100,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "message": "⚠️ N8N Health Score Low: {{$json.health_score}}/100",
+                "additionalFields": {
+                    "missing_workflows": "={{$json.implementation_status.summary.missing.join(', ')}}",
+                    "success_rate": "={{$json.execution_stats.success_rate}}"
+                }
+            },
+            "id": "alert-low-health",
+            "name": "Alert Low Health",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3,
+            "position": [
+                1300,
+                350
+            ]
+        }
+    ],
+    "connections": {
+        "Every 10 Minutes": {
+            "main": [
+                [
+                    {
+                        "node": "Get All Workflows",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Get Recent Executions",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get All Workflows": {
+            "main": [
+                [
+                    {
+                        "node": "Check Implementation Status",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check Implementation Status": {
+            "main": [
+                [
+                    {
+                        "node": "Merge Report Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Recent Executions": {
+            "main": [
+                [
+                    {
+                        "node": "Calculate Stats",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Calculate Stats": {
+            "main": [
+                [
+                    {
+                        "node": "Merge Report Data",
+                        "type": "main",
+                        "index": 1
+                    }
+                ]
+            ]
+        },
+        "Merge Report Data": {
+            "main": [
+                [
+                    {
+                        "node": "Send Implementation Report",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Send Implementation Report": {
+            "main": [
+                [
+                    {
+                        "node": "Check Health Score",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check Health Score": {
+            "main": [
+                [
+                    {
+                        "node": "Alert Low Health",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": [
+        "monitoring",
+        "implementation",
+        "health-check"
+    ]
+}

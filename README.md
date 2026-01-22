@@ -13,9 +13,22 @@
 
 *Beautiful real-time visualization • Computer Use • Device Control • MCP Support*
 
-[Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [MCP Setup](#-mcp-model-context-protocol)
+[Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [MCP Setup](#-mcp-model-context-protocol) • **[Site Access](SITE_ACCESS_INSTRUCTIONS.md)**
 
 </div>
+
+---
+
+## 🌐 Live Site Access
+
+**Important**: For instructions on how to access the deployed site, please see **[SITE_ACCESS_INSTRUCTIONS.md](SITE_ACCESS_INSTRUCTIONS.md)** (Available in Bulgarian and English).
+
+### Quick Links:
+- **Custom Domain**: https://workmail.pro (after DNS configuration)
+- **GitHub Pages**: https://wallesters-org.github.io/Wallestars (static frontend only)
+- **VPS Deployment**: https://srv1201204.hstgr.cloud (full functionality)
+
+> **Note**: GitHub Pages deployment hosts only the static frontend. For full backend functionality (Claude AI, Computer Use, Android Control), use the VPS deployment.
 
 ---
 
