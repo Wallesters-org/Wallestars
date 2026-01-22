@@ -11,7 +11,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "node server/index.js",
-    "test": "echo \"Tests will be added\" && exit 0",
+    "test": "vitest run",
+    "test:ci": "vitest run --coverage",
+    "test:watch": "vitest",
+    "lint": "echo \"Linting not configured yet\" && exit 0",
     "validate-env": "node validate-env.js",
     "prestart": "node validate-env.js"
   },

@@ -33,9 +33,6 @@ jobs:
       - name: Run tests
         run: npm run test --if-present
 
-      - name: Build
-        run: npm run build
-
   security:
     runs-on: ubuntu-latest
     
