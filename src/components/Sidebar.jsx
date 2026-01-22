@@ -28,21 +28,27 @@ export default function Sidebar({ activePage, setActivePage, isOpen }) {
       animate={{
         width: isOpen ? '16rem' : '5rem',
       }}
-      className="fixed left-0 top-0 h-screen glass-effect border-r border-white/10 z-50"
+      className="fixed left-0 top-0 h-screen glass-effect border-r border-white/10 z-50 backdrop-blur-2xl"
     >
       <div className="p-6">
-        {/* Logo */}
+        {/* Logo - Enhanced */}
         <div className="flex items-center gap-3 mb-10">
-          <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
+          <motion.div 
+            whileHover={{ rotate: 180, scale: 1.1 }}
+            transition={{ duration: 0.5 }}
+            className="w-10 h-10 bg-gradient-to-br from-primary-500 via-accent-violet to-accent-purple rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/30 relative"
+          >
             <Zap className="w-6 h-6 text-white" />
-          </div>
+            {/* Glow effect */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary-500 to-accent-purple rounded-xl blur-lg opacity-50 -z-10"></div>
+          </motion.div>
           {isOpen && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.1 }}
             >
-              <h1 className="text-xl font-bold bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent">
+              <h1 className="text-xl font-bold text-gradient-primary">
                 Wallestars
               </h1>
               <p className="text-xs text-dark-400">Control Center</p>
@@ -50,7 +56,7 @@ export default function Sidebar({ activePage, setActivePage, isOpen }) {
           )}
         </div>
 
-        {/* Menu Items */}
+        {/* Menu Items - Enhanced */}
         <nav className="space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
@@ -60,23 +66,32 @@ export default function Sidebar({ activePage, setActivePage, isOpen }) {
               <motion.button
                 key={item.id}
                 onClick={() => setActivePage(item.id)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: 1.03, x: 4 }}
+                whileTap={{ scale: 0.97 }}
                 className={`
-                  w-full flex items-center gap-3 px-4 py-3 rounded-lg
-                  transition-all duration-200 relative overflow-hidden
+                  w-full flex items-center gap-3 px-4 py-3 rounded-xl
+                  transition-all duration-300 relative overflow-hidden group
                   ${isActive
-                    ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/30'
-                    : 'text-dark-300 hover:text-white hover:bg-white/5'
+                    ? 'bg-gradient-to-r from-primary-500 via-accent-violet to-accent-purple text-white shadow-lg shadow-primary-500/40 border border-white/20'
+                    : 'text-dark-300 hover:text-white hover:bg-white/10 border border-transparent hover:border-white/10'
                   }
                 `}
               >
                 {isActive && (
-                  <motion.div
-                    layoutId="activeTab"
-                    className="absolute inset-0 bg-gradient-to-r from-primary-500 to-primary-600"
-                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                  />
+                  <>
+                    <motion.div
+                      layoutId="activeTab"
+                      className="absolute inset-0 bg-gradient-to-r from-primary-500 via-accent-violet to-accent-purple"
+                      transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                    />
+                    {/* Shimmer effect for active tab */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
+                  </>
+                )}
+
+                {/* Hover glow effect */}
+                {!isActive && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary-500/0 via-primary-500/5 to-primary-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 )}
 
                 <Icon className="w-5 h-5 relative z-10" />
@@ -85,7 +100,7 @@ export default function Sidebar({ activePage, setActivePage, isOpen }) {
                   <motion.span
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="relative z-10 font-medium"
+                    className="relative z-10 font-semibold"
                   >
                     {item.name}
                   </motion.span>
@@ -96,25 +111,32 @@ export default function Sidebar({ activePage, setActivePage, isOpen }) {
         </nav>
       </div>
 
-      {/* Status indicator */}
+      {/* Status indicator - Enhanced */}
       <div className="absolute bottom-6 left-6 right-6">
-        <div className="glass-effect rounded-lg p-4">
+        <motion.div 
+          whileHover={{ scale: 1.02 }}
+          className="glass-effect rounded-xl p-4 border border-emerald-500/20 bg-emerald-500/5"
+        >
           <div className="flex items-center gap-2">
             <div className="relative">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <div className="absolute inset-0 w-2 h-2 bg-green-500 rounded-full pulse-ring"></div>
+              <motion.div 
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="w-2.5 h-2.5 bg-emerald-500 rounded-full shadow-lg shadow-emerald-500/50"
+              ></motion.div>
+              <div className="absolute inset-0 w-2.5 h-2.5 bg-emerald-500 rounded-full pulse-ring"></div>
             </div>
             {isOpen && (
               <motion.span
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="text-sm text-dark-300"
+                className="text-sm font-medium text-emerald-400"
               >
                 System Online
               </motion.span>
             )}
           </div>
-        </div>
+        </motion.div>
       </div>
     </motion.aside>
   );

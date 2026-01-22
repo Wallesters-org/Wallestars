@@ -8,23 +8,26 @@ export default {
     extend: {
       colors: {
         primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6',
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
         },
         accent: {
-          cyan: '#22d3ee',
+          cyan: '#06b6d4',
           purple: '#a855f7',
           pink: '#ec4899',
           amber: '#f59e0b',
           emerald: '#10b981',
+          violet: '#8b5cf6',
+          rose: '#f43f5e',
+          indigo: '#6366f1',
         },
         dark: {
           50: '#f8fafc',
@@ -49,11 +52,16 @@ export default {
         'shimmer': 'shimmer 2s linear infinite',
         'slide-up': 'slide-up 0.5s ease-out',
         'slide-down': 'slide-down 0.5s ease-out',
+        'gradient-x': 'gradient-x 3s ease infinite',
+        'gradient-y': 'gradient-y 3s ease infinite',
+        'gradient-xy': 'gradient-xy 6s ease infinite',
+        'scale-in': 'scale-in 0.3s ease-out',
+        'fade-in-up': 'fade-in-up 0.6s ease-out',
       },
       keyframes: {
         glow: {
-          '0%': { boxShadow: '0 0 5px rgba(14, 165, 233, 0.5), 0 0 10px rgba(14, 165, 233, 0.3)' },
-          '100%': { boxShadow: '0 0 10px rgba(14, 165, 233, 0.6), 0 0 20px rgba(14, 165, 233, 0.4), 0 0 30px rgba(14, 165, 233, 0.2)' },
+          '0%': { boxShadow: '0 0 5px rgba(59, 130, 246, 0.5), 0 0 10px rgba(59, 130, 246, 0.3)' },
+          '100%': { boxShadow: '0 0 10px rgba(59, 130, 246, 0.6), 0 0 20px rgba(59, 130, 246, 0.4), 0 0 30px rgba(59, 130, 246, 0.2)' },
         },
         float: {
           '0%, 100%': { transform: 'translateY(0px)' },
@@ -69,6 +77,28 @@ export default {
         },
         'slide-down': {
           '0%': { transform: 'translateY(-20px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        'gradient-x': {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+        },
+        'gradient-y': {
+          '0%, 100%': { backgroundPosition: '50% 0%' },
+          '50%': { backgroundPosition: '50% 100%' },
+        },
+        'gradient-xy': {
+          '0%, 100%': { backgroundPosition: '0% 0%' },
+          '25%': { backgroundPosition: '100% 0%' },
+          '50%': { backgroundPosition: '100% 100%' },
+          '75%': { backgroundPosition: '0% 100%' },
+        },
+        'scale-in': {
+          '0%': { transform: 'scale(0.9)', opacity: '0' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        'fade-in-up': {
+          '0%': { transform: 'translateY(30px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
       },
