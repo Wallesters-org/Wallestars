@@ -1,0 +1,360 @@
+{
+  "name": "Airtop AI Agent Browser Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "browser-agent",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [100, 300],
+      "webhookId": "browser-agent"
+    },
+    {
+      "parameters": {
+        "resource": "session",
+        "operation": "createSession",
+        "options": {
+          "timeoutMinutes": 10
+        }
+      },
+      "id": "create-session",
+      "name": "Create Session",
+      "type": "n8n-nodes-base.airtop",
+      "typeVersion": 1,
+      "position": [300, 300],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "window",
+        "operation": "createWindow",
+        "sessionId": "={{ $json.data.sessionId }}"
+      },
+      "id": "create-window",
+      "name": "Create Window",
+      "type": "n8n-nodes-base.airtop",
+      "typeVersion": 1,
+      "position": [500, 300],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook Trigger').item.json.task }}",
+        "options": {
+          "systemMessage": "You are a browser automation assistant. You have access to a browser session with tools to navigate URLs, click elements, type text, query page content, and take screenshots.\n\nIMPORTANT: The browser session is already created. Use the available tools to complete the user's task.\n\nAvailable tools:\n- Load URL: Navigate to a specific URL\n- Query Page: Extract information from the current page using natural language\n- Click Element: Click on an element described in natural language\n- Type Text: Type text into an input field\n- Take Screenshot: Capture the current page state\n\nAlways start by loading the target URL, then perform the required actions step by step."
+        }
+      },
+      "id": "ai-agent",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "model": "claude-sonnet-4-20250514",
+        "options": {
+          "maxTokensToSample": 4096
+        }
+      },
+      "id": "claude-model",
+      "name": "Claude Sonnet 4",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.2,
+      "position": [700, 500],
+      "credentials": {
+        "anthropicApi": {
+          "id": "{{ANTHROPIC_CREDENTIAL_ID}}",
+          "name": "Anthropic API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "window",
+        "operation": "loadUrl",
+        "sessionId": "={{ $('Create Session').item.json.data.sessionId }}",
+        "windowId": "={{ $('Create Window').item.json.data.windowId }}",
+        "url": "={{ $fromAI(\"url\", \"The URL to navigate to\", \"string\") }}"
+      },
+      "id": "load-url",
+      "name": "Load URL",
+      "type": "n8n-nodes-base.airtop",
+      "typeVersion": 1,
+      "position": [500, 500],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "extraction",
+        "operation": "queryPage",
+        "sessionId": "={{ $('Create Session').item.json.data.sessionId }}",
+        "windowId": "={{ $('Create Window').item.json.data.windowId }}",
+        "prompt": "={{ $fromAI(\"query\", \"What information to extract from the page\", \"string\") }}"
+      },
+      "id": "query-page",
+      "name": "Query Page",
+      "type": "n8n-nodes-base.airtop",
+      "typeVersion": 1,
+      "position": [500, 650],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "interaction",
+        "operation": "click",
+        "sessionId": "={{ $('Create Session').item.json.data.sessionId }}",
+        "windowId": "={{ $('Create Window').item.json.data.windowId }}",
+        "elementDescription": "={{ $fromAI(\"element\", \"Natural language description of the element to click\", \"string\") }}"
+      },
+      "id": "click-element",
+      "name": "Click Element",
+      "type": "n8n-nodes-base.airtop",
+      "typeVersion": 1,
+      "position": [700, 650],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "interaction",
+        "operation": "type",
+        "sessionId": "={{ $('Create Session').item.json.data.sessionId }}",
+        "windowId": "={{ $('Create Window').item.json.data.windowId }}",
+        "elementDescription": "={{ $fromAI(\"inputField\", \"Description of the input field to type into\", \"string\") }}",
+        "text": "={{ $fromAI(\"textToType\", \"The text content to type\", \"string\") }}"
+      },
+      "id": "type-text",
+      "name": "Type Text",
+      "type": "n8n-nodes-base.airtop",
+      "typeVersion": 1,
+      "position": [900, 650],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "window",
+        "operation": "takeScreenshot",
+        "sessionId": "={{ $('Create Session').item.json.data.sessionId }}",
+        "windowId": "={{ $('Create Window').item.json.data.windowId }}"
+      },
+      "id": "take-screenshot",
+      "name": "Take Screenshot",
+      "type": "n8n-nodes-base.airtop",
+      "typeVersion": 1,
+      "position": [900, 500],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "session",
+        "operation": "terminateSession",
+        "sessionId": "={{ $('Create Session').item.json.data.sessionId }}"
+      },
+      "id": "terminate-session",
+      "name": "Terminate Session",
+      "type": "n8n-nodes-base.airtop",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, result: $json.output || $json.text, timestamp: new Date().toISOString() }) }}"
+      },
+      "id": "respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1100, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Create Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Session": {
+      "main": [
+        [
+          {
+            "node": "Create Window",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Window": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Terminate Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Terminate Session": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Sonnet 4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load URL": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Page": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Click Element": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Type Text": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Take Screenshot": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    "airtop",
+    "ai-agent",
+    "browser-automation",
+    "wallestars"
+  ],
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "1.0.0"
+}
