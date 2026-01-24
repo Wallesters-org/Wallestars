@@ -14,6 +14,8 @@
     "test": "vitest run",
     "test:ci": "vitest run --coverage",
     "test:watch": "vitest",
+    "test:airtop": "node scripts/test-airtop-workflows.js",
+    "test:all": "npm run test && npm run test:airtop",
     "lint": "echo \"Linting not configured yet\" && exit 0",
     "validate-env": "node validate-env.js",
     "prestart": "node validate-env.js"
