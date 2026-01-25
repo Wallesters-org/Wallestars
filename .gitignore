@@ -24,6 +24,7 @@ build/
 
 # Test coverage
 coverage/
+test-results*.json
 
 # Logs
 logs/

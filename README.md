@@ -84,6 +84,18 @@
 - **Quick Links** - Direct access to Anthropic Console Workbench
 - **Comprehensive Templates** - Detailed specifications for AI-powered apps
 
+### 🤖 Airtop AI Agent Workflows
+- **Browser Automation** - AI-powered web browser automation via Airtop
+- **SMS OTP Verification** - Automated SMS code extraction and verification
+- **Email OTP Verification** - Automated email code extraction with temporary aliases
+- **Profile Creation Orchestrator** - Complete automated user verification flow
+- **n8n Integration** - 4 production-ready workflows with comprehensive documentation
+- **Full Test Suite** - 34 automated tests with 100% success rate
+
+> 📖 **Quick Start:** See [AIRTOP_WORKFLOWS_QUICKSTART.md](AIRTOP_WORKFLOWS_QUICKSTART.md) for setup and testing
+> 
+> 📚 **Full Docs:** [n8n-workflows/](n8n-workflows/) directory contains complete guides and test cases
+
 ### 🎨 Professional UI/UX
 - **Modern Design** - Tailwind CSS with custom components
 - **Smooth Animations** - Framer Motion for fluid transitions
