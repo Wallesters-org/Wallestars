@@ -10,6 +10,7 @@ import QRScanner from './pages/QRScanner';
 import Settings from './pages/Settings';
 import PromptGenerator from './pages/PromptGenerator';
 import SmartScan from './pages/SmartScan';
+import VisualCategorization from './pages/VisualCategorization';
 import { SocketProvider } from './context/SocketContext';
 import { ThemeProvider } from './context/ThemeContext';
 
@@ -24,6 +25,7 @@ function App() {
     android: <AndroidControl />,
     qrscanner: <QRScanner />,
     smartscan: <SmartScan />,
+    categorize: <VisualCategorization />,
     promptgen: <PromptGenerator />,
     settings: <Settings />
   };

@@ -9,7 +9,8 @@ import {
   Zap,
   QrCode
   Sparkles,
-  ScanLine
+  ScanLine,
+  FolderTree
 } from 'lucide-react';
 
 const menuItems = [
@@ -19,6 +20,7 @@ const menuItems = [
   { id: 'android', name: 'Android Control', icon: Smartphone },
   { id: 'qrscanner', name: 'QR Scanner', icon: QrCode },
   { id: 'smartscan', name: 'Smart Scan', icon: ScanLine },
+  { id: 'categorize', name: 'Visual Categorization', icon: FolderTree },
   { id: 'promptgen', name: 'Prompt Generator', icon: Sparkles },
   { id: 'settings', name: 'Settings', icon: Settings },
 ];
