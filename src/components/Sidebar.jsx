@@ -7,9 +7,10 @@ import {
   Smartphone,
   Settings,
   Zap,
-  QrCode
+  QrCode,
   Sparkles,
-  ScanLine
+  ScanLine,
+  Calculator
 } from 'lucide-react';
 
 const menuItems = [
@@ -20,6 +21,7 @@ const menuItems = [
   { id: 'qrscanner', name: 'QR Scanner', icon: QrCode },
   { id: 'smartscan', name: 'Smart Scan', icon: ScanLine },
   { id: 'promptgen', name: 'Prompt Generator', icon: Sparkles },
+  { id: 'calculator', name: 'Calculator', icon: Calculator },
   { id: 'settings', name: 'Settings', icon: Settings },
 ];
 
