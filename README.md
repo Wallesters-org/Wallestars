@@ -13,7 +13,7 @@
 
 *Beautiful real-time visualization • Computer Use • Device Control • MCP Support*
 
-[Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [MCP Setup](#-mcp-model-context-protocol) • **[Site Access](SITE_ACCESS_INSTRUCTIONS.md)**
+[Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [MCP Setup](#-mcp-model-context-protocol) • **[Site Access](SITE_ACCESS_INSTRUCTIONS.md)** • [Automation](AUTOMATION_CONFIG.md) • [Roadmap](PROJECT_ROADMAP.md)
 
 </div>
 
@@ -41,6 +41,17 @@
 - 📱 Automate Android devices via ADB
 - 📊 Monitor system metrics in real-time
 - 🎨 Enjoy a stunning, responsive interface
+- 🤖 Automated PR workflows with MCP integration
+
+### 📦 Repository Structure
+
+This repository uses a consolidated structure for better organization:
+- **Main Repository**: Application code, integrations, database schemas
+- **Integrations**: Third-party SDKs (e.g., Antigravity) in `/integrations`
+- **Database**: Schemas and migrations in `/database`
+- **Workflows**: GitHub Actions in `.github/workflows`
+
+📚 **For migration details, see [REPOSITORY_CONSOLIDATION.md](REPOSITORY_CONSOLIDATION.md)**
 
 ---
 
@@ -229,6 +240,44 @@ MCP is an open protocol that standardizes how AI applications interact with loca
 3. **Restart Claude Desktop** and start using Wallestars!
 
 📚 **For detailed setup instructions, see [MCP_SETUP.md](MCP_SETUP.md)**
+
+---
+
+## 🤖 Automation & Workflows
+
+Wallestars includes comprehensive automation for managing pull requests and development workflows.
+
+### PR Session Management
+
+Every active pull request gets:
+- ✅ **Automatic agent assignment** via round-robin
+- ✅ **Comprehensive testing** (unit, integration, build)
+- ✅ **Code quality checks** (linting, security scanning)
+- ✅ **MCP validation** (Claude AI code review)
+- ✅ **Merge readiness evaluation**
+- ✅ **Real-time notifications** and reporting
+
+### Available Workflows
+
+| Workflow | Purpose | Trigger |
+|----------|---------|---------|
+| **pr-session-manager** | Master PR automation | PR events, schedule, manual |
+| pr-automation | Agent delegation | PR events |
+| testing-automation | Test suite execution | PR & push |
+| ci | Continuous integration | PR & push to main |
+| agent-monitoring | Agent health checks | Schedule (10min) |
+
+### Quick Start
+
+Workflows activate automatically when you:
+1. **Open a PR** - Session manager starts
+2. **Update PR** - Tests run automatically
+3. **Request review** - Agent notified
+4. **Merge** - Deployment triggered
+
+📚 **For detailed automation documentation, see [AUTOMATION_CONFIG.md](AUTOMATION_CONFIG.md)**
+
+📚 **For project roadmap and processes, see [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)**
 
 ---
 
