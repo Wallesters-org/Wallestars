@@ -11,24 +11,24 @@ router.post('/chat', async (req, res) => {
   try {
     const { message, conversationHistory = [] } = req.body;
 
-    const messages = [
+    const conversationMessages = [
       ...conversationHistory,
       { role: 'user', content: message }
     ];
 
-    const response = await anthropic.messages.create({
+    const chatResponse = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
       max_tokens: 4096,
-      messages: messages,
+      messages: conversationMessages,
     });
 
     res.json({
       success: true,
-      response: response.content[0].text,
-      usage: response.usage,
+      response: chatResponse.content[0].text,
+      usage: chatResponse.usage,
       conversationHistory: [
-        ...messages,
-        { role: 'assistant', content: response.content[0].text }
+        ...conversationMessages,
+        { role: 'assistant', content: chatResponse.content[0].text }
       ]
     });
   } catch (error) {
@@ -63,28 +63,28 @@ router.post('/computer-use', async (req, res) => {
       ]
     }];
 
-    const response = await anthropic.messages.create({
+    const computerUseResponse = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
       max_tokens: 1024,
       messages: messages,
     });
 
-    const actionText = response.content[0].text;
-    let action;
+    const responseText = computerUseResponse.content[0].text;
+    let actionData;
 
     try {
-      action = JSON.parse(actionText);
+      actionData = JSON.parse(responseText);
     } catch {
-      action = {
+      actionData = {
         action: 'none',
-        explanation: actionText
+        explanation: responseText
       };
     }
 
     res.json({
       success: true,
-      action: action,
-      rawResponse: actionText
+      action: actionData,
+      rawResponse: responseText
     });
   } catch (error) {
     console.error('Computer Use Error:', error);

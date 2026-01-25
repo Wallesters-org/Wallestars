@@ -46,13 +46,13 @@ router.post('/screenshot', async (req, res) => {
     await execAsync(`adb ${device} pull /sdcard/screenshot.png /tmp/android_screenshot.png`);
 
     // Read and encode as base64
-    const fs = await import('fs/promises');
-    const imageBuffer = await fs.readFile('/tmp/android_screenshot.png');
-    const base64 = imageBuffer.toString('base64');
+    const fsPromises = await import('fs/promises');
+    const imageBuffer = await fsPromises.readFile('/tmp/android_screenshot.png');
+    const base64Screenshot = imageBuffer.toString('base64');
 
     res.json({
       success: true,
-      screenshot: base64,
+      screenshot: base64Screenshot,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
