@@ -8,6 +8,7 @@ Get up and running with Wallestars Model Context Protocol integration in under 5
 - [ ] Anthropic API key ([Get one](https://console.anthropic.com))
 - [ ] Claude Desktop installed (optional, for MCP integration)
 - [ ] Linux: `xdotool` installed (`sudo apt install xdotool`)
+- [ ] Windows: WSL 2 recommended ([See WSL Setup](WSL_NETWORKING_SETUP.md))
 - [ ] Android: `adb` in PATH (if using Android control)
 
 ## Quick Setup (3 Steps)
@@ -69,6 +70,31 @@ npm start
 ```
 
 3. Restart Claude Desktop
+
+## 🪟 Windows WSL Quick Setup
+
+Running on Windows? Use WSL 2 for best results:
+
+```powershell
+# 1. Install WSL (PowerShell as Admin)
+wsl --install
+
+# 2. After restart, inside WSL:
+cd ~
+git clone https://github.com/Wallesters-org/Wallestars.git
+cd Wallestars
+npm install
+
+# 3. Configure and start
+cp .env.example .env
+# Edit .env with your API key
+npm start
+
+# 4. Access from Windows browser
+# http://localhost:3000
+```
+
+📚 **Full WSL guide**: [WSL_NETWORKING_SETUP.md](WSL_NETWORKING_SETUP.md)
 
 ## Try It Out!
 
