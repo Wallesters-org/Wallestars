@@ -132,7 +132,7 @@ Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Yellow
 Write-Host "1. Restart Claude Desktop to load the new configuration"
 Write-Host "2. Try asking Claude: 'Take a screenshot of my desktop'"
-Write-Host "3. For more details, see MCP_SETUP.md"
+Write-Host "3. For more details, see docs/MCP_SETUP.md"
 Write-Host ""
 Write-Host "🎉 Setup complete!" -ForegroundColor Green
 
