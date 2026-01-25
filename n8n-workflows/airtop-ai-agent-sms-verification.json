@@ -1,0 +1,364 @@
+{
+  "name": "Airtop AI Agent SMS Verification",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sms-verify-agent",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [100, 300],
+      "webhookId": "sms-verify-agent"
+    },
+    {
+      "parameters": {
+        "resource": "session",
+        "operation": "createSession",
+        "options": {
+          "timeoutMinutes": 5
+        }
+      },
+      "id": "create-session",
+      "name": "Create Session",
+      "type": "n8n-nodes-base.airtop",
+      "typeVersion": 1,
+      "position": [300, 300],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "window",
+        "operation": "createWindow",
+        "sessionId": "={{ $json.data.sessionId }}"
+      },
+      "id": "create-window",
+      "name": "Create Window",
+      "type": "n8n-nodes-base.airtop",
+      "typeVersion": 1,
+      "position": [500, 300],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Extract the SMS verification code for phone number: {{ $('Webhook Trigger').item.json.phone_number }}\n\nSMS Provider URL: {{ $('Webhook Trigger').item.json.sms_provider_url || 'https://receive-sms-online.info' }}\n\nExpected sender (if known): {{ $('Webhook Trigger').item.json.expected_sender || 'any' }}\n\nInstructions:\n1. Navigate to the SMS provider URL\n2. Find the phone number on the page and click it to view messages\n3. Look for the most recent SMS message containing a verification code (usually 4-6 digits)\n4. Extract and return the code\n\nReturn ONLY the verification code as a JSON object: {\"code\": \"123456\", \"sender\": \"sender name\", \"message_time\": \"timestamp if available\"}",
+        "options": {
+          "systemMessage": "You are an SMS verification code extractor. Your job is to navigate SMS inbox websites and extract verification codes from messages.\n\nYou have browser tools available:\n- Load URL: Navigate to the SMS provider website\n- Query Page: Extract information like phone numbers, messages, or codes\n- Click Element: Click on phone numbers or message links\n\nAlways:\n1. First load the SMS provider URL\n2. Find and click the target phone number\n3. Query the page to extract the verification code\n4. Return the code in JSON format\n\nBe thorough but efficient. If you can't find a code after 2-3 attempts, report that no code was found.",
+          "maxIterations": 5
+        }
+      },
+      "id": "ai-agent",
+      "name": "AI Agent - SMS Extractor",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "model": "claude-sonnet-4-20250514",
+        "options": {
+          "maxTokensToSample": 2048
+        }
+      },
+      "id": "claude-model",
+      "name": "Claude Sonnet 4",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.2,
+      "position": [700, 500],
+      "credentials": {
+        "anthropicApi": {
+          "id": "{{ANTHROPIC_CREDENTIAL_ID}}",
+          "name": "Anthropic API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "window",
+        "operation": "loadUrl",
+        "sessionId": "={{ $('Create Session').item.json.data.sessionId }}",
+        "windowId": "={{ $('Create Window').item.json.data.windowId }}",
+        "url": "={{ $fromAI(\"url\", \"The SMS provider URL to navigate to\", \"string\") }}"
+      },
+      "id": "load-url",
+      "name": "Load URL",
+      "type": "n8n-nodes-base.airtop",
+      "typeVersion": 1,
+      "position": [500, 500],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "extraction",
+        "operation": "queryPage",
+        "sessionId": "={{ $('Create Session').item.json.data.sessionId }}",
+        "windowId": "={{ $('Create Window').item.json.data.windowId }}",
+        "prompt": "={{ $fromAI(\"query\", \"What to search for on the page - phone numbers, messages, or verification codes\", \"string\") }}"
+      },
+      "id": "query-page",
+      "name": "Query Page",
+      "type": "n8n-nodes-base.airtop",
+      "typeVersion": 1,
+      "position": [500, 650],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "interaction",
+        "operation": "click",
+        "sessionId": "={{ $('Create Session').item.json.data.sessionId }}",
+        "windowId": "={{ $('Create Window').item.json.data.windowId }}",
+        "elementDescription": "={{ $fromAI(\"element\", \"Element to click, such as a phone number link or message\", \"string\") }}"
+      },
+      "id": "click-element",
+      "name": "Click Element",
+      "type": "n8n-nodes-base.airtop",
+      "typeVersion": 1,
+      "position": [700, 650],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI Agent response and extract verification code\nconst response = $input.first().json;\nconst agentOutput = response.output || response.text || '';\n\nlet result = {\n  code: null,\n  sender: null,\n  message_time: null,\n  raw_response: agentOutput,\n  success: false\n};\n\n// Try to parse JSON from agent output\ntry {\n  const jsonMatch = agentOutput.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    const parsed = JSON.parse(jsonMatch[0]);\n    result.code = parsed.code || null;\n    result.sender = parsed.sender || null;\n    result.message_time = parsed.message_time || null;\n    result.success = !!result.code;\n  }\n} catch(e) {\n  // Fallback: extract any 4-6 digit code directly\n  const codeMatch = agentOutput.match(/\\b(\\d{4,6})\\b/);\n  if (codeMatch) {\n    result.code = codeMatch[1];\n    result.success = true;\n  }\n}\n\n// Add original request data\nconst webhookData = $('Webhook Trigger').first().json;\nresult.phone_number = webhookData.phone_number;\nresult.profile_id = webhookData.profile_id;\nresult.user_id = webhookData.user_id;\nresult.extracted_at = new Date().toISOString();\n\nreturn { json: result };"
+      },
+      "id": "parse-result",
+      "name": "Parse Agent Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "resource": "session",
+        "operation": "terminateSession",
+        "sessionId": "={{ $('Create Session').item.json.data.sessionId }}"
+      },
+      "id": "terminate-session",
+      "name": "Terminate Session",
+      "type": "n8n-nodes-base.airtop",
+      "typeVersion": 1,
+      "position": [1100, 300],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "verified_business_profiles",
+        "filterType": "string",
+        "filterString": "id=eq.{{ $json.profile_id }}",
+        "dataMode": "defineInNode",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldName": "sms_verification_code",
+              "fieldValue": "={{ $json.code }}"
+            },
+            {
+              "fieldName": "sms_verified_at",
+              "fieldValue": "={{ $json.success ? new Date().toISOString() : null }}"
+            }
+          ]
+        }
+      },
+      "id": "update-db",
+      "name": "Update Verification in DB",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1300, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "{{SUPABASE_CREDENTIAL_ID}}",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: $json.success, code: $json.code, sender: $json.sender, phone_number: $json.phone_number, extracted_at: $json.extracted_at, message: $json.success ? 'Verification code extracted successfully' : 'Failed to extract verification code' }) }}"
+      },
+      "id": "respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1500, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Create Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Session": {
+      "main": [
+        [
+          {
+            "node": "Create Window",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Window": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - SMS Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - SMS Extractor": {
+      "main": [
+        [
+          {
+            "node": "Parse Agent Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Agent Result": {
+      "main": [
+        [
+          {
+            "node": "Terminate Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Terminate Session": {
+      "main": [
+        [
+          {
+            "node": "Update Verification in DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Verification in DB": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Sonnet 4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - SMS Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load URL": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - SMS Extractor",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Page": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - SMS Extractor",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Click Element": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - SMS Extractor",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    "airtop",
+    "ai-agent",
+    "sms",
+    "verification",
+    "wallestars"
+  ],
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "1.0.0"
+}
