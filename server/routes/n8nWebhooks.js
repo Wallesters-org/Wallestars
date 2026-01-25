@@ -1,4 +1,5 @@
 import express from 'express';
+import { processGitHubEventForDelegation } from '../services/agentDelegation.js';
 
 const router = express.Router();
 
@@ -113,6 +114,21 @@ router.post('/github-event', (req, res) => {
       number: event.number
     });
 
+    // Process for agent delegation
+    const delegationResult = processGitHubEventForDelegation(event);
+    
+    if (delegationResult && delegationResult.success) {
+      console.log(`🤖 Agent Delegation:`, delegationResult.message);
+      
+      // Emit agent delegation event to WebSocket clients
+      if (global.io) {
+        global.io.emit('n8n:agent-delegation', {
+          assignment: delegationResult.assignment,
+          event: event
+        });
+      }
+    }
+
     // Emit to connected WebSocket clients
     if (global.io) {
       global.io.emit('n8n:github-event', event);
@@ -121,7 +137,8 @@ router.post('/github-event', (req, res) => {
     res.json({
       success: true,
       message: 'GitHub event received',
-      eventId: githubEvents.length
+      eventId: githubEvents.length,
+      delegation: delegationResult
     });
   } catch (error) {
     console.error('Error processing GitHub event:', error);
