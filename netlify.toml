@@ -4,19 +4,14 @@
   publish = "dist"
   
   # Build command for the application
-  # Note: Netlify automatically runs npm install before this command
-  command = "npm run build"
+  # Explicitly run npm install with --legacy-peer-deps before building
+  command = "npm install --legacy-peer-deps && npm run build"
   
   # Functions directory (for serverless backend)
   functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "20"
-  # NOTE: --legacy-peer-deps is required due to peer dependency conflicts between
-  # some devDependencies (e.g., @vitejs/plugin-react and react versions).
-  # This flag allows the build to proceed despite these conflicts.
-  # TODO: Review and update dependencies to resolve peer conflicts if possible.
-  NPM_FLAGS = "--legacy-peer-deps"
 
 # Headers for security and CORS
 [[headers]]
