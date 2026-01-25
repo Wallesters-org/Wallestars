@@ -1,5 +1,8 @@
 # Netlify Configuration for Wallestars Control Center
 [build]
+  # Base directory for the build (repository root)
+  base = "."
+  
   # Directory with the frontend build output
   publish = "dist"
   
