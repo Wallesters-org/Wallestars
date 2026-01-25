@@ -334,6 +334,12 @@ For security concerns, see our [Security Policy](SECURITY.md).
 
 ---
 
+## 📝 Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a detailed history of changes and releases.
+
+---
+
 ## 📄 License
 
 MIT License
