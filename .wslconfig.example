@@ -1,0 +1,60 @@
+# WSL Configuration Example
+# Place this file at: C:\Users\<YourUsername>\.wslconfig
+# After editing, restart WSL with: wsl --shutdown
+
+[wsl2]
+# Limits VM memory to 4GB (adjust based on your system)
+# Recommended: 50-75% of your total RAM
+memory=4GB
+
+# Sets the VM to use 2 processors (adjust based on your CPU)
+# Recommended: 50-75% of your total cores
+processors=2
+
+# Enable swap space (helps prevent OOM when memory is low)
+swap=2GB
+
+# Swap file path (optional, defaults to %USERPROFILE%\AppData\Local\Temp\swap.vhdx)
+# swapFile=C:\\Users\\<YourUsername>\\AppData\\Local\\Temp\\wsl-swap.vhdx
+
+# Disable page reporting (can improve performance)
+pageReporting=false
+
+# Enable nested virtualization (required for Docker, etc.)
+nestedVirtualization=true
+
+# Enable GUI app support (WSLg) - Required for X11 applications
+guiApplications=true
+
+# Set safe directory mode (recommended for security)
+# vmIdleTimeout=60000
+
+# Network configuration
+[experimental]
+# Enable DNS tunneling (helps with VPN compatibility)
+dnsTunneling=true
+
+# Enable network mirroring mode (Windows 11 22H2+)
+# This allows WSL to have the same network adapters as Windows
+# networkingMode=mirrored
+
+# Enable firewall integration
+autoProxy=true
+
+# Performance Tips:
+# ==================
+# 1. Set memory to at least 4GB for Wallestars (8GB recommended)
+# 2. Allocate at least 2 CPU cores
+# 3. Enable guiApplications for X11/GUI support
+# 4. Keep swap enabled to prevent OOM errors
+# 5. Enable nestedVirtualization if using Docker
+
+# After editing this file:
+# 1. Save it as: C:\Users\<YourUsername>\.wslconfig
+# 2. Open PowerShell or Command Prompt
+# 3. Run: wsl --shutdown
+# 4. Restart WSL: wsl
+# 5. Verify with: wsl --status
+
+# For more information, see:
+# https://learn.microsoft.com/windows/wsl/wsl-config#wslconfig

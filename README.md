@@ -102,6 +102,7 @@
 - **Anthropic API Key** ([Get one here](https://console.anthropic.com))
 - **Linux** (for Computer Use features)
   - `xdotool` installed: `sudo apt install xdotool`
+  - **Windows users:** Use [WSL (Windows Subsystem for Linux)](#-wsl-windows-subsystem-for-linux) - see [WSL Setup Guide](WSL_SETUP.md)
 - **Android SDK Platform Tools** (for Android control)
   - `adb` available in PATH
 
@@ -229,6 +230,51 @@ MCP is an open protocol that standardizes how AI applications interact with loca
 3. **Restart Claude Desktop** and start using Wallestars!
 
 📚 **For detailed setup instructions, see [MCP_SETUP.md](MCP_SETUP.md)**
+
+---
+
+## 🪟 WSL (Windows Subsystem for Linux)
+
+**Windows users** can run Wallestars natively using WSL, which provides a complete Linux environment on Windows without dual-booting or virtual machines.
+
+### Why WSL?
+
+- ✅ **Native Linux environment** on Windows
+- ✅ **Full compatibility** with Wallestars' Linux-based features
+- ✅ **GUI application support** via WSLg (xdotool, screenshots)
+- ✅ **Seamless integration** between Windows and Linux
+- ✅ **Better performance** than traditional VMs
+
+### Quick WSL Setup
+
+1. **Install WSL** (PowerShell as Administrator):
+   ```powershell
+   wsl --install
+   ```
+
+2. **Clone Wallestars in WSL**:
+   ```bash
+   # In WSL terminal
+   cd ~
+   git clone https://github.com/Wallesters-org/Wallestars.git
+   cd Wallestars
+   ```
+
+3. **Run WSL setup script**:
+   ```bash
+   ./setup-wsl.sh
+   ```
+
+4. **Restart Claude Desktop** (Windows) and start using Wallestars!
+
+📚 **For detailed WSL setup instructions, see [WSL_SETUP.md](WSL_SETUP.md)**
+
+### WSL Features
+- 🖥️ **Full Linux environment** with native performance
+- 🔗 **Network integration** - Access WSL services from Windows via `localhost`
+- 📁 **File system access** - Access Windows files from WSL and vice versa
+- 🎨 **GUI support** - Run X11 applications with WSLg
+- 🔧 **Development tools** - Use VS Code with Remote-WSL extension
 
 ---
 

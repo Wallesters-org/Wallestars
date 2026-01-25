@@ -34,6 +34,7 @@ Before configuring MCP, ensure you have:
 
 3. **System dependencies** (for computer use):
    - Linux: `xdotool` - Install with `sudo apt install xdotool`
+   - **Windows: Use WSL** - See [WSL Setup Guide](WSL_SETUP.md)
    - Android: `adb` (Android Debug Bridge) in your PATH
 
 4. **Environment configured**:
@@ -44,6 +45,8 @@ Before configuring MCP, ensure you have:
 
 5. **Claude Desktop** (optional, for Claude Desktop integration)
    - Download from [anthropic.com](https://www.anthropic.com)
+
+> **Windows Users:** This project is designed for Linux. Use [Windows Subsystem for Linux (WSL)](WSL_SETUP.md) for full compatibility. WSL provides a native Linux environment on Windows with excellent performance and GUI support.
 
 ## ⚙️ Configuration for Claude Desktop
 
@@ -83,6 +86,27 @@ The repository includes a `.mcp.json` file with the recommended configuration. T
    ```
 
    **Important**: Replace `/absolute/path/to/Wallestars` with the actual absolute path to your Wallestars installation.
+   
+   **For WSL users**: Use the WSL command wrapper instead:
+   ```json
+   {
+     "mcpServers": {
+       "wallestars-control": {
+         "command": "wsl",
+         "args": [
+           "bash", "-c",
+           "cd /home/yourusername/Wallestars && node server/index.js"
+         ],
+         "env": {
+           "ANTHROPIC_API_KEY": "sk-ant-your-key-here",
+           "ENABLE_COMPUTER_USE": "true"
+         }
+       }
+     }
+   }
+   ```
+   
+   Or simply run: `./setup-wsl.sh` for automated WSL configuration. See [WSL_SETUP.md](WSL_SETUP.md) for details.
 
 3. **Restart Claude Desktop** to load the new configuration
 
