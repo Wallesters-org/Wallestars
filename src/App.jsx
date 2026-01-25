@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import ClaudeChat from './pages/ClaudeChat';
 import ComputerControl from './pages/ComputerControl';
 import AndroidControl from './pages/AndroidControl';
+import QRScanner from './pages/QRScanner';
 import Settings from './pages/Settings';
 import PromptGenerator from './pages/PromptGenerator';
 import SmartScan from './pages/SmartScan';
@@ -21,6 +22,7 @@ function App() {
     chat: <ClaudeChat />,
     computer: <ComputerControl />,
     android: <AndroidControl />,
+    qrscanner: <QRScanner />,
     smartscan: <SmartScan />,
     promptgen: <PromptGenerator />,
     settings: <Settings />

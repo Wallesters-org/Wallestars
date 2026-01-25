@@ -95,6 +95,91 @@ router.post('/computer-use', async (req, res) => {
   }
 });
 
+// Analyze image for QR Scanner
+router.post('/analyze-image', async (req, res) => {
+  try {
+    const { image, prompt } = req.body;
+
+    if (!image) {
+      return res.status(400).json({
+        success: false,
+        error: 'Image data is required'
+      });
+    }
+
+    // Extract base64 data and type
+    const base64Data = image.split(',')[1];
+    const imageType = image.split(';')[0].split(':')[1];
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 2000,
+      messages: [{
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: imageType,
+              data: base64Data
+            }
+          },
+          {
+            type: 'text',
+            text: prompt || 'Analyze this image and provide key information.'
+          }
+        ]
+      }]
+    });
+
+    const responseText = response.content[0].text.trim();
+
+    // Try to extract JSON from response
+    let extractedData;
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+
+    if (jsonMatch) {
+      try {
+        extractedData = JSON.parse(jsonMatch[0]);
+      } catch (parseError) {
+        extractedData = {
+          title: 'Image Analysis',
+          category: 'other',
+          mainElements: [],
+          text: responseText,
+          colors: [],
+          context: responseText,
+          tags: []
+        };
+      }
+    } else {
+      extractedData = {
+        title: 'Image Analysis',
+        category: 'other',
+        mainElements: [],
+        text: responseText,
+        colors: [],
+        context: responseText,
+        tags: []
+      };
+    }
+
+    res.json({
+      success: true,
+      extractedData: extractedData,
+      rawResponse: responseText
+    });
+
+  } catch (error) {
+    console.error('Image Analysis Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Get model capabilities
 router.get('/capabilities', (req, res) => {
   res.json({
@@ -114,7 +199,8 @@ router.get('/capabilities', (req, res) => {
       computerUse: process.env.ENABLE_COMPUTER_USE === 'true',
       android: process.env.ENABLE_ANDROID === 'true',
       vision: true,
-      streaming: true
+      streaming: true,
+      qrScanner: true
     }
   });
 });
