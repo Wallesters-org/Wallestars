@@ -7,7 +7,7 @@ import {
   Smartphone,
   Settings,
   Zap,
-  QrCode
+  QrCode,
   Sparkles,
   ScanLine,
   Server
