@@ -54,6 +54,102 @@ const platformConfigs = {
         trialDays: 0,
         requiresCreditCard: false,
         capabilities: ['git_hosting', 'ci_cd', 'actions']
+    },
+    'Airtop': {
+        type: 'browser_automation',
+        registrationUrl: 'https://www.airtop.ai/signup',
+        apiEndpoint: 'https://api.airtop.ai/v1',
+        trialDays: 14,
+        requiresCreditCard: false,
+        capabilities: ['browser_automation', 'web_scraping', 'ai_browsing', 'session_management']
+    },
+    'GitLab': {
+        type: 'dev_tools',
+        registrationUrl: 'https://gitlab.com/users/sign_up',
+        apiEndpoint: 'https://gitlab.com/api/v4',
+        trialDays: 30,
+        requiresCreditCard: false,
+        capabilities: ['git_hosting', 'ci_cd', 'devops', 'container_registry']
+    },
+    'Perplexity AI': {
+        type: 'ai_agent',
+        registrationUrl: 'https://www.perplexity.ai/signup',
+        apiEndpoint: 'https://api.perplexity.ai',
+        trialDays: 7,
+        requiresCreditCard: false,
+        capabilities: ['web_search', 'chat', 'research', 'citations']
+    },
+    'Hugging Face': {
+        type: 'ai_agent',
+        registrationUrl: 'https://huggingface.co/join',
+        apiEndpoint: 'https://api-inference.huggingface.co',
+        trialDays: 0,
+        requiresCreditCard: false,
+        capabilities: ['model_hosting', 'inference', 'embeddings', 'transformers']
+    },
+    'Cohere': {
+        type: 'ai_agent',
+        registrationUrl: 'https://dashboard.cohere.com/signup',
+        apiEndpoint: 'https://api.cohere.ai/v1',
+        trialDays: 90,
+        requiresCreditCard: false,
+        capabilities: ['chat', 'embeddings', 'rerank', 'classify']
+    },
+    'Mistral AI': {
+        type: 'ai_agent',
+        registrationUrl: 'https://console.mistral.ai/signup',
+        apiEndpoint: 'https://api.mistral.ai/v1',
+        trialDays: 14,
+        requiresCreditCard: false,
+        capabilities: ['chat', 'code_generation', 'embeddings', 'function_calling']
+    },
+    'Google Gemini': {
+        type: 'ai_agent',
+        registrationUrl: 'https://ai.google.dev/',
+        apiEndpoint: 'https://generativelanguage.googleapis.com/v1',
+        trialDays: 0,
+        requiresCreditCard: false,
+        capabilities: ['chat', 'vision', 'code_generation', 'multimodal']
+    },
+    'Microsoft Copilot': {
+        type: 'ai_agent',
+        registrationUrl: 'https://copilot.microsoft.com/',
+        apiEndpoint: 'https://api.bing.microsoft.com/v7.0',
+        trialDays: 0,
+        requiresCreditCard: false,
+        capabilities: ['chat', 'code_generation', 'image_generation', 'web_search']
+    },
+    'Cursor': {
+        type: 'ai_agent',
+        registrationUrl: 'https://cursor.sh/signup',
+        apiEndpoint: 'https://api.cursor.sh/v1',
+        trialDays: 14,
+        requiresCreditCard: false,
+        capabilities: ['code_generation', 'code_completion', 'chat', 'refactoring']
+    },
+    'Replit': {
+        type: 'dev_tools',
+        registrationUrl: 'https://replit.com/signup',
+        apiEndpoint: 'https://api.replit.com/v1',
+        trialDays: 0,
+        requiresCreditCard: false,
+        capabilities: ['code_execution', 'hosting', 'collaboration', 'ai_assistant']
+    },
+    'Vercel AI': {
+        type: 'ai_agent',
+        registrationUrl: 'https://vercel.com/signup',
+        apiEndpoint: 'https://api.vercel.com/v1',
+        trialDays: 0,
+        requiresCreditCard: false,
+        capabilities: ['ai_sdk', 'streaming', 'edge_functions', 'model_routing']
+    },
+    'Groq': {
+        type: 'ai_agent',
+        registrationUrl: 'https://console.groq.com/signup',
+        apiEndpoint: 'https://api.groq.com/openai/v1',
+        trialDays: 0,
+        requiresCreditCard: false,
+        capabilities: ['chat', 'code_generation', 'fast_inference', 'llama_models']
     }
 };
 

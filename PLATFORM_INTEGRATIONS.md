@@ -678,5 +678,536 @@ TEAMS_ENABLED=true
 
 ---
 
-**Last Updated:** January 8, 2026
+## 🌐 Airtop Integration
+
+### Platform Overview
+**Airtop** is an AI-powered browser automation platform that enables intelligent web interactions, scraping, and session management.
+
+### Integration Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                  Wallestars Backend                     │
+├─────────────────────────────────────────────────────────┤
+│  ┌──────────────┐      ┌──────────────┐               │
+│  │    Claude    │◄────►│   Airtop     │               │
+│  │     AI       │      │   Browser    │               │
+│  └──────────────┘      └──────────────┘               │
+│         │                      │                        │
+│         └──────────┬───────────┘                        │
+│                    ▼                                    │
+│         ┌────────────────────┐                         │
+│         │  Browser Sessions  │                         │
+│         │  (AI-controlled)   │                         │
+│         └────────────────────┘                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Implementation Steps
+
+#### 1. Backend Setup
+
+**File: `server/integrations/airtop/client.js`**
+```javascript
+import axios from 'axios';
+
+export class AirtopClient {
+  constructor(apiKey) {
+    this.apiKey = apiKey;
+    this.baseUrl = 'https://api.airtop.ai/v1';
+    this.client = axios.create({
+      baseURL: this.baseUrl,
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+  }
+
+  async createSession(options = {}) {
+    const response = await this.client.post('/sessions', {
+      browser: options.browser || 'chromium',
+      headless: options.headless ?? true,
+      ...options
+    });
+    return response.data;
+  }
+
+  async navigateTo(sessionId, url) {
+    const response = await this.client.post(`/sessions/${sessionId}/navigate`, { url });
+    return response.data;
+  }
+
+  async executeAction(sessionId, action) {
+    const response = await this.client.post(`/sessions/${sessionId}/action`, action);
+    return response.data;
+  }
+
+  async getScreenshot(sessionId) {
+    const response = await this.client.get(`/sessions/${sessionId}/screenshot`);
+    return response.data;
+  }
+
+  async closeSession(sessionId) {
+    await this.client.delete(`/sessions/${sessionId}`);
+  }
+}
+```
+
+#### 2. Environment Configuration
+
+```bash
+AIRTOP_API_KEY=your_airtop_api_key_here
+AIRTOP_ENABLED=true
+```
+
+### Features
+- [x] Browser session management
+- [x] AI-powered navigation
+- [x] Screenshot capture
+- [x] Web scraping capabilities
+- [ ] Multi-browser support
+- [ ] Proxy integration
+
+---
+
+## 🦊 GitLab Integration
+
+### Platform Overview
+**GitLab** is a complete DevOps platform with Git repository management, CI/CD, and project management.
+
+### Integration Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                  GitLab Platform                        │
+│  - Repositories                                         │
+│  - CI/CD Pipelines                                      │
+│  - Container Registry                                   │
+│  - Issue Tracking                                       │
+└────────────────────┬────────────────────────────────────┘
+                     │ REST API v4
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│              Wallestars Backend                         │
+│  ┌────────────────────────────────────────┐            │
+│  │   GitLab API Client                    │            │
+│  │   - Repository management              │            │
+│  │   - Pipeline triggers                  │            │
+│  │   - Issue automation                   │            │
+│  └────────────────────────────────────────┘            │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Implementation Steps
+
+#### 1. Backend Client
+
+**File: `server/integrations/gitlab/client.js`**
+```javascript
+import axios from 'axios';
+
+export class GitLabClient {
+  constructor(token, baseUrl = 'https://gitlab.com') {
+    this.token = token;
+    this.baseUrl = `${baseUrl}/api/v4`;
+    this.client = axios.create({
+      baseURL: this.baseUrl,
+      headers: {
+        'PRIVATE-TOKEN': this.token,
+        'Content-Type': 'application/json'
+      }
+    });
+  }
+
+  async getProjects() {
+    const response = await this.client.get('/projects');
+    return response.data;
+  }
+
+  async getProject(projectId) {
+    const response = await this.client.get(`/projects/${projectId}`);
+    return response.data;
+  }
+
+  async triggerPipeline(projectId, ref = 'main') {
+    const response = await this.client.post(`/projects/${projectId}/pipeline`, { ref });
+    return response.data;
+  }
+
+  async createIssue(projectId, title, description) {
+    const response = await this.client.post(`/projects/${projectId}/issues`, {
+      title,
+      description
+    });
+    return response.data;
+  }
+
+  async getMergeRequests(projectId) {
+    const response = await this.client.get(`/projects/${projectId}/merge_requests`);
+    return response.data;
+  }
+}
+```
+
+#### 2. Environment Configuration
+
+```bash
+GITLAB_TOKEN=your_gitlab_personal_access_token_here
+GITLAB_URL=https://gitlab.com
+GITLAB_ENABLED=true
+```
+
+### Features
+- [x] Repository management
+- [x] Pipeline triggers
+- [x] Issue creation
+- [x] Merge request handling
+- [ ] Webhook integration
+- [ ] Container registry access
+
+---
+
+## 🔮 Perplexity AI Integration
+
+### Platform Overview
+**Perplexity AI** is an AI-powered search engine that provides accurate, cited responses.
+
+### Implementation
+
+**File: `server/integrations/perplexity/client.js`**
+```javascript
+import axios from 'axios';
+
+export class PerplexityClient {
+  constructor(apiKey) {
+    this.apiKey = apiKey;
+    this.baseUrl = 'https://api.perplexity.ai';
+    this.client = axios.create({
+      baseURL: this.baseUrl,
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+  }
+
+  async search(query, options = {}) {
+    const response = await this.client.post('/chat/completions', {
+      model: options.model || 'llama-3.1-sonar-small-128k-online',
+      messages: [{ role: 'user', content: query }]
+    });
+    return response.data;
+  }
+}
+```
+
+### Environment Configuration
+```bash
+PERPLEXITY_API_KEY=your_perplexity_api_key_here
+PERPLEXITY_ENABLED=true
+```
+
+---
+
+## 🤗 Hugging Face Integration
+
+### Platform Overview
+**Hugging Face** provides model hosting, inference APIs, and the transformers library.
+
+### Implementation
+
+```javascript
+import { HfInference } from '@huggingface/inference';
+
+export class HuggingFaceClient {
+  constructor(apiKey) {
+    this.hf = new HfInference(apiKey);
+  }
+
+  async textGeneration(prompt, model = 'gpt2') {
+    return await this.hf.textGeneration({ model, inputs: prompt });
+  }
+
+  async embeddings(text, model = 'sentence-transformers/all-MiniLM-L6-v2') {
+    return await this.hf.featureExtraction({ model, inputs: text });
+  }
+
+  async imageToText(imageUrl) {
+    return await this.hf.imageToText({ model: 'Salesforce/blip-image-captioning-base', data: imageUrl });
+  }
+}
+```
+
+### Environment Configuration
+```bash
+HUGGINGFACE_API_KEY=your_huggingface_api_key_here
+HUGGINGFACE_ENABLED=true
+```
+
+---
+
+## 🌊 Cohere Integration
+
+### Platform Overview
+**Cohere** provides enterprise AI with chat, embeddings, and reranking capabilities.
+
+### Implementation
+
+```javascript
+import { CohereClient } from 'cohere-ai';
+
+export class CohereIntegration {
+  constructor(apiKey) {
+    this.cohere = new CohereClient({ token: apiKey });
+  }
+
+  async chat(message) {
+    return await this.cohere.chat({ message });
+  }
+
+  async embed(texts) {
+    return await this.cohere.embed({ texts, model: 'embed-english-v3.0' });
+  }
+
+  async rerank(query, documents) {
+    return await this.cohere.rerank({ query, documents, model: 'rerank-english-v2.0' });
+  }
+}
+```
+
+### Environment Configuration
+```bash
+COHERE_API_KEY=your_cohere_api_key_here
+COHERE_ENABLED=true
+```
+
+---
+
+## 🌪️ Mistral AI Integration
+
+### Platform Overview
+**Mistral AI** offers high-performance open-weight models with function calling.
+
+### Implementation
+
+```javascript
+import MistralClient from '@mistralai/mistralai';
+
+export class MistralIntegration {
+  constructor(apiKey) {
+    this.client = new MistralClient(apiKey);
+  }
+
+  async chat(messages, model = 'mistral-large-latest') {
+    return await this.client.chat({ model, messages });
+  }
+
+  async embed(texts) {
+    return await this.client.embeddings({ model: 'mistral-embed', input: texts });
+  }
+}
+```
+
+### Environment Configuration
+```bash
+MISTRAL_API_KEY=your_mistral_api_key_here
+MISTRAL_ENABLED=true
+```
+
+---
+
+## 💎 Google Gemini Integration
+
+### Platform Overview
+**Google Gemini** is Google's multimodal AI model with vision and reasoning capabilities.
+
+### Implementation
+
+```javascript
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+export class GeminiClient {
+  constructor(apiKey) {
+    this.genAI = new GoogleGenerativeAI(apiKey);
+  }
+
+  async chat(message, model = 'gemini-pro') {
+    const model = this.genAI.getGenerativeModel({ model });
+    const result = await model.generateContent(message);
+    return result.response.text();
+  }
+
+  async analyzeImage(imageData, prompt) {
+    const model = this.genAI.getGenerativeModel({ model: 'gemini-pro-vision' });
+    return await model.generateContent([prompt, imageData]);
+  }
+}
+```
+
+### Environment Configuration
+```bash
+GOOGLE_GEMINI_API_KEY=your_google_gemini_api_key_here
+GOOGLE_GEMINI_ENABLED=true
+```
+
+---
+
+## 🚀 Microsoft Copilot Integration
+
+### Platform Overview
+**Microsoft Copilot** provides AI assistance with web search and code generation.
+
+### Environment Configuration
+```bash
+MICROSOFT_COPILOT_API_KEY=your_microsoft_copilot_api_key_here
+MICROSOFT_COPILOT_ENABLED=true
+```
+
+---
+
+## ⌨️ Cursor AI Integration
+
+### Platform Overview
+**Cursor** is an AI-powered code editor with intelligent code completion.
+
+### Environment Configuration
+```bash
+CURSOR_API_KEY=your_cursor_api_key_here
+CURSOR_ENABLED=true
+```
+
+---
+
+## 💻 Replit Integration
+
+### Platform Overview
+**Replit** provides cloud-based development environment with AI assistance.
+
+### Environment Configuration
+```bash
+REPLIT_API_KEY=your_replit_api_key_here
+REPLIT_ENABLED=true
+```
+
+---
+
+## ▲ Vercel AI Integration
+
+### Platform Overview
+**Vercel AI SDK** provides tools for building AI-powered applications.
+
+### Implementation
+
+```javascript
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+export async function generateWithVercel(prompt) {
+  const { text } = await generateText({
+    model: openai('gpt-4-turbo'),
+    prompt
+  });
+  return text;
+}
+```
+
+### Environment Configuration
+```bash
+VERCEL_API_KEY=your_vercel_api_key_here
+VERCEL_ENABLED=true
+```
+
+---
+
+## ⚡ Groq Integration
+
+### Platform Overview
+**Groq** provides ultra-fast inference with LPU (Language Processing Unit) technology.
+
+### Implementation
+
+```javascript
+import Groq from 'groq-sdk';
+
+export class GroqClient {
+  constructor(apiKey) {
+    this.groq = new Groq({ apiKey });
+  }
+
+  async chat(messages, model = 'llama-3.1-70b-versatile') {
+    return await this.groq.chat.completions.create({
+      model,
+      messages
+    });
+  }
+}
+```
+
+### Environment Configuration
+```bash
+GROQ_API_KEY=your_groq_api_key_here
+GROQ_ENABLED=true
+```
+
+---
+
+## 🔧 Complete Environment Variables Summary
+
+Add all these to your `.env` file:
+
+```bash
+# Airtop
+AIRTOP_API_KEY=your_airtop_api_key
+AIRTOP_ENABLED=true
+
+# GitLab
+GITLAB_TOKEN=your_gitlab_token
+GITLAB_URL=https://gitlab.com
+GITLAB_ENABLED=true
+
+# Perplexity AI
+PERPLEXITY_API_KEY=your_perplexity_key
+PERPLEXITY_ENABLED=true
+
+# Hugging Face
+HUGGINGFACE_API_KEY=your_huggingface_key
+HUGGINGFACE_ENABLED=true
+
+# Cohere
+COHERE_API_KEY=your_cohere_key
+COHERE_ENABLED=true
+
+# Mistral AI
+MISTRAL_API_KEY=your_mistral_key
+MISTRAL_ENABLED=true
+
+# Google Gemini
+GOOGLE_GEMINI_API_KEY=your_gemini_key
+GOOGLE_GEMINI_ENABLED=true
+
+# Microsoft Copilot
+MICROSOFT_COPILOT_API_KEY=your_copilot_key
+MICROSOFT_COPILOT_ENABLED=true
+
+# Cursor
+CURSOR_API_KEY=your_cursor_key
+CURSOR_ENABLED=true
+
+# Replit
+REPLIT_API_KEY=your_replit_key
+REPLIT_ENABLED=true
+
+# Vercel AI
+VERCEL_API_KEY=your_vercel_key
+VERCEL_ENABLED=true
+
+# Groq
+GROQ_API_KEY=your_groq_key
+GROQ_ENABLED=true
+```
+
+---
+
+**Last Updated:** February 2, 2026
 **Maintained By:** Wallestars Development Team
