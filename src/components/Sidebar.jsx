@@ -11,7 +11,8 @@ import {
   Sparkles,
   ScanLine,
   Server,
-  Network
+  Network,
+  Globe
 } from 'lucide-react';
 
 const menuItems = [
@@ -24,6 +25,7 @@ const menuItems = [
   { id: 'promptgen', name: 'Prompt Generator', icon: Sparkles },
   { id: 'hostinger', name: 'Hostinger VPS', icon: Server },
   { id: 'orchestration', name: 'Orchestration Farm', icon: Network },
+  { id: 'openclaw', name: 'OpenClaw', icon: Globe },
   { id: 'settings', name: 'Settings', icon: Settings },
 ];
 

@@ -12,6 +12,7 @@ import PromptGenerator from './pages/PromptGenerator';
 import SmartScan from './pages/SmartScan';
 import HostingerManagement from './pages/HostingerManagement';
 import OrchestrationFarm from './pages/OrchestrationFarm';
+import OpenClawIntegration from './pages/OpenClawIntegration';
 import { SocketProvider } from './context/SocketContext';
 import { ThemeProvider } from './context/ThemeContext';
 
@@ -29,6 +30,7 @@ function App() {
     promptgen: <PromptGenerator />,
     hostinger: <HostingerManagement />,
     orchestration: <OrchestrationFarm />,
+    openclaw: <OpenClawIntegration />,
     settings: <Settings />
   };
 
