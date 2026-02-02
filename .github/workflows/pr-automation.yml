@@ -70,7 +70,11 @@ jobs:
               per_page: 100
             });
             
-            const agents = ['copilot-agent-1', 'copilot-agent-2', 'copilot-agent-3', 'copilot-agent-4'];
+            const agents = [
+              'copilot-agent-1', 'copilot-agent-2', 'copilot-agent-3', 'copilot-agent-4',
+              'antigravity-agent', 'codex-agent',
+              'github-agent-1', 'github-agent-2', 'github-agent-3'
+            ];
             let agentIndex = 0;
             
             for (const pr of pullRequests) {
