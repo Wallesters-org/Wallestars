@@ -1,0 +1,615 @@
+{
+  "name": "Salesforce Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "salesforce-lead",
+        "options": {}
+      },
+      "id": "webhook-lead-capture",
+      "name": "Lead Capture Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 200],
+      "webhookId": "salesforce-lead-capture"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "salesforce-opportunity",
+        "options": {}
+      },
+      "id": "webhook-opportunity-update",
+      "name": "Opportunity Update Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 500],
+      "webhookId": "salesforce-opportunity-update"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "schedule-sync",
+      "name": "Scheduled Sync",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 800]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\n\n// Validate required fields\nif (!body.lastName || !body.company) {\n  throw new Error('Missing required fields: lastName and company');\n}\n\nconst lead = {\n  FirstName: body.firstName || '',\n  LastName: body.lastName,\n  Company: body.company,\n  Email: body.email || '',\n  Phone: body.phone || '',\n  LeadSource: body.source || 'Web',\n  Status: body.status || 'New',\n  Description: body.description || '',\n  Rating: body.rating || 'Warm',\n  Website: body.website || '',\n  Industry: body.industry || '',\n  NumberOfEmployees: body.employees || null,\n  Title: body.title || '',\n  Street: body.street || '',\n  City: body.city || '',\n  State: body.state || '',\n  PostalCode: body.postalCode || '',\n  Country: body.country || ''\n};\n\n// Add automation options\nconst automation = {\n  createFollowUpTask: body.createFollowUp !== false,\n  followUpDays: body.followUpDays || 3,\n  taskPriority: body.taskPriority || 'Normal',\n  notifySlack: body.notifySlack !== false\n};\n\nreturn {\n  json: {\n    lead,\n    automation,\n    source: body.source || 'n8n-webhook',\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "parse-lead-data",
+      "name": "Parse Lead Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 200]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/salesforce/leads/automated",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ lead: $json.lead, automation: $json.automation }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "create-salesforce-lead",
+      "name": "Create Salesforce Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.success}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-lead-created",
+      "name": "If Lead Created",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/webhooks/n8n/salesforce-event",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: 'lead_created', data: $json.data, timestamp: new Date().toISOString() }) }}",
+        "options": {}
+      },
+      "id": "notify-wallestars-lead",
+      "name": "Notify Wallestars (Lead)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 150],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/webhooks/n8n/alert",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ severity: 'warning', source: 'salesforce', message: 'Failed to create lead: ' + ($json.error || $json.message || 'Unknown error'), timestamp: new Date().toISOString() }) }}",
+        "options": {}
+      },
+      "id": "notify-lead-error",
+      "name": "Notify Lead Error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\n\nconst opportunity = {\n  id: body.opportunityId || body.id,\n  name: body.name,\n  stageName: body.stage || body.stageName,\n  amount: body.amount,\n  closeDate: body.closeDate,\n  probability: body.probability,\n  accountId: body.accountId,\n  type: body.type,\n  leadSource: body.leadSource,\n  description: body.description,\n  previousStage: body.previousStage,\n  action: body.action || 'update'\n};\n\nconst isStageChange = body.previousStage && body.previousStage !== body.stageName;\nconst isClosed = body.stageName?.includes('Closed') || body.isClosed;\nconst isWon = body.stageName === 'Closed Won' || body.isWon;\n\nreturn {\n  json: {\n    opportunity,\n    isStageChange,\n    isClosed,\n    isWon,\n    requiresNotification: isStageChange || isClosed,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "parse-opportunity-data",
+      "name": "Parse Opportunity Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.opportunity.id}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "if-has-opp-id",
+      "name": "If Has Opportunity ID",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 500]
+    },
+    {
+      "parameters": {
+        "url": "=http://localhost:3000/api/salesforce/opportunities/{{$json.opportunity.id}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ StageName: $json.opportunity.stageName, Amount: $json.opportunity.amount, Probability: $json.opportunity.probability, Description: $json.opportunity.description }) }}",
+        "options": {
+          "timeout": 30000
+        },
+        "method": "PATCH"
+      },
+      "id": "update-salesforce-opportunity",
+      "name": "Update Salesforce Opportunity",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 450],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$('Parse Opportunity Data').item.json.requiresNotification}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-requires-notification",
+      "name": "If Requires Notification",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 450]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/webhooks/n8n/salesforce-event",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: $('Parse Opportunity Data').item.json.isWon ? 'deal_won' : ($('Parse Opportunity Data').item.json.isClosed ? 'deal_closed' : 'stage_change'), data: $('Parse Opportunity Data').item.json.opportunity, previousStage: $('Parse Opportunity Data').item.json.opportunity.previousStage, newStage: $('Parse Opportunity Data').item.json.opportunity.stageName, amount: $('Parse Opportunity Data').item.json.opportunity.amount, timestamp: new Date().toISOString() }) }}",
+        "options": {}
+      },
+      "id": "notify-wallestars-opp",
+      "name": "Notify Wallestars (Opportunity)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1250, 400],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/salesforce/analytics/pipeline",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "get-pipeline-summary",
+      "name": "Get Pipeline Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 800],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/salesforce/analytics/leads?days=7",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "get-lead-metrics",
+      "name": "Get Lead Metrics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 950],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const pipelineData = $('Get Pipeline Summary').item.json;\nconst leadData = $('Get Lead Metrics').item.json;\n\nconst pipeline = pipelineData.success ? pipelineData.data : [];\nconst leads = leadData.success ? leadData.data : {};\n\n// Calculate pipeline totals\nlet totalPipelineValue = 0;\nlet totalOpportunities = 0;\nconst stageBreakdown = [];\n\nif (Array.isArray(pipeline)) {\n  pipeline.forEach(stage => {\n    totalPipelineValue += stage.TotalAmount || 0;\n    totalOpportunities += stage.OppCount || 0;\n    stageBreakdown.push({\n      stage: stage.StageName,\n      count: stage.OppCount,\n      value: stage.TotalAmount\n    });\n  });\n}\n\nconst summary = {\n  timestamp: new Date().toISOString(),\n  pipeline: {\n    totalValue: totalPipelineValue,\n    totalOpportunities: totalOpportunities,\n    byStage: stageBreakdown\n  },\n  leads: {\n    period: leads.period || 'Last 7 days',\n    total: leads.totalLeads || 0,\n    converted: leads.convertedLeads || 0,\n    conversionRate: leads.conversionRate || '0%'\n  },\n  health: {\n    pipelineHealthy: totalPipelineValue > 0,\n    hasActiveLeads: (leads.totalLeads || 0) > 0,\n    conversionHealthy: parseFloat(leads.conversionRate) >= 10\n  }\n};\n\nreturn { json: summary };"
+      },
+      "id": "aggregate-crm-metrics",
+      "name": "Aggregate CRM Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 875]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/webhooks/n8n/salesforce-sync",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "send-sync-to-wallestars",
+      "name": "Send Sync to Wallestars",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 875],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{!$json.health.pipelineHealthy || !$json.health.conversionHealthy}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-needs-alert",
+      "name": "If Needs Alert",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 875]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/webhooks/n8n/alert",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ severity: 'warning', source: 'salesforce', message: 'CRM Health Alert: ' + (!$json.health.pipelineHealthy ? 'Empty pipeline. ' : '') + (!$json.health.conversionHealthy ? 'Low conversion rate (' + $json.leads.conversionRate + ')' : ''), data: $json, timestamp: new Date().toISOString() }) }}",
+        "options": {}
+      },
+      "id": "send-crm-alert",
+      "name": "Send CRM Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1250, 875],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "salesforce-account",
+        "options": {}
+      },
+      "id": "webhook-account-update",
+      "name": "Account Update Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 1150],
+      "webhookId": "salesforce-account-update"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\n\nconst account = {\n  id: body.accountId || body.id,\n  name: body.name,\n  type: body.type,\n  industry: body.industry,\n  phone: body.phone,\n  website: body.website,\n  annualRevenue: body.annualRevenue,\n  numberOfEmployees: body.numberOfEmployees,\n  billingCity: body.billingCity,\n  billingCountry: body.billingCountry,\n  action: body.action || 'update'\n};\n\nreturn {\n  json: {\n    account,\n    isNew: body.action === 'create',\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "parse-account-data",
+      "name": "Parse Account Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 1150]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.isNew}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-new-account",
+      "name": "If New Account",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 1150]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/salesforce/accounts",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ Name: $json.account.name, Type: $json.account.type, Industry: $json.account.industry, Phone: $json.account.phone, Website: $json.account.website, AnnualRevenue: $json.account.annualRevenue, NumberOfEmployees: $json.account.numberOfEmployees, BillingCity: $json.account.billingCity, BillingCountry: $json.account.billingCountry }) }}",
+        "options": {}
+      },
+      "id": "create-account",
+      "name": "Create Account",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 1100],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "=http://localhost:3000/api/salesforce/accounts/{{$json.account.id}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ Name: $json.account.name, Type: $json.account.type, Industry: $json.account.industry, Phone: $json.account.phone, Website: $json.account.website }) }}",
+        "options": {},
+        "method": "PATCH"
+      },
+      "id": "update-account",
+      "name": "Update Account",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 1200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/webhooks/n8n/salesforce-event",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: 'account_updated', data: $('Parse Account Data').item.json.account, isNew: $('Parse Account Data').item.json.isNew, timestamp: new Date().toISOString() }) }}",
+        "options": {}
+      },
+      "id": "notify-account-change",
+      "name": "Notify Account Change",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 1150],
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "Lead Capture Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Lead Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Lead Data": {
+      "main": [
+        [
+          {
+            "node": "Create Salesforce Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Salesforce Lead": {
+      "main": [
+        [
+          {
+            "node": "If Lead Created",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Lead Created": {
+      "main": [
+        [
+          {
+            "node": "Notify Wallestars (Lead)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Lead Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Opportunity Update Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Opportunity Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Opportunity Data": {
+      "main": [
+        [
+          {
+            "node": "If Has Opportunity ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Has Opportunity ID": {
+      "main": [
+        [
+          {
+            "node": "Update Salesforce Opportunity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Salesforce Opportunity": {
+      "main": [
+        [
+          {
+            "node": "If Requires Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Requires Notification": {
+      "main": [
+        [
+          {
+            "node": "Notify Wallestars (Opportunity)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scheduled Sync": {
+      "main": [
+        [
+          {
+            "node": "Get Pipeline Summary",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Lead Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Pipeline Summary": {
+      "main": [
+        [
+          {
+            "node": "Aggregate CRM Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Lead Metrics": {
+      "main": [
+        [
+          {
+            "node": "Aggregate CRM Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate CRM Metrics": {
+      "main": [
+        [
+          {
+            "node": "Send Sync to Wallestars",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If Needs Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Needs Alert": {
+      "main": [
+        [
+          {
+            "node": "Send CRM Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Account Update Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Account Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Account Data": {
+      "main": [
+        [
+          {
+            "node": "If New Account",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If New Account": {
+      "main": [
+        [
+          {
+            "node": "Create Account",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Account",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Account": {
+      "main": [
+        [
+          {
+            "node": "Notify Account Change",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Account": {
+      "main": [
+        [
+          {
+            "node": "Notify Account Change",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "id": "salesforce-automation",
+  "meta": {
+    "instanceId": "wallestars-n8n"
+  },
+  "tags": ["salesforce", "crm", "automation"]
+}

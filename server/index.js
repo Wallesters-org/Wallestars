@@ -11,6 +11,7 @@ import { n8nWebhooksRouter } from './routes/n8nWebhooks.js';
 import { sseRouter } from './routes/sse.js';
 import { hostingerRouter } from './routes/hostinger.js';
 import { orchestrationRouter } from './routes/orchestration.js';
+import { salesforceRouter } from './routes/salesforce.js';
 import { setupSocketHandlers } from './socket/handlers.js';
 
 dotenv.config();
@@ -46,6 +47,7 @@ app.get('/api/health', (req, res) => {
       android: process.env.ENABLE_ANDROID === 'true',
       documentScanner: !!process.env.ANTHROPIC_API_KEY,
       hostinger: !!process.env.HOSTINGER_API_TOKEN,
+      salesforce: !!process.env.SALESFORCE_ACCESS_TOKEN || !!process.env.SALESFORCE_CLIENT_ID,
       orchestration: true
     }
   });
@@ -59,6 +61,7 @@ app.use('/api/document-scanner', documentScannerRouter);
 app.use('/api/webhooks/n8n', n8nWebhooksRouter);
 app.use('/api/hostinger', hostingerRouter);
 app.use('/api/orchestration', orchestrationRouter);
+app.use('/api/salesforce', salesforceRouter);
 
 // SSE Route for MCP SuperAssistant
 app.use('/sse', sseRouter);
@@ -95,6 +98,7 @@ httpServer.listen(PORT, () => {
 ║   - MCP SSE Integration                              ║
 ║   - AI Agent Orchestration Farm                      ║
 ║   - Hostinger VPS Management                         ║
+║   - Salesforce CRM Integration                       ║
 ║                                                       ║
 ╚═══════════════════════════════════════════════════════╝
   `);

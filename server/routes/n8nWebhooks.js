@@ -7,6 +7,8 @@ const healthReports = [];
 const githubEvents = [];
 const agentActivity = [];
 const alerts = [];
+const salesforceEvents = [];
+const salesforceSyncs = [];
 
 // Health Report Endpoint
 router.post('/health-report', (req, res) => {
@@ -276,6 +278,8 @@ router.get('/dashboard', (req, res) => {
     const recentAlerts = alerts.slice(-5);
     const recentGithubEvents = githubEvents.slice(-5);
     const latestAgentActivity = agentActivity[agentActivity.length - 1];
+    const latestSalesforceSync = salesforceSyncs[salesforceSyncs.length - 1];
+    const recentSalesforceEvents = salesforceEvents.slice(-5);
 
     res.json({
       timestamp: new Date().toISOString(),
@@ -290,11 +294,179 @@ router.get('/dashboard', (req, res) => {
         totalEvents: githubEvents.length,
         recent: recentGithubEvents
       },
-      agents: latestAgentActivity || null
+      agents: latestAgentActivity || null,
+      salesforce: {
+        sync: latestSalesforceSync || null,
+        totalEvents: salesforceEvents.length,
+        recentEvents: recentSalesforceEvents
+      }
     });
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
     res.status(500).json({ error: 'Failed to fetch dashboard data' });
+  }
+});
+
+// ==================== Salesforce Webhooks ====================
+
+// Salesforce Event Endpoint (leads, opportunities, accounts)
+router.post('/salesforce-event', (req, res) => {
+  try {
+    const eventData = req.body;
+
+    if (!eventData.type) {
+      return res.status(400).json({ error: 'Event type required' });
+    }
+
+    const event = {
+      ...eventData,
+      receivedAt: new Date().toISOString()
+    };
+
+    // Store Salesforce event
+    salesforceEvents.push(event);
+
+    // Keep only last 100 events
+    if (salesforceEvents.length > 100) {
+      salesforceEvents.shift();
+    }
+
+    const emoji = {
+      'lead_created': '🎯',
+      'deal_won': '🎉',
+      'deal_closed': '📋',
+      'stage_change': '📈',
+      'account_updated': '🏢'
+    }[eventData.type] || '📊';
+
+    console.log(`${emoji} Salesforce Event [${eventData.type}]:`, {
+      data: eventData.data?.name || eventData.data?.id,
+      timestamp: eventData.timestamp
+    });
+
+    // Emit to connected WebSocket clients
+    if (global.io) {
+      global.io.emit('n8n:salesforce-event', event);
+    }
+
+    res.json({
+      success: true,
+      message: 'Salesforce event received',
+      eventId: salesforceEvents.length
+    });
+  } catch (error) {
+    console.error('Error processing Salesforce event:', error);
+    res.status(500).json({ error: 'Failed to process Salesforce event' });
+  }
+});
+
+// Salesforce Sync Endpoint (CRM metrics and pipeline data)
+router.post('/salesforce-sync', (req, res) => {
+  try {
+    const syncData = req.body;
+
+    const sync = {
+      ...syncData,
+      receivedAt: new Date().toISOString()
+    };
+
+    // Store sync data
+    salesforceSyncs.push(sync);
+
+    // Keep only last 50 syncs
+    if (salesforceSyncs.length > 50) {
+      salesforceSyncs.shift();
+    }
+
+    console.log('📊 Salesforce Sync:', {
+      pipelineValue: syncData.pipeline?.totalValue,
+      totalOpportunities: syncData.pipeline?.totalOpportunities,
+      leadsConverted: syncData.leads?.converted,
+      timestamp: syncData.timestamp
+    });
+
+    // Emit to connected WebSocket clients
+    if (global.io) {
+      global.io.emit('n8n:salesforce-sync', sync);
+    }
+
+    res.json({
+      success: true,
+      message: 'Salesforce sync received',
+      syncId: salesforceSyncs.length
+    });
+  } catch (error) {
+    console.error('Error processing Salesforce sync:', error);
+    res.status(500).json({ error: 'Failed to process Salesforce sync' });
+  }
+});
+
+// Get Salesforce Events
+router.get('/salesforce-events', (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    const type = req.query.type;
+
+    let filteredEvents = salesforceEvents;
+    if (type) {
+      filteredEvents = salesforceEvents.filter(e => e.type === type);
+    }
+
+    const result = filteredEvents.slice(-limit);
+
+    res.json({
+      count: result.length,
+      total: filteredEvents.length,
+      events: result
+    });
+  } catch (error) {
+    console.error('Error fetching Salesforce events:', error);
+    res.status(500).json({ error: 'Failed to fetch Salesforce events' });
+  }
+});
+
+// Get Latest Salesforce Sync
+router.get('/salesforce-sync/latest', (req, res) => {
+  try {
+    const latest = salesforceSyncs[salesforceSyncs.length - 1];
+
+    if (!latest) {
+      return res.status(404).json({ error: 'No Salesforce sync data available' });
+    }
+
+    res.json(latest);
+  } catch (error) {
+    console.error('Error fetching Salesforce sync:', error);
+    res.status(500).json({ error: 'Failed to fetch Salesforce sync' });
+  }
+});
+
+// Get Salesforce Dashboard Summary
+router.get('/salesforce-dashboard', (req, res) => {
+  try {
+    const latestSync = salesforceSyncs[salesforceSyncs.length - 1];
+    const recentEvents = salesforceEvents.slice(-10);
+
+    // Count events by type
+    const eventCounts = {
+      leads_created: salesforceEvents.filter(e => e.type === 'lead_created').length,
+      deals_won: salesforceEvents.filter(e => e.type === 'deal_won').length,
+      deals_closed: salesforceEvents.filter(e => e.type === 'deal_closed').length,
+      stage_changes: salesforceEvents.filter(e => e.type === 'stage_change').length,
+      accounts_updated: salesforceEvents.filter(e => e.type === 'account_updated').length
+    };
+
+    res.json({
+      timestamp: new Date().toISOString(),
+      pipeline: latestSync?.pipeline || null,
+      leads: latestSync?.leads || null,
+      health: latestSync?.health || null,
+      eventCounts,
+      recentEvents
+    });
+  } catch (error) {
+    console.error('Error fetching Salesforce dashboard:', error);
+    res.status(500).json({ error: 'Failed to fetch Salesforce dashboard' });
   }
 });
 
@@ -309,10 +481,15 @@ router.get('/test', (req, res) => {
       alert: 'POST /api/webhooks/n8n/alert',
       githubEvent: 'POST /api/webhooks/n8n/github-event',
       agentActivity: 'POST /api/webhooks/n8n/agent-activity',
+      salesforceEvent: 'POST /api/webhooks/n8n/salesforce-event',
+      salesforceSync: 'POST /api/webhooks/n8n/salesforce-sync',
       latestHealth: 'GET /api/webhooks/n8n/health-report/latest',
       alerts: 'GET /api/webhooks/n8n/alerts',
       githubEvents: 'GET /api/webhooks/n8n/github-events',
       agentActivity: 'GET /api/webhooks/n8n/agent-activity',
+      salesforceEvents: 'GET /api/webhooks/n8n/salesforce-events',
+      salesforceSyncLatest: 'GET /api/webhooks/n8n/salesforce-sync/latest',
+      salesforceDashboard: 'GET /api/webhooks/n8n/salesforce-dashboard',
       dashboard: 'GET /api/webhooks/n8n/dashboard'
     }
   });
