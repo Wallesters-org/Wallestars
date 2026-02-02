@@ -619,6 +619,270 @@ const commands = [
 
 ---
 
+## ☁️ Salesforce CRM Integration
+
+### Platform Overview
+**Salesforce** is the world's leading CRM platform for sales, service, and marketing automation.
+
+### Integration Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                  Salesforce Cloud                        │
+│                                                         │
+│  Leads ─ Contacts ─ Accounts ─ Opportunities ─ Tasks    │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     │ OAuth 2.0 + REST API
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│              Wallestars Backend                         │
+│  ┌────────────────────────────────────────┐            │
+│  │   Salesforce Client                    │            │
+│  │   - Authentication (OAuth 2.0)         │            │
+│  │   - CRUD Operations                    │            │
+│  │   - SOQL Queries                       │            │
+│  │   - Bulk Operations                    │            │
+│  │   - Flow Automation                    │            │
+│  └────────────────┬───────────────────────┘            │
+│                   │                                      │
+│                   ▼                                      │
+│  ┌────────────────────────────────────────┐            │
+│  │   Express Routes (/api/salesforce)     │            │
+│  └────────────────┬───────────────────────┘            │
+│                   │                                      │
+│                   ▼                                      │
+│  ┌────────────────────────────────────────┐            │
+│  │   WebSocket Events (Real-time)         │            │
+│  └────────────────────────────────────────┘            │
+└─────────────────────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│                 N8N Automation                          │
+│  - Lead creation webhooks                              │
+│  - Opportunity tracking                                 │
+│  - Hourly sync reports                                  │
+│  - Bulk import workflows                               │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Setup Steps
+
+#### 1. Salesforce Connected App Setup
+
+1. **Log in to Salesforce** → Setup → Apps → App Manager
+2. **Create New Connected App**:
+   - Connected App Name: `Wallestars Integration`
+   - API Name: `Wallestars_Integration`
+   - Enable OAuth Settings: ✓
+   - Callback URL: `https://your-domain.com/oauth/callback`
+   - Selected OAuth Scopes:
+     - Full access (`full`)
+     - Perform requests at any time (`refresh_token`, `offline_access`)
+     - Access and manage your data (`api`)
+
+3. **Get Credentials**:
+   - Consumer Key (Client ID)
+   - Consumer Secret (Client Secret)
+
+4. **Get Security Token**:
+   - Personal Settings → Reset My Security Token
+   - Token will be emailed to you
+
+#### 2. Environment Configuration
+
+Add to `.env`:
+```bash
+# Salesforce API Configuration (OAuth 2.0 Username-Password Flow)
+SALESFORCE_LOGIN_URL=https://login.salesforce.com
+SALESFORCE_CLIENT_ID=your_connected_app_client_id
+SALESFORCE_CLIENT_SECRET=your_connected_app_client_secret
+SALESFORCE_USERNAME=your_salesforce_username
+SALESFORCE_PASSWORD=your_salesforce_password
+SALESFORCE_SECURITY_TOKEN=your_security_token
+SALESFORCE_API_TIMEOUT=30000
+```
+
+**Note**: For sandbox environments, use `https://test.salesforce.com` as the login URL.
+
+### API Endpoints
+
+#### Leads Management
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/salesforce/leads` | Create a new lead |
+| `GET` | `/api/salesforce/leads/:id` | Get lead by ID |
+| `PATCH` | `/api/salesforce/leads/:id` | Update a lead |
+| `DELETE` | `/api/salesforce/leads/:id` | Delete a lead |
+| `POST` | `/api/salesforce/leads/:id/convert` | Convert lead to account/contact |
+
+#### Contacts Management
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/salesforce/contacts` | Create a new contact |
+| `GET` | `/api/salesforce/contacts/:id` | Get contact by ID |
+| `PATCH` | `/api/salesforce/contacts/:id` | Update a contact |
+| `DELETE` | `/api/salesforce/contacts/:id` | Delete a contact |
+
+#### Accounts Management
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/salesforce/accounts` | Create a new account |
+| `GET` | `/api/salesforce/accounts/:id` | Get account by ID |
+| `PATCH` | `/api/salesforce/accounts/:id` | Update an account |
+| `DELETE` | `/api/salesforce/accounts/:id` | Delete an account |
+
+#### Opportunities Management
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/salesforce/opportunities` | Create a new opportunity |
+| `GET` | `/api/salesforce/opportunities/:id` | Get opportunity by ID |
+| `PATCH` | `/api/salesforce/opportunities/:id` | Update an opportunity |
+| `DELETE` | `/api/salesforce/opportunities/:id` | Delete an opportunity |
+
+#### Query & Search
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/salesforce/query` | Execute SOQL query |
+| `POST` | `/api/salesforce/search` | Execute SOSL search |
+
+#### Bulk Operations
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/salesforce/bulk/create` | Create multiple records |
+| `PATCH` | `/api/salesforce/bulk/update` | Update multiple records |
+
+#### Automation
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/salesforce/flows` | List available flows |
+| `POST` | `/api/salesforce/flows/:flowName/invoke` | Invoke a Salesforce Flow |
+
+#### Metadata & Reports
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/salesforce/describe` | Global describe (all objects) |
+| `GET` | `/api/salesforce/describe/:objectName` | Describe specific object |
+| `GET` | `/api/salesforce/limits` | Get API limits |
+| `GET` | `/api/salesforce/reports` | List reports |
+| `POST` | `/api/salesforce/reports/:reportId/run` | Run a report |
+
+### Usage Examples
+
+#### Create a Lead
+
+```bash
+curl -X POST http://localhost:3000/api/salesforce/leads \
+  -H "Content-Type: application/json" \
+  -d '{
+    "FirstName": "John",
+    "LastName": "Doe",
+    "Company": "Acme Corp",
+    "Email": "john.doe@acme.com",
+    "Phone": "+1234567890",
+    "LeadSource": "Web",
+    "Status": "New"
+  }'
+```
+
+#### Query Leads
+
+```bash
+curl -X POST http://localhost:3000/api/salesforce/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT Id, Name, Email, Status FROM Lead WHERE CreatedDate = LAST_N_DAYS:7"
+  }'
+```
+
+#### Bulk Create Leads
+
+```bash
+curl -X POST http://localhost:3000/api/salesforce/bulk/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "objectType": "Lead",
+    "records": [
+      {"LastName": "Smith", "Company": "Tech Inc"},
+      {"LastName": "Johnson", "Company": "Data Corp"}
+    ]
+  }'
+```
+
+### N8N Workflow Integration
+
+The Salesforce automation workflow (`n8n-workflows/salesforce-automation.json`) provides:
+
+1. **Webhook Endpoints**:
+   - `/webhook/salesforce-lead` - Create leads via webhook
+   - `/webhook/salesforce-opportunity` - Create opportunities via webhook
+   - `/webhook/salesforce-task` - Create tasks via webhook
+   - `/webhook/salesforce-bulk-leads` - Bulk import leads
+
+2. **Hourly Sync**:
+   - Queries recent leads and opportunities
+   - Sends health report to Wallestars dashboard
+   - Tracks pipeline metrics
+
+3. **Real-time Notifications**:
+   - WebSocket events for CRUD operations
+   - Alerts sent to Wallestars dashboard
+
+### WebSocket Events
+
+The integration emits real-time events via Socket.IO:
+
+| Event | Description |
+|-------|-------------|
+| `salesforce:lead:created` | New lead created |
+| `salesforce:lead:updated` | Lead updated |
+| `salesforce:lead:deleted` | Lead deleted |
+| `salesforce:lead:converted` | Lead converted |
+| `salesforce:contact:created` | New contact created |
+| `salesforce:contact:updated` | Contact updated |
+| `salesforce:contact:deleted` | Contact deleted |
+| `salesforce:account:created` | New account created |
+| `salesforce:account:updated` | Account updated |
+| `salesforce:account:deleted` | Account deleted |
+| `salesforce:opportunity:created` | New opportunity created |
+| `salesforce:opportunity:updated` | Opportunity updated |
+| `salesforce:opportunity:deleted` | Opportunity deleted |
+| `salesforce:task:created` | New task created |
+| `salesforce:task:updated` | Task updated |
+| `salesforce:bulk:created` | Bulk records created |
+| `salesforce:bulk:updated` | Bulk records updated |
+| `salesforce:flow:invoked` | Flow invoked |
+
+### Features Implemented
+
+- [x] OAuth 2.0 Username-Password Flow authentication
+- [x] Auto-refresh token management
+- [x] Lead CRUD operations
+- [x] Contact CRUD operations
+- [x] Account CRUD operations
+- [x] Opportunity CRUD operations
+- [x] Task management
+- [x] SOQL query execution
+- [x] SOSL search
+- [x] Bulk create/update operations
+- [x] Salesforce Flow invocation
+- [x] Object metadata describe
+- [x] API limits monitoring
+- [x] Report execution
+- [x] Real-time WebSocket events
+- [x] N8N workflow automation
+
+---
+
 ## 🔧 Environment Variables Summary
 
 Add all these to your `.env` file:
@@ -652,6 +916,15 @@ SLACK_ENABLED=true
 TEAMS_APP_ID=your_app_id
 TEAMS_APP_PASSWORD=your_app_password
 TEAMS_ENABLED=true
+
+# Salesforce
+SALESFORCE_LOGIN_URL=https://login.salesforce.com
+SALESFORCE_CLIENT_ID=your_connected_app_client_id
+SALESFORCE_CLIENT_SECRET=your_connected_app_client_secret
+SALESFORCE_USERNAME=your_salesforce_username
+SALESFORCE_PASSWORD=your_salesforce_password
+SALESFORCE_SECURITY_TOKEN=your_security_token
+SALESFORCE_API_TIMEOUT=30000
 ```
 
 ---
@@ -675,8 +948,10 @@ TEAMS_ENABLED=true
 - **Discord.js**: https://discord.js.org/
 - **Slack Bolt**: https://slack.dev/bolt-js/
 - **Microsoft Bot Framework**: https://dev.botframework.com/
+- **Salesforce REST API**: https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/
+- **Salesforce SOQL/SOSL**: https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl/
 
 ---
 
-**Last Updated:** January 8, 2026
+**Last Updated:** February 2, 2026
 **Maintained By:** Wallestars Development Team

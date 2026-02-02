@@ -1,0 +1,630 @@
+{
+  "name": "Salesforce Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "salesforce-lead",
+        "options": {}
+      },
+      "id": "webhook-new-lead",
+      "name": "New Lead Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 200],
+      "webhookId": "salesforce-lead-webhook"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "salesforce-opportunity",
+        "options": {}
+      },
+      "id": "webhook-opportunity",
+      "name": "Opportunity Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 400],
+      "webhookId": "salesforce-opportunity-webhook"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "schedule-sync",
+      "name": "Hourly Sync",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $input.first().json.body || $input.first().json;\n\n// Validate required fields\nif (!lead.LastName || !lead.Company) {\n  throw new Error('Missing required fields: LastName and Company are required');\n}\n\n// Enrich lead data with defaults\nconst enrichedLead = {\n  FirstName: lead.FirstName || '',\n  LastName: lead.LastName,\n  Company: lead.Company,\n  Email: lead.Email || null,\n  Phone: lead.Phone || null,\n  Title: lead.Title || null,\n  LeadSource: lead.LeadSource || 'Web',\n  Status: lead.Status || 'New',\n  Industry: lead.Industry || null,\n  Description: lead.Description || `Created via Wallestars N8N automation at ${new Date().toISOString()}`,\n  Website: lead.Website || null,\n  Street: lead.Street || null,\n  City: lead.City || null,\n  State: lead.State || null,\n  PostalCode: lead.PostalCode || null,\n  Country: lead.Country || null\n};\n\nreturn {\n  json: {\n    lead: enrichedLead,\n    metadata: {\n      receivedAt: new Date().toISOString(),\n      source: 'n8n-webhook',\n      workflowId: 'salesforce-automation'\n    }\n  }\n};"
+      },
+      "id": "validate-lead",
+      "name": "Validate & Enrich Lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const opp = $input.first().json.body || $input.first().json;\n\n// Validate required fields\nif (!opp.Name || !opp.StageName || !opp.CloseDate) {\n  throw new Error('Missing required fields: Name, StageName, and CloseDate are required');\n}\n\n// Validate stage name\nconst validStages = [\n  'Prospecting', 'Qualification', 'Needs Analysis', 'Value Proposition',\n  'Id. Decision Makers', 'Perception Analysis', 'Proposal/Price Quote',\n  'Negotiation/Review', 'Closed Won', 'Closed Lost'\n];\n\nif (!validStages.includes(opp.StageName)) {\n  opp.StageName = 'Prospecting';\n}\n\nconst enrichedOpp = {\n  Name: opp.Name,\n  StageName: opp.StageName,\n  CloseDate: opp.CloseDate,\n  AccountId: opp.AccountId || null,\n  Amount: opp.Amount || 0,\n  Probability: opp.Probability || null,\n  LeadSource: opp.LeadSource || 'Web',\n  Type: opp.Type || 'New Business',\n  Description: opp.Description || `Created via Wallestars N8N automation at ${new Date().toISOString()}`,\n  NextStep: opp.NextStep || null\n};\n\nreturn {\n  json: {\n    opportunity: enrichedOpp,\n    metadata: {\n      receivedAt: new Date().toISOString(),\n      source: 'n8n-webhook',\n      workflowId: 'salesforce-automation'\n    }\n  }\n};"
+      },
+      "id": "validate-opportunity",
+      "name": "Validate & Enrich Opportunity",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/salesforce/leads",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify($json.lead)}}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "create-lead",
+      "name": "Create Lead in Salesforce",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 200]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/salesforce/opportunities",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify($json.opportunity)}}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "create-opportunity",
+      "name": "Create Opportunity in Salesforce",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.success}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-lead-created",
+      "name": "Lead Created?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.success}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-opportunity-created",
+      "name": "Opportunity Created?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/webhooks/n8n/alert",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "alert",
+              "value": "={\"type\": \"salesforce\", \"severity\": \"info\", \"message\": \"New Lead created: \" + $json.data.id, \"timestamp\": new Date().toISOString()}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "notify-lead-success",
+      "name": "Notify Lead Success",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 150],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/webhooks/n8n/alert",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "alert",
+              "value": "={\"type\": \"salesforce\", \"severity\": \"error\", \"message\": \"Failed to create Lead: \" + ($json.error || 'Unknown error'), \"timestamp\": new Date().toISOString()}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "notify-lead-failure",
+      "name": "Notify Lead Failure",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 250],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/webhooks/n8n/alert",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "alert",
+              "value": "={\"type\": \"salesforce\", \"severity\": \"info\", \"message\": \"New Opportunity created: \" + $json.data.id, \"timestamp\": new Date().toISOString()}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "notify-opportunity-success",
+      "name": "Notify Opportunity Success",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 350],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/webhooks/n8n/alert",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "alert",
+              "value": "={\"type\": \"salesforce\", \"severity\": \"error\", \"message\": \"Failed to create Opportunity: \" + ($json.error || 'Unknown error'), \"timestamp\": new Date().toISOString()}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "notify-opportunity-failure",
+      "name": "Notify Opportunity Failure",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 450],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/salesforce/query",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"query\": \"SELECT Id, Name, Email, Status, CreatedDate FROM Lead WHERE CreatedDate = LAST_N_DAYS:1 ORDER BY CreatedDate DESC LIMIT 50\"}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "query-recent-leads",
+      "name": "Query Recent Leads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 600]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/salesforce/query",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"query\": \"SELECT Id, Name, StageName, Amount, CloseDate, CreatedDate FROM Opportunity WHERE CreatedDate = LAST_N_DAYS:1 ORDER BY CreatedDate DESC LIMIT 50\"}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "query-recent-opportunities",
+      "name": "Query Recent Opportunities",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 800]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst leadsResult = items[0]?.json || {};\nconst oppsResult = items[1]?.json || {};\n\nconst leads = leadsResult.data?.records || [];\nconst opportunities = oppsResult.data?.records || [];\n\nconst summary = {\n  timestamp: new Date().toISOString(),\n  syncType: 'hourly',\n  leads: {\n    count: leads.length,\n    recent: leads.slice(0, 10).map(l => ({\n      id: l.Id,\n      name: l.Name,\n      email: l.Email,\n      status: l.Status,\n      createdAt: l.CreatedDate\n    }))\n  },\n  opportunities: {\n    count: opportunities.length,\n    totalValue: opportunities.reduce((sum, o) => sum + (o.Amount || 0), 0),\n    byStage: opportunities.reduce((acc, o) => {\n      acc[o.StageName] = (acc[o.StageName] || 0) + 1;\n      return acc;\n    }, {}),\n    recent: opportunities.slice(0, 10).map(o => ({\n      id: o.Id,\n      name: o.Name,\n      stage: o.StageName,\n      amount: o.Amount,\n      closeDate: o.CloseDate,\n      createdAt: o.CreatedDate\n    }))\n  }\n};\n\nreturn { json: summary };"
+      },
+      "id": "aggregate-sync-data",
+      "name": "Aggregate Sync Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 700]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/webhooks/n8n/health-report",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "healthReport",
+              "value": "={\"service\": \"salesforce\", \"status\": \"healthy\", \"data\": $json, \"timestamp\": new Date().toISOString()}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-sync-report",
+      "name": "Send Sync Report to Wallestars",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 700],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "salesforce-task",
+        "options": {}
+      },
+      "id": "webhook-task",
+      "name": "Task Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 1000],
+      "webhookId": "salesforce-task-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const task = $input.first().json.body || $input.first().json;\n\n// Validate required fields\nif (!task.Subject) {\n  throw new Error('Missing required field: Subject is required');\n}\n\nconst enrichedTask = {\n  Subject: task.Subject,\n  Status: task.Status || 'Not Started',\n  Priority: task.Priority || 'Normal',\n  WhoId: task.WhoId || null,\n  WhatId: task.WhatId || null,\n  ActivityDate: task.ActivityDate || new Date().toISOString().split('T')[0],\n  Description: task.Description || null,\n  OwnerId: task.OwnerId || null,\n  ReminderDateTime: task.ReminderDateTime || null,\n  IsReminderSet: task.IsReminderSet || false\n};\n\nreturn {\n  json: {\n    task: enrichedTask,\n    metadata: {\n      receivedAt: new Date().toISOString(),\n      source: 'n8n-webhook',\n      workflowId: 'salesforce-automation'\n    }\n  }\n};"
+      },
+      "id": "validate-task",
+      "name": "Validate & Enrich Task",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 1000]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/salesforce/tasks",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify($json.task)}}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "create-task",
+      "name": "Create Task in Salesforce",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 1000]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/webhooks/n8n/alert",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "alert",
+              "value": "={\"type\": \"salesforce\", \"severity\": \"info\", \"message\": \"Task created: \" + ($json.data?.id || 'Unknown'), \"timestamp\": new Date().toISOString()}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "notify-task-created",
+      "name": "Notify Task Created",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 1000],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "salesforce-bulk-leads",
+        "options": {}
+      },
+      "id": "webhook-bulk-leads",
+      "name": "Bulk Leads Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 1200],
+      "webhookId": "salesforce-bulk-leads-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json.body || $input.first().json;\nconst leads = data.leads || data;\n\nif (!Array.isArray(leads) || leads.length === 0) {\n  throw new Error('No leads provided. Expected array of lead objects.');\n}\n\nif (leads.length > 200) {\n  throw new Error('Maximum 200 leads per batch. Received: ' + leads.length);\n}\n\nconst validatedLeads = leads.map((lead, index) => {\n  if (!lead.LastName || !lead.Company) {\n    throw new Error(`Lead at index ${index} missing required fields (LastName, Company)`);\n  }\n  return {\n    FirstName: lead.FirstName || '',\n    LastName: lead.LastName,\n    Company: lead.Company,\n    Email: lead.Email || null,\n    Phone: lead.Phone || null,\n    LeadSource: lead.LeadSource || 'Bulk Import',\n    Status: lead.Status || 'New'\n  };\n});\n\nreturn {\n  json: {\n    objectType: 'Lead',\n    records: validatedLeads,\n    count: validatedLeads.length\n  }\n};"
+      },
+      "id": "validate-bulk-leads",
+      "name": "Validate Bulk Leads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 1200]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/salesforce/bulk/create",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify({objectType: $json.objectType, records: $json.records})}}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "bulk-create-leads",
+      "name": "Bulk Create Leads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 1200]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/webhooks/n8n/alert",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "alert",
+              "value": "={\"type\": \"salesforce\", \"severity\": \"info\", \"message\": \"Bulk import completed: \" + ($json.message || 'Unknown count'), \"timestamp\": new Date().toISOString()}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "notify-bulk-complete",
+      "name": "Notify Bulk Complete",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 1200],
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "New Lead Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate & Enrich Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Opportunity Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate & Enrich Opportunity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Enrich Lead": {
+      "main": [
+        [
+          {
+            "node": "Create Lead in Salesforce",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Enrich Opportunity": {
+      "main": [
+        [
+          {
+            "node": "Create Opportunity in Salesforce",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Lead in Salesforce": {
+      "main": [
+        [
+          {
+            "node": "Lead Created?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Opportunity in Salesforce": {
+      "main": [
+        [
+          {
+            "node": "Opportunity Created?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead Created?": {
+      "main": [
+        [
+          {
+            "node": "Notify Lead Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Lead Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Opportunity Created?": {
+      "main": [
+        [
+          {
+            "node": "Notify Opportunity Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Opportunity Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hourly Sync": {
+      "main": [
+        [
+          {
+            "node": "Query Recent Leads",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Query Recent Opportunities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Recent Leads": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Sync Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Recent Opportunities": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Sync Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Sync Data": {
+      "main": [
+        [
+          {
+            "node": "Send Sync Report to Wallestars",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Task Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate & Enrich Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Enrich Task": {
+      "main": [
+        [
+          {
+            "node": "Create Task in Salesforce",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Task in Salesforce": {
+      "main": [
+        [
+          {
+            "node": "Notify Task Created",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bulk Leads Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Bulk Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Bulk Leads": {
+      "main": [
+        [
+          {
+            "node": "Bulk Create Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bulk Create Leads": {
+      "main": [
+        [
+          {
+            "node": "Notify Bulk Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "id": "salesforce-automation",
+  "meta": {
+    "instanceId": "wallestars-n8n"
+  },
+  "tags": ["salesforce", "crm", "automation"]
+}
