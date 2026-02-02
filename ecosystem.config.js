@@ -63,7 +63,7 @@ module.exports = {
       autorestart: true,
       watch: false,
       max_memory_restart: '1G',
-      
+
       env: {
         NODE_ENV: 'production',
         N8N_PORT: 5678,
@@ -72,17 +72,57 @@ module.exports = {
         WEBHOOK_URL: 'https://n8n.srv1201204.hstgr.cloud/',
         GENERIC_TIMEZONE: 'UTC'
       },
-      
+
       // Logging
       error_file: './logs/n8n-err.log',
       out_file: './logs/n8n-out.log',
       log_file: './logs/n8n-combined.log',
       time: true,
-      
+
       // Restart behavior
       min_uptime: '30s',
       max_restarts: 10,
       restart_delay: 4000,
+    },
+
+    // Worker Orchestrator (Standalone mode - optional)
+    // Use this if you want workers running independently from main server
+    {
+      name: 'wallestars-workers',
+      script: 'server/workers/index.js',
+      cwd: '/var/www/wallestars',
+      instances: 1,
+      exec_mode: 'fork',
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '800M',
+
+      env: {
+        NODE_ENV: 'production',
+        // CPU Workload targets
+        CPU_MIN_TARGET: 50,
+        CPU_MAX_TARGET: 85,
+        // Slack integration
+        SLACK_BOT_TOKEN: '',
+        SLACK_WEBHOOK_URL: '',
+        // GitHub integration
+        GITHUB_TOKEN: ''
+      },
+
+      // Logging
+      error_file: './logs/workers-err.log',
+      out_file: './logs/workers-out.log',
+      log_file: './logs/workers-combined.log',
+      time: true,
+
+      // Restart behavior
+      min_uptime: '10s',
+      max_restarts: 10,
+      restart_delay: 4000,
+
+      // Disabled by default (workers run with main server)
+      // Enable this and disable AUTO_START_WORKERS in main server for standalone
+      // pm2 start ecosystem.config.js --only wallestars-workers
     }
   ],
   
