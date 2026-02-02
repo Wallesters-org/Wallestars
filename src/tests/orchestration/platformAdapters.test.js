@@ -54,6 +54,63 @@ const platformConfigs = {
         trialDays: 0,
         requiresCreditCard: false,
         capabilities: ['git_hosting', 'ci_cd', 'actions']
+    },
+    // 10 AI Extensions for Slack Channel Integration
+    'Google Gemini': {
+        type: 'ai_agent',
+        registrationUrl: 'https://ai.google.dev/',
+        apiEndpoint: 'https://generativelanguage.googleapis.com/v1',
+        trialDays: 0,
+        requiresCreditCard: false,
+        capabilities: ['chat', 'vision', 'code_generation', 'multimodal']
+    },
+    'Perplexity AI': {
+        type: 'search_assistant',
+        registrationUrl: 'https://www.perplexity.ai/',
+        apiEndpoint: 'https://api.perplexity.ai',
+        trialDays: 0,
+        requiresCreditCard: false,
+        capabilities: ['web_search', 'research', 'citations', 'fact_checking']
+    },
+    'Midjourney': {
+        type: 'image_generation',
+        registrationUrl: 'https://www.midjourney.com/',
+        apiEndpoint: 'https://api.midjourney.com',
+        trialDays: 0,
+        requiresCreditCard: true,
+        capabilities: ['image_generation', 'image_variation', 'upscaling']
+    },
+    'Notion AI': {
+        type: 'productivity',
+        registrationUrl: 'https://www.notion.so/product/ai',
+        apiEndpoint: 'https://api.notion.com/v1',
+        trialDays: 14,
+        requiresCreditCard: false,
+        capabilities: ['document_generation', 'summarization', 'task_management']
+    },
+    'Hugging Face': {
+        type: 'ai_platform',
+        registrationUrl: 'https://huggingface.co/join',
+        apiEndpoint: 'https://api-inference.huggingface.co',
+        trialDays: 0,
+        requiresCreditCard: false,
+        capabilities: ['text_generation', 'translation', 'sentiment_analysis', 'embeddings']
+    },
+    'Replicate': {
+        type: 'ml_platform',
+        registrationUrl: 'https://replicate.com/signin',
+        apiEndpoint: 'https://api.replicate.com/v1',
+        trialDays: 0,
+        requiresCreditCard: false,
+        capabilities: ['model_inference', 'image_generation', 'audio_generation']
+    },
+    'GitHub Copilot': {
+        type: 'dev_assistant',
+        registrationUrl: 'https://github.com/features/copilot',
+        apiEndpoint: 'https://api.github.com/copilot',
+        trialDays: 30,
+        requiresCreditCard: false,
+        capabilities: ['code_completion', 'code_review', 'pull_request_summary']
     }
 };
 
