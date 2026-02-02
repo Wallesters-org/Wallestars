@@ -1,0 +1,296 @@
+{
+  // ============================================
+  // OpenClaw Configuration for "Molty"
+  // Wallestars AI Assistant
+  // ============================================
+
+  // Gateway configuration
+  gateway: {
+    port: 18789,
+    hostname: "0.0.0.0",
+    token: "${OPENCLAW_GATEWAY_TOKEN}",
+    secure: true,
+    cors: {
+      enabled: true,
+      origins: ["http://localhost:*", "https://*.wallestars.eu"]
+    }
+  },
+
+  // Agent identity
+  agent: {
+    name: "Molty",
+    model: "anthropic/claude-sonnet-4-20250514",
+    thinking: "enabled",
+
+    // Personality files
+    soul: { $include: "./workspace/SOUL.md" },
+    memory: { $include: "./workspace/MEMORY.md" },
+
+    // Sandbox for non-main sessions
+    sandbox: {
+      enabled: true,
+      mode: "non-main",
+      docker: {
+        image: "node:22-alpine",
+        memory: "1g",
+        cpus: "2",
+        networkDisabled: false
+      }
+    }
+  },
+
+  // Model providers
+  models: {
+    providers: {
+      anthropic: {
+        apiKey: "${ANTHROPIC_API_KEY}",
+        baseUrl: "https://api.anthropic.com"
+      },
+      openrouter: {
+        apiKey: "${OPENROUTER_API_KEY}",
+        baseUrl: "https://openrouter.ai/api/v1"
+      }
+    },
+    // Fallback chain
+    fallback: [
+      "anthropic/claude-sonnet-4-20250514",
+      "openrouter/anthropic/claude-3.5-sonnet"
+    ]
+  },
+
+  // Channel configurations
+  channels: {
+    // Telegram integration
+    telegram: {
+      enabled: true,
+      token: "${TELEGRAM_BOT_TOKEN}",
+      allowFrom: ["${TELEGRAM_ADMIN_USERNAME}"],
+      groups: {
+        allowMention: true,
+        allowGroup: true,
+        requireMention: true,
+        groupWhitelist: []
+      },
+      webhook: {
+        enabled: false,
+        url: "https://molty.wallestars.eu/telegram"
+      }
+    },
+
+    // Discord integration
+    discord: {
+      enabled: true,
+      token: "${DISCORD_BOT_TOKEN}",
+      intents: ["GUILD_MESSAGES", "DIRECT_MESSAGES", "MESSAGE_CONTENT"],
+      channelAllowlist: [],
+      serverWhitelist: [],
+      prefix: "!molty",
+      requireMention: false
+    },
+
+    // WhatsApp integration
+    whatsapp: {
+      enabled: false,
+      allowFrom: [],
+      groups: {
+        allowGroup: false,
+        allowMention: true,
+        requireMention: true
+      },
+      qrCode: {
+        displayMethod: "terminal",
+        timeout: 120
+      }
+    },
+
+    // Slack integration
+    slack: {
+      enabled: false,
+      token: "${SLACK_BOT_TOKEN}",
+      signingSecret: "${SLACK_SIGNING_SECRET}",
+      channelAllowlist: [],
+      responseMode: "threaded"
+    },
+
+    // WebChat (always enabled for dashboard)
+    webchat: {
+      enabled: true,
+      requireAuth: true
+    }
+  },
+
+  // Skills configuration
+  skills: {
+    entries: {
+      // Wallestars specific skills
+      "wallestars-registration": {
+        enabled: true,
+        config: {
+          n8nWebhookUrl: "${N8N_WEBHOOK_URL}",
+          supabaseUrl: "${SUPABASE_URL}"
+        }
+      },
+      "wallestars-verification": {
+        enabled: true,
+        config: {
+          smsCheckInterval: 15000,
+          emailCheckInterval: 15000,
+          maxRetries: 10
+        }
+      },
+      "wallestars-database": {
+        enabled: true,
+        config: {
+          supabaseUrl: "${SUPABASE_URL}",
+          supabaseKey: "${SUPABASE_ANON_KEY}"
+        }
+      },
+
+      // Web capabilities
+      "web-search": {
+        enabled: true,
+        provider: "brave",
+        apiKey: "${BRAVE_SEARCH_API_KEY}"
+      },
+      "web-browse": {
+        enabled: true,
+        config: {
+          airtopApiKey: "${AIRTOP_API_KEY}",
+          defaultProxy: "BG"
+        }
+      },
+
+      // File operations
+      "file-operations": {
+        enabled: true,
+        config: {
+          sandboxed: true,
+          allowedPaths: [
+            "${HOME}/.openclaw/workspace",
+            "/tmp/molty"
+          ]
+        }
+      },
+
+      // Code execution
+      "code-execution": {
+        enabled: true,
+        config: {
+          languages: ["javascript", "typescript", "python"],
+          timeout: 30000,
+          sandboxed: true
+        }
+      }
+    },
+
+    // Custom skills directory
+    load: {
+      extraDirs: [
+        "./skills"
+      ]
+    }
+  },
+
+  // MCP Server integrations
+  mcp: {
+    servers: [
+      {
+        name: "filesystem",
+        command: "npx",
+        args: ["@modelcontextprotocol/server-filesystem", "./workspace"]
+      },
+      {
+        name: "supabase",
+        command: "npx",
+        args: ["@supabase/mcp-server"],
+        env: {
+          SUPABASE_URL: "${SUPABASE_URL}",
+          SUPABASE_KEY: "${SUPABASE_SERVICE_KEY}"
+        }
+      }
+    ]
+  },
+
+  // Session management
+  sessions: {
+    scoping: "per-sender",
+    maxHistoryTokens: 100000,
+    softThresholdTokens: 20000,
+    contextWindow: 200000,
+    reserveTokensFloor: 20000,
+    resetPolicy: "idle",
+    idleTimeout: 86400,
+
+    // Memory configuration
+    memory: {
+      hybridSearch: true,
+      vectorStore: "sqlite",
+      embeddingModel: "all-minilm-l6-v2",
+      cachingEnabled: true,
+      maxResults: 15
+    }
+  },
+
+  // Memory persistence
+  memory: {
+    embeddings: "enabled",
+    vectorStore: "sqlite",
+    hybridSearch: true,
+    cachingEnabled: true,
+    transcriptIndexing: true,
+    maxEmbeddings: 50000
+  },
+
+  // Security settings
+  security: {
+    treatInputAsUntrusted: true,
+    secretsNotInPrompts: true,
+
+    // DM pairing policy
+    dmPolicy: "pairing",
+
+    // Tool restrictions
+    tools: {
+      policy: "moderate",
+      allowlist: [
+        "file.read",
+        "file.write",
+        "http.fetch",
+        "db.query",
+        "browser.navigate",
+        "browser.click",
+        "browser.type"
+      ],
+      requireApproval: [
+        "file.delete",
+        "db.delete",
+        "system.execute"
+      ]
+    }
+  },
+
+  // Plugins
+  plugins: {
+    entries: {
+      "hindsight-openclaw": {
+        enabled: true,
+        config: {
+          daemonIdleTimeout: 0,
+          embedVersion: "latest"
+        }
+      }
+    }
+  },
+
+  // Logging
+  logging: {
+    level: "info",
+    format: "json",
+    file: {
+      enabled: true,
+      path: "./logs/molty.log",
+      maxSize: "10m",
+      maxFiles: 5
+    }
+  }
+}
