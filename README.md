@@ -92,6 +92,16 @@
 - **Quick Links** - Direct access to Anthropic Console Workbench
 - **Comprehensive Templates** - Detailed specifications for AI-powered apps
 
+### 🤖 AI Agent Orchestration Farm
+- **Multi-Platform Execution** - Parallel task execution across Linux, Android, and Web
+- **Agent Management** - Dynamic agent registration and lifecycle management
+- **Priority Scheduling** - Priority-based task queue with automatic retry
+- **Load Balancing** - Intelligent agent selection and task distribution
+- **Real-time Monitoring** - Live dashboard for orchestration status
+- **Concurrent Tasks** - Configurable parallel execution (1-20 simultaneous tasks)
+- **Platform Support** - Linux (xdotool), Android (ADB), Web (browser automation)
+- **See [ORCHESTRATION_FARM_DOCS.md](ORCHESTRATION_FARM_DOCS.md) for details**
+
 ### 🎨 Professional UI/UX
 - **Modern Design** - Tailwind CSS with custom components
 - **Smooth Animations** - Framer Motion for fluid transitions

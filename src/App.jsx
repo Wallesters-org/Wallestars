@@ -11,6 +11,7 @@ import Settings from './pages/Settings';
 import PromptGenerator from './pages/PromptGenerator';
 import SmartScan from './pages/SmartScan';
 import HostingerManagement from './pages/HostingerManagement';
+import OrchestrationFarm from './pages/OrchestrationFarm';
 import { SocketProvider } from './context/SocketContext';
 import { ThemeProvider } from './context/ThemeContext';
 
@@ -27,6 +28,7 @@ function App() {
     smartscan: <SmartScan />,
     promptgen: <PromptGenerator />,
     hostinger: <HostingerManagement />,
+    orchestration: <OrchestrationFarm />,
     settings: <Settings />
   };
 
