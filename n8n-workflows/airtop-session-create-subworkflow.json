@@ -1,0 +1,140 @@
+{
+  "name": "Airtop Session Create (BG Proxy)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "workflow-trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse input parameters\nconst input = $input.first().json;\n\nreturn {\n  json: {\n    proxy_country: input.proxy_country || 'BG',\n    timeout_minutes: parseInt(input.timeout_minutes) || 10,\n    viewport_width: input.viewport_width || 1920,\n    viewport_height: input.viewport_height || 1080\n  }\n};"
+      },
+      "id": "parse-input",
+      "name": "Parse Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [300, 300]
+    },
+    {
+      "parameters": {
+        "resource": "session",
+        "operation": "createSession",
+        "options": {
+          "timeoutMinutes": "={{ $json.timeout_minutes }}",
+          "proxy": {
+            "type": "airtop",
+            "country": "={{ $json.proxy_country }}"
+          }
+        }
+      },
+      "id": "create-session",
+      "name": "Create Session",
+      "type": "n8n-nodes-base.airtop",
+      "typeVersion": 1,
+      "position": [500, 300],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "window",
+        "operation": "createWindow",
+        "sessionId": "={{ $json.data.sessionId }}"
+      },
+      "id": "create-window",
+      "name": "Create Window",
+      "type": "n8n-nodes-base.airtop",
+      "typeVersion": 1,
+      "position": [700, 300],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Return session and window data\nconst sessionData = $node['Create Session'].json;\nconst windowData = $input.first().json;\n\nreturn {\n  json: {\n    success: true,\n    session_id: sessionData.data?.sessionId || sessionData.sessionId,\n    window_id: windowData.data?.windowId || windowData.windowId,\n    proxy_country: $node['Parse Input'].json.proxy_country,\n    created_at: new Date().toISOString()\n  }\n};"
+      },
+      "id": "output",
+      "name": "Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Input": {
+      "main": [
+        [
+          {
+            "node": "Create Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Session": {
+      "main": [
+        [
+          {
+            "node": "Create Window",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Window": {
+      "main": [
+        [
+          {
+            "node": "Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    "airtop",
+    "session",
+    "subworkflow",
+    "proxy",
+    "wallestars"
+  ],
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "1.0.0"
+}

@@ -1,0 +1,587 @@
+{
+  "name": "Wallesters Registration - Main Orchestrator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wallesters-registration",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [100, 400],
+      "webhookId": "wallesters-registration"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse incoming payload and validate required fields\nconst input = $input.first().json;\n\n// Expected payload from verified_owners trigger:\n// - owner_id (UUID)\n// - full_name\n// - owner_first_name_en\n// - owner_last_name_en\n// - current_company (from waiting_list[0])\n//   - eik\n//   - company_name\n//   - company_name_en\n//   - address\n\nconst currentCompany = input.current_company || input.waiting_list?.[0] || {};\n\nif (!currentCompany.company_name_en) {\n  throw new Error('Missing required field: company_name_en');\n}\n\nreturn {\n  json: {\n    owner_id: input.id || input.owner_id,\n    full_name: input.full_name,\n    owner_first_name_en: input.owner_first_name_en,\n    owner_last_name_en: input.owner_last_name_en,\n    \n    // Current company being processed\n    current_company_eik: currentCompany.eik,\n    current_company_name: currentCompany.company_name,\n    current_company_name_en: currentCompany.company_name_en,\n    current_company_address: currentCompany.address,\n    \n    // Will be populated later\n    current_phone_number: null,\n    current_sms_url: null,\n    current_business_email: null,\n    \n    // Airtop session data (will be populated)\n    session_id: null,\n    window_id: null,\n    \n    // Processing state\n    processing_started_at: new Date().toISOString()\n  }\n};"
+      },
+      "id": "parse-payload",
+      "name": "Parse Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [300, 400]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "operation": "executeQuery",
+        "query": "SELECT id, phone_number, sms_inbox_url, country_code, status \nFROM virtual_phone_numbers \nWHERE status = 'available' \nAND country_code = 'BG'\nORDER BY last_used_at ASC NULLS FIRST\nLIMIT 1\nFOR UPDATE SKIP LOCKED;",
+        "options": {}
+      },
+      "id": "fetch-available-phone",
+      "name": "Fetch Available Phone",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [500, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "{{SUPABASE_CREDENTIAL_ID}}",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": "={{$env.AIRTOP_SESSION_WORKFLOW_ID}}",
+        "options": {
+          "waitForSubWorkflow": true
+        },
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "proxy_country",
+              "value": "BG"
+            },
+            {
+              "name": "timeout_minutes",
+              "value": "10"
+            }
+          ]
+        }
+      },
+      "id": "create-airtop-session",
+      "name": "Create Airtop Session",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [500, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "phone-found-condition",
+              "leftValue": "={{ $node['Fetch Available Phone'].json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "phone-available-check",
+      "name": "Phone Available?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "virtual_phone_numbers",
+        "filterType": "string",
+        "filterString": "id=eq.{{ $node['Fetch Available Phone'].json.id }}",
+        "dataMode": "defineInNode",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldName": "status",
+              "fieldValue": "in_use"
+            },
+            {
+              "fieldName": "assigned_to_owner_id",
+              "fieldValue": "={{ $node['Parse Payload'].json.owner_id }}"
+            },
+            {
+              "fieldName": "last_used_at",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            }
+          ]
+        }
+      },
+      "id": "reserve-phone-number",
+      "name": "Reserve Phone Number",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [900, 250],
+      "credentials": {
+        "supabaseApi": {
+          "id": "{{SUPABASE_CREDENTIAL_ID}}",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate Hostinger email alias\n// Format: {company_name_en_normalized}@{hostinger_domain}\n\nconst payload = $node['Parse Payload'].json;\nconst companyNameEn = payload.current_company_name_en;\n\n// Normalize company name for email\nconst normalizedName = companyNameEn\n  .toLowerCase()\n  .replace(/[^a-z0-9]/g, '-')  // Replace non-alphanumeric with dash\n  .replace(/-+/g, '-')          // Collapse multiple dashes\n  .replace(/^-|-$/g, '');       // Trim dashes\n\n// Add unique suffix to avoid collisions\nconst uniqueSuffix = Date.now().toString(36).slice(-4);\n\n// Use Hostinger domain (configure this in environment)\nconst hostingerDomain = $env.HOSTINGER_EMAIL_DOMAIN || 'wallestars.eu';\n\nconst emailAlias = `${normalizedName}-${uniqueSuffix}@${hostingerDomain}`;\n\nreturn {\n  json: {\n    current_business_email: emailAlias,\n    email_local_part: `${normalizedName}-${uniqueSuffix}`,\n    email_domain: hostingerDomain\n  }\n};"
+      },
+      "id": "generate-email-alias",
+      "name": "Generate Email Alias",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// No phone available - return error\nreturn {\n  json: {\n    success: false,\n    error: 'NO_PHONE_AVAILABLE',\n    message: 'No available Bulgarian phone numbers in pool',\n    owner_id: $node['Parse Payload'].json.owner_id,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "no-phone-error",
+      "name": "No Phone Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 150]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "mergeByFields": {
+          "values": []
+        },
+        "options": {}
+      },
+      "id": "merge-parallel-data",
+      "name": "Merge Parallel Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1100, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Consolidate all data for AI Agent\nconst items = $input.all();\nconst payload = $node['Parse Payload'].json;\nconst phoneData = $node['Fetch Available Phone'].json;\nconst sessionData = $node['Create Airtop Session'].json;\nconst emailData = items.find(i => i.json.current_business_email)?.json || {};\n\n// Validate all required data is present\nconst errors = [];\n\nif (!phoneData?.phone_number) {\n  errors.push('Missing phone number');\n}\nif (!sessionData?.session_id && !sessionData?.sessionId) {\n  errors.push('Missing Airtop session');\n}\nif (!emailData?.current_business_email) {\n  errors.push('Missing email alias');\n}\n\nif (errors.length > 0) {\n  throw new Error(`Validation failed: ${errors.join(', ')}`);\n}\n\nreturn {\n  json: {\n    // Owner data\n    owner_id: payload.owner_id,\n    full_name: payload.full_name,\n    owner_first_name_en: payload.owner_first_name_en,\n    owner_last_name_en: payload.owner_last_name_en,\n    \n    // Company data\n    current_company_name_en: payload.current_company_name_en,\n    current_company_eik: payload.current_company_eik,\n    \n    // Phone data\n    current_phone_number: phoneData.phone_number,\n    current_sms_url: phoneData.sms_inbox_url,\n    phone_id: phoneData.id,\n    \n    // Email data\n    current_business_email: emailData.current_business_email,\n    \n    // Airtop session\n    session_id: sessionData.session_id || sessionData.sessionId || sessionData.data?.sessionId,\n    window_id: sessionData.window_id || sessionData.windowId || sessionData.data?.windowId,\n    \n    // Registration URL\n    registration_url: 'https://wallester.com/atrk?c=8eb23415-1a08-4b07-93c3-2e624e2367a7&promo=direct_link',\n    \n    // Processing state\n    ready_for_agent: true,\n    prepared_at: new Date().toISOString()\n  }\n};"
+      },
+      "id": "prepare-agent-data",
+      "name": "Prepare Agent Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 400]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "verified_owners",
+        "filterType": "string",
+        "filterString": "id=eq.{{ $json.owner_id }}",
+        "dataMode": "defineInNode",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldName": "allocated_phone_number",
+              "fieldValue": "={{ $json.current_phone_number }}"
+            },
+            {
+              "fieldName": "allocated_sms_number_url",
+              "fieldValue": "={{ $json.current_sms_url }}"
+            },
+            {
+              "fieldName": "email_alias_hostinger",
+              "fieldValue": "={{ $json.current_business_email }}"
+            },
+            {
+              "fieldName": "processing_status",
+              "fieldValue": "processing"
+            }
+          ]
+        }
+      },
+      "id": "update-owner-record",
+      "name": "Update Owner Record",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1500, 400],
+      "credentials": {
+        "supabaseApi": {
+          "id": "{{SUPABASE_CREDENTIAL_ID}}",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Complete the Wallesters registration process with the following data:\n\n**Company Name:** {{ $json.current_company_name_en }}\n**Phone Number:** {{ $json.current_phone_number }}\n**Email:** {{ $json.current_business_email }}\n**Registration URL:** {{ $json.registration_url }}\n\n## Instructions:\n\n### STEP 1: Initial Registration\n1. Navigate to the registration URL\n2. Wait for page to fully load\n3. Look for and click \"Decline\" or \"Reject\" on any cookie consent popup\n4. Fill the registration form:\n   - Country: Select \"Bulgaria\"\n   - Company Name: Enter \"{{ $json.current_company_name_en }}\"\n   - Phone: Enter \"{{ $json.current_phone_number }}\"\n5. Find and check/accept the legal notice and privacy policy checkboxes\n6. Click the \"Continue\" button\n\n### STEP 2: SMS Verification\nAfter clicking Continue, an SMS with verification code will be sent.\n- WAIT for me to provide the SMS verification code\n- I will call the SMS OTP subworkflow and give you the code\n- Once you have the code, enter it in the verification field\n- Click the button to verify/continue\n\n### STEP 3: Email Verification\nAfter SMS verification, an email input field will appear.\n1. Enter the email: \"{{ $json.current_business_email }}\"\n2. Click the send/submit button to trigger email verification\n- WAIT for me to provide the email verification code\n- I will call the Email OTP subworkflow and give you the code\n- Once you have the code, enter it in the verification field\n- Click the button to complete verification\n\n**IMPORTANT:** \n- Report each step's completion\n- If you encounter any error or unexpected screen, describe what you see\n- Do not proceed past SMS step until I provide the code",
+        "options": {
+          "systemMessage": "You are a browser automation assistant specialized in completing Wallesters business registration. You have access to browser tools to navigate, click, type, and query web pages.\n\nYour capabilities:\n- Load URL: Navigate to web pages\n- Query Page: Extract information from the current page\n- Click Element: Click buttons, links, checkboxes by describing them\n- Type Text: Enter text into input fields\n- Take Screenshot: Capture current page state for debugging\n\nBehavior guidelines:\n1. Always wait for pages to fully load before interacting\n2. Handle cookie consent popups by declining/rejecting\n3. Report clearly when you need verification codes (SMS or Email)\n4. Describe any errors or unexpected states you encounter\n5. Do not make assumptions - ask for clarification if needed\n\nThe browser session with Bulgarian proxy is already configured. Session ID and Window ID are ready to use.",
+          "maxIterations": 20
+        }
+      },
+      "id": "ai-agent",
+      "name": "AI Agent - Wallesters Registration",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [1700, 400]
+    },
+    {
+      "parameters": {
+        "model": "claude-sonnet-4-20250514",
+        "options": {
+          "maxTokensToSample": 4096
+        }
+      },
+      "id": "claude-model",
+      "name": "Claude Sonnet 4",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.2,
+      "position": [1700, 600],
+      "credentials": {
+        "anthropicApi": {
+          "id": "{{ANTHROPIC_CREDENTIAL_ID}}",
+          "name": "Anthropic API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "window",
+        "operation": "loadUrl",
+        "sessionId": "={{ $('Prepare Agent Data').item.json.session_id }}",
+        "windowId": "={{ $('Prepare Agent Data').item.json.window_id }}",
+        "url": "={{ $fromAI(\"url\", \"The URL to navigate to\", \"string\") }}"
+      },
+      "id": "tool-load-url",
+      "name": "Load URL",
+      "type": "n8n-nodes-base.airtop",
+      "typeVersion": 1,
+      "position": [1500, 600],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "extraction",
+        "operation": "queryPage",
+        "sessionId": "={{ $('Prepare Agent Data').item.json.session_id }}",
+        "windowId": "={{ $('Prepare Agent Data').item.json.window_id }}",
+        "prompt": "={{ $fromAI(\"query\", \"What to extract or ask about the page\", \"string\") }}"
+      },
+      "id": "tool-query-page",
+      "name": "Query Page",
+      "type": "n8n-nodes-base.airtop",
+      "typeVersion": 1,
+      "position": [1500, 750],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "interaction",
+        "operation": "click",
+        "sessionId": "={{ $('Prepare Agent Data').item.json.session_id }}",
+        "windowId": "={{ $('Prepare Agent Data').item.json.window_id }}",
+        "elementDescription": "={{ $fromAI(\"element\", \"Description of the element to click\", \"string\") }}"
+      },
+      "id": "tool-click",
+      "name": "Click Element",
+      "type": "n8n-nodes-base.airtop",
+      "typeVersion": 1,
+      "position": [1700, 750],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "interaction",
+        "operation": "type",
+        "sessionId": "={{ $('Prepare Agent Data').item.json.session_id }}",
+        "windowId": "={{ $('Prepare Agent Data').item.json.window_id }}",
+        "elementDescription": "={{ $fromAI(\"inputField\", \"Description of the input field\", \"string\") }}",
+        "text": "={{ $fromAI(\"textToType\", \"The text to type\", \"string\") }}"
+      },
+      "id": "tool-type",
+      "name": "Type Text",
+      "type": "n8n-nodes-base.airtop",
+      "typeVersion": 1,
+      "position": [1900, 750],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "window",
+        "operation": "takeScreenshot",
+        "sessionId": "={{ $('Prepare Agent Data').item.json.session_id }}",
+        "windowId": "={{ $('Prepare Agent Data').item.json.window_id }}"
+      },
+      "id": "tool-screenshot",
+      "name": "Take Screenshot",
+      "type": "n8n-nodes-base.airtop",
+      "typeVersion": 1,
+      "position": [1900, 600],
+      "credentials": {
+        "airtopApi": {
+          "id": "{{AIRTOP_CREDENTIAL_ID}}",
+          "name": "Airtop API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, owner_id: $node['Parse Payload'].json.owner_id, company: $node['Parse Payload'].json.current_company_name_en, result: $json.output || $json.text, timestamp: new Date().toISOString() }) }}"
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2100, 400]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Payload": {
+      "main": [
+        [
+          {
+            "node": "Fetch Available Phone",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Airtop Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Available Phone": {
+      "main": [
+        [
+          {
+            "node": "Phone Available?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Phone Available?": {
+      "main": [
+        [
+          {
+            "node": "Reserve Phone Number",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Phone Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reserve Phone Number": {
+      "main": [
+        [
+          {
+            "node": "Generate Email Alias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Email Alias": {
+      "main": [
+        [
+          {
+            "node": "Merge Parallel Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Airtop Session": {
+      "main": [
+        [
+          {
+            "node": "Merge Parallel Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Parallel Data": {
+      "main": [
+        [
+          {
+            "node": "Prepare Agent Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Agent Data": {
+      "main": [
+        [
+          {
+            "node": "Update Owner Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Owner Record": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - Wallesters Registration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Wallesters Registration": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Sonnet 4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - Wallesters Registration",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load URL": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Wallesters Registration",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Page": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Wallesters Registration",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Click Element": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Wallesters Registration",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Type Text": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Wallesters Registration",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Take Screenshot": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Wallesters Registration",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    "wallesters",
+    "registration",
+    "ai-agent",
+    "main-workflow",
+    "wallestars"
+  ],
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "1.0.0"
+}

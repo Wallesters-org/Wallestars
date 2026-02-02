@@ -1,0 +1,386 @@
+{
+  "name": "Email OTP Extractor",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "workflow-trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Input - Configure search parameters\nconst input = $input.first().json;\n\n// Expected input from parent workflow:\n// - targetEmail: the email address to search for (recipient)\n// - subjectFilter: subject line to search for\n// - senderFilter: optional sender filter\n// - maxRetries: max retry attempts (default 10)\n// - waitSeconds: seconds between retries (default 15)\n\nreturn {\n  json: {\n    targetEmail: input.targetEmail || input.current_business_email,\n    subjectFilter: input.subjectFilter || 'Wallester user account activation code',\n    senderFilter: input.senderFilter || '',\n    maxRetries: input.maxRetries || 10,\n    waitSeconds: input.waitSeconds || 15,\n    searchQuery: `\"${input.subjectFilter || 'Wallester user account activation code'}\"`,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "parse-input",
+      "name": "Parse Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [300, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Initialize retry counter and pass through config\nconst config = $input.first().json;\n\nreturn {\n  json: {\n    ...config,\n    retryCount: 0\n  }\n};"
+      },
+      "id": "initialize",
+      "name": "Initialize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "resume": "timeInterval",
+        "interval": "={{ $json.waitSeconds || 15 }}",
+        "unit": "seconds"
+      },
+      "id": "wait",
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": 10,
+        "filters": {
+          "q": "={{ $node['Parse Input'].json.searchQuery }}",
+          "readStatus": "unread"
+        },
+        "options": {}
+      },
+      "id": "search-gmail",
+      "name": "Search Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [900, 300],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{GMAIL_CREDENTIAL_ID}}",
+          "name": "Gmail Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "email-found-condition",
+              "leftValue": "={{ $input.all().length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "email-found",
+      "name": "Email Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Multi-pattern OTP extraction from email\nconst items = $input.all();\n\nif (items.length === 0) {\n  throw new Error('No emails found');\n}\n\n// Get the most recent email\nconst email = items[0].json;\nconst subject = email.subject || '';\nconst snippet = email.snippet || '';\nconst body = email.plainText || email.textPlain || email.snippet || '';\n\n// Get target email from Parse Input for validation\nconst targetEmail = $node['Parse Input'].json.targetEmail;\n\n// Check if email matches target recipient\nconst emailTo = email.to || email.labelIds || '';\nconst emailToStr = typeof emailTo === 'string' ? emailTo : JSON.stringify(emailTo);\n\n// Combine all text sources\nconst fullText = `${subject} ${snippet} ${body}`;\n\n// OTP Extraction Patterns (по важност)\nconst patterns = [\n  /\\b(\\d{6})\\b/,                      // 6-digit code\n  /\\b(\\d{4})\\b/,                      // 4-digit code\n  /code[:\\s]*(\\d{4,6})/i,            // \"code: 123456\"\n  /OTP[:\\s]*(\\d{4,6})/i,             // \"OTP: 123456\"\n  /verification[^\\d]+(\\d{4,6})/i,    // \"verification code 123456\"\n  /confirm[^\\d]+(\\d{4,6})/i,         // \"confirmation code 123456\"\n  /your code is[^\\d]+(\\d{4,6})/i,    // \"your code is 123456\"\n  /enter[^\\d]+(\\d{4,6})/i,           // \"enter 123456\"\n  /\\b(\\d{5})\\b/                       // 5-digit fallback\n];\n\nlet extractedCode = null;\nlet patternUsed = null;\n\n// Try each pattern\nfor (let i = 0; i < patterns.length; i++) {\n  const match = fullText.match(patterns[i]);\n  if (match && match[1]) {\n    extractedCode = match[1];\n    patternUsed = patterns[i].toString();\n    break;\n  }\n}\n\n// Also check for verification links\nconst linkPattern = /https?:\\/\\/[^\\s]+verify[^\\s]*/i;\nconst linkMatch = fullText.match(linkPattern);\nconst verificationLink = linkMatch ? linkMatch[0] : null;\n\nif (!extractedCode && !verificationLink) {\n  throw new Error('Could not extract OTP code or verification link from email');\n}\n\nreturn {\n  json: {\n    success: true,\n    code: extractedCode,\n    verification_link: verificationLink,\n    email_id: email.id,\n    email_subject: subject,\n    email_from: email.from,\n    pattern_used: patternUsed,\n    full_text_preview: fullText.substring(0, 200),\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "extract-otp",
+      "name": "Extract OTP",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 200]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "markAsRead",
+        "messageId": "={{ $json.email_id }}"
+      },
+      "id": "mark-as-read",
+      "name": "Mark as Read",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1500, 200],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{GMAIL_CREDENTIAL_ID}}",
+          "name": "Gmail Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Success Output - return the extracted code\nconst data = $input.first().json;\n\nreturn {\n  json: {\n    success: true,\n    code: data.code,\n    verification_link: data.verification_link,\n    email_id: data.email_id,\n    email_subject: data.email_subject,\n    email_from: data.email_from,\n    pattern_used: data.pattern_used,\n    timestamp: data.timestamp\n  }\n};"
+      },
+      "id": "success-output",
+      "name": "Success Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1700, 200]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "retry-count-field",
+              "name": "retryCount",
+              "value": "={{ $node['Initialize'].json.retryCount + 1 }}",
+              "type": "number"
+            },
+            {
+              "id": "target-email-field",
+              "name": "targetEmail",
+              "value": "={{ $node['Parse Input'].json.targetEmail }}",
+              "type": "string"
+            },
+            {
+              "id": "search-query-field",
+              "name": "searchQuery",
+              "value": "={{ $node['Parse Input'].json.searchQuery }}",
+              "type": "string"
+            },
+            {
+              "id": "max-retries-field",
+              "name": "maxRetries",
+              "value": "={{ $node['Parse Input'].json.maxRetries }}",
+              "type": "number"
+            },
+            {
+              "id": "wait-seconds-field",
+              "name": "waitSeconds",
+              "value": "={{ $node['Parse Input'].json.waitSeconds }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "increment-retry",
+      "name": "Increment Retry",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1300, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "retry-check-condition",
+              "leftValue": "={{ $json.retryCount }}",
+              "rightValue": "={{ $node['Parse Input'].json.maxRetries }}",
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "retry-check",
+      "name": "Retry Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1500, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Timeout Error - max retries exceeded\nconst retryCount = $input.first().json.retryCount;\nconst maxRetries = $node['Parse Input'].json.maxRetries;\nconst waitSeconds = $node['Parse Input'].json.waitSeconds;\nconst totalWaitTime = retryCount * waitSeconds;\n\nreturn {\n  json: {\n    success: false,\n    error: 'EMAIL_TIMEOUT',\n    message: `Email not received after ${maxRetries} attempts (${totalWaitTime}s)`,\n    retriesAttempted: retryCount,\n    filters: {\n      sender: $node['Parse Input'].json.senderFilter,\n      subject: $node['Parse Input'].json.subjectFilter\n    },\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "timeout-error",
+      "name": "Timeout Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1700, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Error Output\nconst data = $input.first().json;\n\nreturn {\n  json: {\n    success: false,\n    error: data.error,\n    message: data.message,\n    retriesAttempted: data.retriesAttempted,\n    filters: data.filters,\n    timestamp: data.timestamp\n  }\n};"
+      },
+      "id": "error-output",
+      "name": "Error Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1900, 500]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Input": {
+      "main": [
+        [
+          {
+            "node": "Initialize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Search Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Gmail": {
+      "main": [
+        [
+          {
+            "node": "Email Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Found?": {
+      "main": [
+        [
+          {
+            "node": "Extract OTP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Increment Retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract OTP": {
+      "main": [
+        [
+          {
+            "node": "Mark as Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark as Read": {
+      "main": [
+        [
+          {
+            "node": "Success Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Increment Retry": {
+      "main": [
+        [
+          {
+            "node": "Retry Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retry Check": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Timeout Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Timeout Error": {
+      "main": [
+        [
+          {
+            "node": "Error Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    "email",
+    "otp",
+    "subworkflow",
+    "wallestars"
+  ],
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "1.0.0"
+}
