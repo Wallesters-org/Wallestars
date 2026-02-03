@@ -7,7 +7,11 @@ import {
   Smartphone,
   Settings,
   Zap,
-  Sparkles
+  QrCode,
+  Sparkles,
+  ScanLine,
+  Server,
+  Network
 } from 'lucide-react';
 
 const menuItems = [
@@ -15,7 +19,11 @@ const menuItems = [
   { id: 'chat', name: 'Claude Chat', icon: MessageSquare },
   { id: 'computer', name: 'Computer Use', icon: Monitor },
   { id: 'android', name: 'Android Control', icon: Smartphone },
+  { id: 'qrscanner', name: 'QR Scanner', icon: QrCode },
+  { id: 'smartscan', name: 'Smart Scan', icon: ScanLine },
   { id: 'promptgen', name: 'Prompt Generator', icon: Sparkles },
+  { id: 'hostinger', name: 'Hostinger VPS', icon: Server },
+  { id: 'orchestration', name: 'Orchestration Farm', icon: Network },
   { id: 'settings', name: 'Settings', icon: Settings },
 ];
 

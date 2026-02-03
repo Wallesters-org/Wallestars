@@ -1,0 +1,353 @@
+{
+  "info": {
+    "name": "Wallestars N8N API",
+    "description": "Collection for testing N8N webhook endpoints in Wallestars",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "production_url",
+      "value": "https://srv1201204.hstgr.cloud",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health & Status",
+      "item": [
+        {
+          "name": "Test N8N Webhooks API",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/n8n/test",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "n8n", "test"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Wallestars Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Latest Health Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/n8n/health-report/latest",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "n8n", "health-report", "latest"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Health Reports",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/n8n/health-report/all?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "n8n", "health-report", "all"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Dashboard Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/n8n/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "n8n", "dashboard"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Alerts",
+      "item": [
+        {
+          "name": "Get All Alerts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/n8n/alerts?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "n8n", "alerts"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Critical Alerts Only",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/n8n/alerts?severity=critical&limit=5",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "n8n", "alerts"],
+              "query": [
+                {
+                  "key": "severity",
+                  "value": "critical"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Send Test Alert",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Test alert from Postman\",\n  \"severity\": \"warning\",\n  \"report\": {\n    \"timestamp\": \"2026-01-12T12:00:00Z\",\n    \"source\": \"manual-test\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/n8n/alert",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "n8n", "alert"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "GitHub Events",
+      "item": [
+        {
+          "name": "Get All GitHub Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/n8n/github-events?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "n8n", "github-events"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Pull Request Events Only",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/n8n/github-events?eventType=pull_request&limit=5",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "n8n", "github-events"],
+              "query": [
+                {
+                  "key": "eventType",
+                  "value": "pull_request"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Issue Events Only",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/n8n/github-events?eventType=issue&limit=5",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "n8n", "github-events"],
+              "query": [
+                {
+                  "key": "eventType",
+                  "value": "issue"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Send Test GitHub Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": {\n    \"eventType\": \"pull_request\",\n    \"action\": \"opened\",\n    \"number\": 999,\n    \"title\": \"Test PR from Postman\",\n    \"author\": \"test-user\",\n    \"branch\": \"test-branch\",\n    \"url\": \"https://github.com/Wallesters-org/Wallestars/pull/999\",\n    \"isAgentBranch\": false\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/n8n/github-event",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "n8n", "github-event"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Agent Activity",
+      "item": [
+        {
+          "name": "Get Agent Activity",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/n8n/agent-activity?limit=5",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "n8n", "agent-activity"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Send Test Agent Activity",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"summary\": {\n    \"timestamp\": \"2026-01-12T12:00:00Z\",\n    \"agentIssuesCount\": 5,\n    \"agentPRsCount\": 3,\n    \"agentIssues\": [\n      {\n        \"number\": 101,\n        \"title\": \"Agent Session: Test Issue\",\n        \"url\": \"https://github.com/Wallesters-org/Wallestars/issues/101\",\n        \"author\": \"copilot\"\n      }\n    ],\n    \"agentPRs\": [\n      {\n        \"number\": 102,\n        \"title\": \"Add new feature\",\n        \"url\": \"https://github.com/Wallesters-org/Wallestars/pull/102\",\n        \"branch\": \"copilot/add-feature\",\n        \"author\": \"copilot\"\n      }\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/n8n/agent-activity",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "n8n", "agent-activity"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Webhook Receivers (N8N -> Wallestars)",
+      "item": [
+        {
+          "name": "Send Health Report (from N8N)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"healthReport\": {\n    \"timestamp\": \"2026-01-12T12:00:00Z\",\n    \"overallStatus\": \"healthy\",\n    \"services\": {\n      \"wallestars\": {\n        \"status\": \"up\",\n        \"statusCode\": 200,\n        \"needsRestart\": false\n      },\n      \"n8n\": {\n        \"status\": \"up\",\n        \"statusCode\": 200,\n        \"needsRestart\": false\n      }\n    },\n    \"resources\": {\n      \"disk\": {\n        \"usage\": 45,\n        \"status\": \"ok\",\n        \"critical\": false\n      },\n      \"memory\": {\n        \"usage\": 62,\n        \"status\": \"ok\",\n        \"critical\": false\n      }\n    },\n    \"alerts\": []\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/n8n/health-report",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "n8n", "health-report"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Send Unhealthy Report (Trigger Alert)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"healthReport\": {\n    \"timestamp\": \"2026-01-12T12:00:00Z\",\n    \"overallStatus\": \"unhealthy\",\n    \"services\": {\n      \"wallestars\": {\n        \"status\": \"down\",\n        \"statusCode\": 0,\n        \"needsRestart\": true\n      },\n      \"n8n\": {\n        \"status\": \"up\",\n        \"statusCode\": 200,\n        \"needsRestart\": false\n      }\n    },\n    \"resources\": {\n      \"disk\": {\n        \"usage\": 92,\n        \"status\": \"critical\",\n        \"critical\": true\n      },\n      \"memory\": {\n        \"usage\": 85,\n        \"status\": \"warning\",\n        \"critical\": false\n      }\n    },\n    \"alerts\": [\n      {\n        \"severity\": \"critical\",\n        \"service\": \"wallestars\",\n        \"message\": \"Wallestars service is down\"\n      },\n      {\n        \"severity\": \"critical\",\n        \"resource\": \"disk\",\n        \"message\": \"Disk space critical: 92% used\"\n      }\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/webhooks/n8n/health-report",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhooks", "n8n", "health-report"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

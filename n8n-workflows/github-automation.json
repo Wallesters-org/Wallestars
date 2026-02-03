@@ -1,0 +1,446 @@
+{
+  "name": "GitHub Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "github-webhook",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "GitHub Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "github-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.headers['x-github-event']}}",
+              "operation": "equals",
+              "value2": "pull_request"
+            }
+          ]
+        }
+      },
+      "id": "if-pull-request",
+      "name": "If Pull Request",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.headers['x-github-event']}}",
+              "operation": "equals",
+              "value2": "issues"
+            }
+          ]
+        }
+      },
+      "id": "if-issue",
+      "name": "If Issue",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nconst pr = body.pull_request;\nconst action = body.action;\n\nreturn {\n  json: {\n    eventType: 'pull_request',\n    action: action,\n    number: pr.number,\n    title: pr.title,\n    author: pr.user.login,\n    branch: pr.head.ref,\n    baseBranch: pr.base.ref,\n    url: pr.html_url,\n    state: pr.state,\n    draft: pr.draft,\n    mergeable: pr.mergeable,\n    createdAt: pr.created_at,\n    updatedAt: pr.updated_at,\n    labels: pr.labels.map(l => l.name),\n    changedFiles: pr.changed_files,\n    additions: pr.additions,\n    deletions: pr.deletions,\n    isCopilotBranch: pr.head.ref.startsWith('copilot/'),\n    isClaudeBranch: pr.head.ref.startsWith('claude/'),\n    isAgentBranch: pr.head.ref.startsWith('copilot/') || pr.head.ref.startsWith('claude/')\n  }\n};"
+      },
+      "id": "parse-pr-data",
+      "name": "Parse PR Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nconst issue = body.issue;\nconst action = body.action;\n\nreturn {\n  json: {\n    eventType: 'issue',\n    action: action,\n    number: issue.number,\n    title: issue.title,\n    author: issue.user.login,\n    url: issue.html_url,\n    state: issue.state,\n    labels: issue.labels.map(l => l.name),\n    createdAt: issue.created_at,\n    updatedAt: issue.updated_at,\n    body: issue.body,\n    isAgentSession: issue.body?.includes('Agent Session') || issue.labels.some(l => l.name === 'agent-session')\n  }\n};"
+      },
+      "id": "parse-issue-data",
+      "name": "Parse Issue Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.isAgentBranch}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-agent-pr",
+      "name": "If Agent PR",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.isAgentSession}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-agent-issue",
+      "name": "If Agent Issue",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "issue",
+        "operation": "createComment",
+        "owner": "={{$json.owner || 'Wallesters-org'}}",
+        "repository": "={{$json.repository || 'Wallestars'}}",
+        "issueNumber": "={{$json.number}}",
+        "body": "🤖 **Agent PR Detected**\\n\\nThis PR was created by an AI agent. Automated review in progress...\\n\\n✅ Branch pattern recognized: `{{$json.branch}}`\\n📝 Changed files: {{$json.changedFiles}}\\n➕ Additions: {{$json.additions}}\\n➖ Deletions: {{$json.deletions}}"
+      },
+      "id": "comment-on-agent-pr",
+      "name": "Comment on Agent PR",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [1050, 200],
+      "credentials": {
+        "githubOAuth2Api": {
+          "id": "1",
+          "name": "GitHub OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "issue",
+        "operation": "addLabels",
+        "owner": "={{$json.owner || 'Wallesters-org'}}",
+        "repository": "={{$json.repository || 'Wallestars'}}",
+        "issueNumber": "={{$json.number}}",
+        "labels": "agent-session,automated"
+      },
+      "id": "label-agent-issue",
+      "name": "Label Agent Issue",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [1050, 400],
+      "credentials": {
+        "githubOAuth2Api": {
+          "id": "1",
+          "name": "GitHub OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/webhooks/n8n/github-event",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "event",
+              "value": "={{$json}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-to-wallestars-pr",
+      "name": "Send to Wallestars (PR)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1250, 200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/webhooks/n8n/github-event",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "event",
+              "value": "={{$json}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-to-wallestars-issue",
+      "name": "Send to Wallestars (Issue)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1250, 400],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 600]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "issue",
+        "operation": "getAll",
+        "owner": "Wallesters-org",
+        "repository": "Wallestars",
+        "returnAll": false,
+        "limit": 50,
+        "filters": {
+          "state": "open",
+          "labels": "agent-session"
+        }
+      },
+      "id": "get-agent-issues",
+      "name": "Get Agent Issues",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [450, 600],
+      "credentials": {
+        "githubOAuth2Api": {
+          "id": "1",
+          "name": "GitHub OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "pullRequest",
+        "operation": "getAll",
+        "owner": "Wallesters-org",
+        "repository": "Wallestars",
+        "returnAll": false,
+        "limit": 50,
+        "filters": {
+          "state": "open"
+        }
+      },
+      "id": "get-agent-prs",
+      "name": "Get Agent PRs",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [450, 800],
+      "credentials": {
+        "githubOAuth2Api": {
+          "id": "1",
+          "name": "GitHub OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst issues = items[0]?.json || [];\nconst prs = items[1]?.json || [];\n\nconst agentIssues = Array.isArray(issues) ? issues.filter(i => \n  i.labels?.some(l => l.name === 'agent-session')\n) : [];\n\nconst agentPRs = Array.isArray(prs) ? prs.filter(pr => \n  pr.head?.ref?.startsWith('copilot/') || pr.head?.ref?.startsWith('claude/')\n) : [];\n\nconst summary = {\n  timestamp: new Date().toISOString(),\n  agentIssuesCount: agentIssues.length,\n  agentPRsCount: agentPRs.length,\n  agentIssues: agentIssues.map(i => ({\n    number: i.number,\n    title: i.title,\n    url: i.html_url,\n    createdAt: i.created_at,\n    author: i.user?.login\n  })),\n  agentPRs: agentPRs.map(pr => ({\n    number: pr.number,\n    title: pr.title,\n    url: pr.html_url,\n    branch: pr.head?.ref,\n    createdAt: pr.created_at,\n    author: pr.user?.login,\n    draft: pr.draft,\n    mergeable: pr.mergeable\n  }))\n};\n\nreturn { json: summary };"
+      },
+      "id": "aggregate-agent-activity",
+      "name": "Aggregate Agent Activity",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 700]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/webhooks/n8n/agent-activity",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "summary",
+              "value": "={{$json}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-activity-to-wallestars",
+      "name": "Send Activity to Wallestars",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 700],
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "GitHub Webhook": {
+      "main": [
+        [
+          {
+            "node": "If Pull Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If Issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Pull Request": {
+      "main": [
+        [
+          {
+            "node": "Parse PR Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Issue": {
+      "main": [
+        [
+          {
+            "node": "Parse Issue Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse PR Data": {
+      "main": [
+        [
+          {
+            "node": "If Agent PR",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send to Wallestars (PR)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Issue Data": {
+      "main": [
+        [
+          {
+            "node": "If Agent Issue",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send to Wallestars (Issue)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Agent PR": {
+      "main": [
+        [
+          {
+            "node": "Comment on Agent PR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Agent Issue": {
+      "main": [
+        [
+          {
+            "node": "Label Agent Issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Check": {
+      "main": [
+        [
+          {
+            "node": "Get Agent Issues",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Agent PRs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Agent Issues": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Agent Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Agent PRs": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Agent Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Agent Activity": {
+      "main": [
+        [
+          {
+            "node": "Send Activity to Wallestars",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "id": "github-automation",
+  "meta": {
+    "instanceId": "wallestars-n8n"
+  },
+  "tags": []
+}

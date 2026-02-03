@@ -1,0 +1,196 @@
+{
+  "name": "Supabase User Trigger - Profile Creation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "supabase-user-created",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Supabase Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "supabase-user-created"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract and validate webhook payload from Supabase\nconst payload = $input.first().json;\n\n// Supabase sends data in different formats based on trigger type\nconst record = payload.record || payload.new || payload;\n\nif (!record || !record.id) {\n  throw new Error('Invalid webhook payload: missing user record');\n}\n\n// Validate required fields\nif (!record.name) {\n  throw new Error('User name is required');\n}\n\nif (!record.email && !record.phone) {\n  throw new Error('Either email or phone is required');\n}\n\n// Format the data for downstream workflows\nconst userData = {\n  user_id: record.id,\n  name: record.name,\n  email: record.email || null,\n  phone: record.phone || null,\n  status: record.status || 'pending',\n  metadata: record.metadata || {},\n  created_at: record.created_at || new Date().toISOString(),\n  trigger_type: payload.type || 'INSERT',\n  webhook_received_at: new Date().toISOString()\n};\n\n// Add verification flags\nuserData.needs_sms_verification = !!userData.phone;\nuserData.needs_email_verification = !!userData.email;\n\nreturn { json: userData };"
+      },
+      "id": "validate-payload",
+      "name": "Validate & Format Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "tableId": "verification_logs",
+        "dataMode": "defineInNode",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldName": "user_id",
+              "fieldValue": "={{ $json.user_id }}"
+            },
+            {
+              "fieldName": "event_type",
+              "fieldValue": "registry_check_started"
+            },
+            {
+              "fieldName": "event_data",
+              "fieldValue": "={{ JSON.stringify($json) }}"
+            }
+          ]
+        }
+      },
+      "id": "log-event",
+      "name": "Log Verification Start",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "{{SUPABASE_CREDENTIAL_ID}}",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.N8N_WEBHOOK_URL }}/webhook/profile-creation-orchestrator",
+        "authentication": "none",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "={{ $json.user_id }}"
+            },
+            {
+              "name": "name",
+              "value": "={{ $json.name }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $json.email }}"
+            },
+            {
+              "name": "phone",
+              "value": "={{ $json.phone }}"
+            },
+            {
+              "name": "needs_sms_verification",
+              "value": "={{ $json.needs_sms_verification }}"
+            },
+            {
+              "name": "needs_email_verification",
+              "value": "={{ $json.needs_email_verification }}"
+            },
+            {
+              "name": "metadata",
+              "value": "={{ JSON.stringify($json.metadata) }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "trigger-orchestrator",
+      "name": "Trigger Profile Orchestrator",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  success: true,\n  message: 'User profile creation initiated',\n  user_id: $json.user_id,\n  timestamp: new Date().toISOString()\n}) }}"
+      },
+      "id": "respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Error handler - log the error and return graceful response\nconst error = $input.first().json.error || 'Unknown error';\nconst userData = $input.first().json;\n\nconsole.error('Supabase trigger error:', error);\n\nreturn {\n  json: {\n    success: false,\n    error: error.message || error,\n    user_id: userData?.user_id,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "error-handler",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 500]
+    }
+  ],
+  "connections": {
+    "Supabase Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate & Format Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Format Payload": {
+      "main": [
+        [
+          {
+            "node": "Log Verification Start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Verification Start": {
+      "main": [
+        [
+          {
+            "node": "Trigger Profile Orchestrator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Profile Orchestrator": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "staticData": null,
+  "tags": [
+    "supabase",
+    "trigger",
+    "profile-creation",
+    "wallestars"
+  ],
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "1.0.0"
+}

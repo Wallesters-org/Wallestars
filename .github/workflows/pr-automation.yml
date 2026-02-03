@@ -1,0 +1,215 @@
+name: PR Automation & Agent Delegation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, ready_for_review]
+  pull_request_review:
+    types: [submitted]
+  schedule:
+    # Провери PR-ове на всеки 15 минути
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  delegate-to-agents:
+    runs-on: ubuntu-latest
+    name: Делегиране на PR към агенти
+    env:
+      N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+    
+    steps:
+      - name: Checkout код
+        uses: actions/checkout@v4
+
+      - name: Вземи отворени PR-ове
+        id: get_prs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pullRequests } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+            
+            core.setOutput('count', pullRequests.length);
+            
+            // Създай summary
+            let summary = `## 📊 Преглед на отворени PR-ове\n\n`;
+            summary += `**Брой отворени PR-ове:** ${pullRequests.length}\n\n`;
+            
+            if (pullRequests.length > 0) {
+              summary += `| PR | Автор | Статус | Агент |\n`;
+              summary += `|---|---|---|---|\n`;
+              
+              for (const pr of pullRequests) {
+                const labels = pr.labels.map(l => l.name).join(', ');
+                const agent = labels.includes('agent:') ? 
+                  labels.split('agent:')[1]?.split(',')[0]?.trim() || 'Няма' : 'Няма';
+                summary += `| #${pr.number} | @${pr.user.login} | ${pr.draft ? '📝 Draft' : '✅ Ready'} | ${agent} |\n`;
+              }
+            }
+            
+            await core.summary.addRaw(summary).write();
+
+      - name: Делегирай PR без агент
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Fetch PRs directly from API
+            const { data: pullRequests } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+            
+            const agents = ['copilot-agent-1', 'copilot-agent-2', 'copilot-agent-3', 'copilot-agent-4'];
+            let agentIndex = 0;
+            
+            for (const pr of pullRequests) {
+              // Провери дали PR има назначен агент
+              const hasAgent = pr.labels.some(label => label.name.startsWith('agent:'));
+              
+              if (!hasAgent && !pr.draft) {
+                // Назначи агент по ротация
+                const assignedAgent = agents[agentIndex % agents.length];
+                agentIndex++;
+                
+                // Добави label с агент
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  labels: [`agent:${assignedAgent}`, 'automated']
+                });
+                
+                // Създай коментар с инструкции
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  body: `🤖 **Автоматично делегиране**\n\nТози PR е делегиран към: \`${assignedAgent}\`\n\n**Инструкции за агента:**\n- [ ] Направи code review\n- [ ] Провери за конфликти\n- [ ] Тествай промените\n- [ ] Одобри или поискай промени\n\n**Статус:** 🔄 В процес на ревю\n\n---\n_Автоматично генерирано от GitHub Actions_`
+                });
+                
+                // Изпрати webhook към n8n
+                if (process.env.N8N_WEBHOOK_URL) {
+                  try {
+                    await fetch(`${process.env.N8N_WEBHOOK_URL}/webhook/pr-delegated`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        pr_number: pr.number,
+                        pr_title: pr.title,
+                        agent: assignedAgent,
+                        url: pr.html_url,
+                        timestamp: new Date().toISOString()
+                      })
+                    });
+                  } catch (e) {
+                    console.log(`⚠️ n8n webhook failed: ${e.message}`);
+                  }
+                }
+                
+                console.log(`✅ Делегиран PR #${pr.number} към ${assignedAgent}`);
+              }
+            }
+
+  auto-review:
+    runs-on: ubuntu-latest
+    name: Автоматичен code review
+    needs: delegate-to-agents
+    
+    steps:
+      - name: Checkout код
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Инсталирай dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Направи automated review
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pullRequests } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open'
+            });
+            
+            for (const pr of pullRequests) {
+              // Вземи файловете в PR
+              const { data: files } = await github.rest.pulls.listFiles({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number
+              });
+              
+              let hasIssues = false;
+              
+              // Провери за общи проблеми
+              for (const file of files) {
+                if (file.filename.endsWith('.jsx') || file.filename.endsWith('.js')) {
+                  if (file.patch && file.patch.includes('console.log')) {
+                    hasIssues = true;
+                  }
+                  
+                  if (file.patch && file.patch.includes('debugger')) {
+                    hasIssues = true;
+                  }
+                }
+              }
+              
+              // Ако има проблеми, поискай промени
+              if (hasIssues) {
+                await github.rest.pulls.createReview({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: pr.number,
+                  event: 'REQUEST_CHANGES',
+                  body: '🤖 **Автоматичен Code Review**\n\nНамерени са проблеми (console.log или debugger), които трябва да бъдат поправени преди merge.'
+                });
+              } else {
+                // Одобри PR ако няма проблеми
+                await github.rest.pulls.createReview({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: pr.number,
+                  event: 'APPROVE',
+                  body: '✅ **Автоматичен Code Review**\n\nНяма намерени проблеми. PR е готов за merge.'
+                });
+              }
+            }
+
+  notify-n8n:
+    runs-on: ubuntu-latest
+    name: Уведоми n8n
+    needs: [delegate-to-agents, auto-review]
+    env:
+      N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+    if: always()
+    
+    steps:
+      - name: Изпрати статус към n8n
+        run: |
+          if [ -n "$N8N_WEBHOOK_URL" ]; then
+            curl -s -X POST "${N8N_WEBHOOK_URL}/webhook/github-pr-status" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "workflow": "pr-automation",
+                "status": "completed",
+                "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
+                "repository": "${{ github.repository }}"
+              }' || echo "Webhook call failed"
+          fi

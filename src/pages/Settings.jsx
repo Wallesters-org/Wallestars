@@ -8,8 +8,10 @@ import {
   Wifi,
   Save,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Palette
 } from 'lucide-react';
+import ThemeSettings from '../components/ThemeSettings';
 
 export default function Settings() {
   const [settings, setSettings] = useState({
@@ -126,11 +128,25 @@ export default function Settings() {
         </div>
       </motion.div>
 
-      {/* Android Settings */}
+      {/* Theme Customization */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
+        className="card"
+      >
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <Palette className="w-5 h-5 text-primary-400" />
+          Theme Customization
+        </h2>
+        <ThemeSettings />
+      </motion.div>
+
+      {/* Android Settings */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
         className="card"
       >
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
@@ -171,7 +187,7 @@ export default function Settings() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
+        transition={{ delay: 0.4 }}
         className="card"
       >
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
@@ -190,7 +206,7 @@ export default function Settings() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
+        transition={{ delay: 0.5 }}
         className="flex items-center gap-4"
       >
         <motion.button
@@ -219,7 +235,7 @@ export default function Settings() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
+        transition={{ delay: 0.6 }}
         className="glass-effect p-4 rounded-lg border border-amber-500/30"
       >
         <div className="flex gap-3">
