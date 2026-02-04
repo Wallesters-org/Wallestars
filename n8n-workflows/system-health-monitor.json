@@ -1,5 +1,5 @@
 {
-  "name": "System Health Monitor",
+  "name": "System Health Monitor with Slack",
   "nodes": [
     {
       "parameters": {
@@ -7,7 +7,7 @@
           "interval": [
             {
               "field": "minutes",
-              "minutesInterval": 5
+              "minutesInterval": 30
             }
           ]
         }
@@ -225,6 +225,66 @@
       "typeVersion": 4.1,
       "position": [1450, 700],
       "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "command": "cat /proc/loadavg | awk '{print $1}'"
+      },
+      "id": "check-cpu-load",
+      "name": "Check CPU Load",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [450, 1000],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "command": "docker info > /dev/null 2>&1 && echo 'active' || echo 'inactive'"
+      },
+      "id": "check-docker-status",
+      "name": "Check Docker Status",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [450, 1200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "command": "cat /proc/uptime | awk '{s=int($1); d=int(s/86400); h=int((s%86400)/3600); m=int((s%3600)/60); printf \"up %d days, %d hours, %d minutes\", d, h, m}'"
+      },
+      "id": "check-uptime",
+      "name": "Check Uptime",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [450, 1400],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const report = $input.first().json;\nconst diskUsage = report.resources?.disk?.usage || 0;\nconst memUsage = report.resources?.memory?.usage || 0;\nconst cpuLoad = parseFloat($input.all()[1]?.json?.stdout || '0').toFixed(2);\nconst dockerStatus = ($input.all()[2]?.json?.stdout || 'unknown').trim();\nconst uptime = ($input.all()[3]?.json?.stdout || 'unknown').trim();\nconst timestamp = new Date().toISOString();\n\nconst allHealthy = report.overallStatus === 'healthy' && dockerStatus === 'active';\nconst statusEmoji = allHealthy ? ':white_check_mark:' : ':warning:';\nconst statusText = allHealthy ? 'VPS Health Check' : 'VPS Health Warning';\n\n// Determine report mode based on current minute\nconst minute = new Date().getMinutes();\nconst isCompact = minute < 30;\n\nlet slackMessage;\nif (isCompact) {\n  slackMessage = `${statusEmoji} ${statusText}\\n\\n:bar_chart: Disk: ${diskUsage}%\\n:floppy_disk: Memory: ${memUsage}%\\n:zap: CPU: ${cpuLoad}\\n:whale: Docker: ${dockerStatus}\\n\\n:alarm_clock: ${timestamp}`;\n} else {\n  slackMessage = `:desktop_computer: *VPS Health Report*\\n\\u2022 Disk: ${diskUsage}%\\n\\u2022 Memory: ${memUsage}%\\n\\u2022 CPU Load: ${cpuLoad}\\n\\u2022 Docker: ${dockerStatus}\\n\\u2022 ${uptime}`;\n}\n\nreturn {\n  json: {\n    text: slackMessage,\n    report,\n    isHealthy: allHealthy\n  }\n};"
+      },
+      "id": "format-slack-message",
+      "name": "Format Slack Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 900]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: $json.text }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "send-to-slack",
+      "name": "Send to Slack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 900],
+      "continueOnFail": true
     }
   ],
   "connections": {
@@ -248,6 +308,21 @@
           },
           {
             "node": "Check Memory Usage",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check CPU Load",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Docker Status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Uptime",
             "type": "main",
             "index": 0
           }
@@ -315,6 +390,11 @@
             "node": "Format Alert Message",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Format Slack Message",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -373,6 +453,17 @@
         [
           {
             "node": "Send Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Slack Message": {
+      "main": [
+        [
+          {
+            "node": "Send to Slack",
             "type": "main",
             "index": 0
           }

@@ -86,6 +86,14 @@ module.exports = {
     }
   ],
   
+  // Cron jobs for health monitoring (add to crontab):
+  //   # Health check every 5 minutes (service restarts)
+  //   */5 * * * * /var/www/wallestars/health-check.sh >> /var/log/wallestars-health.log 2>&1
+  //
+  //   # Slack VPS health report every 30 minutes (alternating compact/detailed)
+  //   0 * * * *  REPORT_MODE=compact  /var/www/wallestars/scripts/vps-health-monitor.sh
+  //   30 * * * * REPORT_MODE=detailed /var/www/wallestars/scripts/vps-health-monitor.sh
+
   // Deployment configuration
   deploy: {
     production: {
