@@ -21,6 +21,7 @@ N8N_URL="http://localhost:5678/healthz"
 LOG_FILE="/var/log/wallestars-health.log"
 MAX_RETRIES=3
 RETRY_DELAY=5
+SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:-}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -146,26 +147,57 @@ check_ssl_certificates() {
     done
 }
 
+# Send Slack notification
+send_slack_notification() {
+    local message=$1
+
+    if [ -z "$SLACK_WEBHOOK_URL" ]; then
+        return 0
+    fi
+
+    local payload
+    payload=$(printf '{"text": %s}' "$(echo "$message" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))' 2>/dev/null || echo "\"$message\"")")
+
+    curl -s -o /dev/null \
+        -X POST \
+        -H "Content-Type: application/json" \
+        -d "$payload" \
+        --connect-timeout 10 \
+        --max-time 15 \
+        "$SLACK_WEBHOOK_URL" 2>/dev/null || log "⚠️  Failed to send Slack notification"
+}
+
 # Main health check
 main() {
     log "=========================================="
     log "🔍 Starting health check"
     log "=========================================="
-    
+
     # Check services
     check_service "Wallestars" "$WALLESTARS_URL" "wallestars"
+    local wallestars_status=$?
     check_service "N8N" "$N8N_URL" "n8n"
-    
+    local n8n_status=$?
+
     # Check system resources
     check_disk_space
     check_memory
-    
+
     # Check PM2
     check_pm2_status
-    
+
     # Check SSL certificates
     check_ssl_certificates
-    
+
+    # Send Slack alert if any service is down
+    if [ "$wallestars_status" -ne 0 ] || [ "$n8n_status" -ne 0 ]; then
+        local alert_msg=":rotating_light: *Service Alert*"
+        [ "$wallestars_status" -ne 0 ] && alert_msg+="\n• Wallestars is DOWN"
+        [ "$n8n_status" -ne 0 ] && alert_msg+="\n• N8N is DOWN"
+        alert_msg+="\n\n:alarm_clock: $(date -u '+%Y-%m-%dT%H:%M:%S.%3NZ')"
+        send_slack_notification "$alert_msg"
+    fi
+
     log "=========================================="
     log "✅ Health check complete"
     log "=========================================="

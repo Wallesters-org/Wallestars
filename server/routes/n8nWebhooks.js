@@ -1,4 +1,5 @@
 import express from 'express';
+import slackNotifier from '../services/slackNotifier.js';
 
 const router = express.Router();
 
@@ -33,6 +34,13 @@ router.post('/health-report', (req, res) => {
       alerts: healthReport.alerts?.length || 0,
       timestamp: healthReport.timestamp
     });
+
+    // Forward to Slack if enabled
+    if (process.env.SLACK_WEBHOOK_URL) {
+      slackNotifier.sendHealthReportFromWebhook(healthReport).catch(err => {
+        console.error('Failed to forward health report to Slack:', err.message);
+      });
+    }
 
     res.json({
       success: true,
@@ -70,6 +78,21 @@ router.post('/alert', (req, res) => {
     }
 
     console.log(`🚨 Alert [${severity}]:`, message);
+
+    // Forward to Slack if enabled
+    if (process.env.SLACK_WEBHOOK_URL) {
+      slackNotifier.sendAlert({
+        severity: severity || 'info',
+        message,
+        details: report ? {
+          'Overall Status': report.overallStatus || 'unknown',
+          'Disk Usage': `${report.resources?.disk?.usage || 'N/A'}%`,
+          'Memory Usage': `${report.resources?.memory?.usage || 'N/A'}%`
+        } : null
+      }).catch(err => {
+        console.error('Failed to forward alert to Slack:', err.message);
+      });
+    }
 
     // Emit to connected WebSocket clients if io is available
     if (global.io) {
