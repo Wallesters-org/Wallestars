@@ -13,6 +13,20 @@ import { hostingerRouter } from './routes/hostinger.js';
 import { orchestrationRouter } from './routes/orchestration.js';
 import { setupSocketHandlers } from './socket/handlers.js';
 
+// New integrations
+import { airtopRouter } from './routes/airtop.js';
+import { gitlabRouter } from './routes/gitlab.js';
+import { slackRouter } from './routes/slack.js';
+import { discordRouter } from './routes/discord.js';
+import { openaiRouter } from './routes/openai.js';
+import { notionRouter } from './routes/notion.js';
+import { twilioRouter } from './routes/twilio.js';
+import { sendgridRouter } from './routes/sendgrid.js';
+import { jiraRouter } from './routes/jira.js';
+import { linearRouter } from './routes/linear.js';
+import { vercelRouter } from './routes/vercel.js';
+import { replicateRouter } from './routes/replicate.js';
+
 dotenv.config();
 
 const app = express();
@@ -46,7 +60,20 @@ app.get('/api/health', (req, res) => {
       android: process.env.ENABLE_ANDROID === 'true',
       documentScanner: !!process.env.ANTHROPIC_API_KEY,
       hostinger: !!process.env.HOSTINGER_API_TOKEN,
-      orchestration: true
+      orchestration: true,
+      // New integrations
+      airtop: !!process.env.AIRTOP_API_KEY,
+      gitlab: !!process.env.GITLAB_API_TOKEN,
+      slack: !!process.env.SLACK_BOT_TOKEN,
+      discord: !!process.env.DISCORD_BOT_TOKEN,
+      openai: !!process.env.OPENAI_API_KEY,
+      notion: !!process.env.NOTION_API_KEY,
+      twilio: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
+      sendgrid: !!process.env.SENDGRID_API_KEY,
+      jira: !!(process.env.JIRA_BASE_URL && process.env.JIRA_API_TOKEN),
+      linear: !!process.env.LINEAR_API_KEY,
+      vercel: !!process.env.VERCEL_API_TOKEN,
+      replicate: !!process.env.REPLICATE_API_TOKEN
     }
   });
 });
@@ -59,6 +86,20 @@ app.use('/api/document-scanner', documentScannerRouter);
 app.use('/api/webhooks/n8n', n8nWebhooksRouter);
 app.use('/api/hostinger', hostingerRouter);
 app.use('/api/orchestration', orchestrationRouter);
+
+// New integration routes
+app.use('/api/airtop', airtopRouter);
+app.use('/api/gitlab', gitlabRouter);
+app.use('/api/slack', slackRouter);
+app.use('/api/discord', discordRouter);
+app.use('/api/openai', openaiRouter);
+app.use('/api/notion', notionRouter);
+app.use('/api/twilio', twilioRouter);
+app.use('/api/sendgrid', sendgridRouter);
+app.use('/api/jira', jiraRouter);
+app.use('/api/linear', linearRouter);
+app.use('/api/vercel', vercelRouter);
+app.use('/api/replicate', replicateRouter);
 
 // SSE Route for MCP SuperAssistant
 app.use('/sse', sseRouter);

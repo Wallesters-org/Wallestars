@@ -19,7 +19,12 @@ import {
   Calendar,
   Cloud,
   Shield,
-  ExternalLink
+  ExternalLink,
+  Brain,
+  Network,
+  Database,
+  Cpu,
+  Layers
 } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import PlatformLinks from '../components/PlatformLinks';
@@ -301,6 +306,76 @@ export default function Dashboard() {
           </div>
         </motion.div>
       </div>
+
+      {/* Multi-Agent Intelligence Overview */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.75 }}
+        className="card-ultra relative overflow-hidden"
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/3 via-transparent to-purple-500/3" />
+        <div className="relative">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+              <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-400" />
+              <span className="text-gradient-primary">Multi-Agent Intelligence</span>
+            </h2>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20">
+              <Network className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="text-xs font-semibold text-indigo-400">Microsoft Framework</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            <AgentArchCard
+              icon={Cpu}
+              title="Orchestrator"
+              description="Central coordinator for request flow and agent lifecycle"
+              color="from-blue-500 to-cyan-600"
+              status="Active"
+              delay={0}
+            />
+            <AgentArchCard
+              icon={Database}
+              title="Agent Registry"
+              description="Directory service for agent discovery and capability matching"
+              color="from-emerald-500 to-teal-600"
+              status="Active"
+              delay={0.1}
+            />
+            <AgentArchCard
+              icon={Layers}
+              title="Specialized Agents"
+              description="Linux, Android & Web agents with domain-specific tools"
+              color="from-purple-500 to-indigo-600"
+              status="3 Platforms"
+              delay={0.2}
+            />
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <div className="flex items-center gap-4 px-4 py-3 rounded-xl bg-dark-900/50 border border-white/5 flex-1">
+              <div className="flex items-center gap-2 text-xs text-dark-400">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Modular Architecture</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-dark-400">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Priority Queue</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-dark-400">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Auto-Retry</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-dark-400">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Real-time Events</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Microsoft 365 Integration - New Section */}
       <motion.div
@@ -606,5 +681,39 @@ function SetupStep({ number, title, description, link }) {
         </div>
       </div>
     </motion.a>
+  );
+}
+
+function AgentArchCard({ icon: Icon, title, description, color, status, delay }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay }}
+      whileHover={{ scale: 1.02, y: -2 }}
+      className="glass-effect-hover p-4 rounded-xl group relative overflow-hidden"
+    >
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="relative flex items-start gap-3">
+        <motion.div
+          whileHover={{ rotate: 360, scale: 1.1 }}
+          transition={{ duration: 0.5 }}
+          className={`w-10 h-10 bg-gradient-to-br ${color} rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg border border-white/10`}
+        >
+          <Icon className="w-5 h-5 text-white" />
+        </motion.div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="font-semibold text-sm group-hover:text-primary-400 transition-colors truncate">
+              {title}
+            </h3>
+            <span className="px-2 py-0.5 text-xs rounded-full bg-emerald-500/10 text-emerald-400 flex-shrink-0">
+              {status}
+            </span>
+          </div>
+          <p className="text-xs text-dark-400">{description}</p>
+        </div>
+      </div>
+    </motion.div>
   );
 }
