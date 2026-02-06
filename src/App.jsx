@@ -14,6 +14,7 @@ import HostingerManagement from './pages/HostingerManagement';
 import OrchestrationFarm from './pages/OrchestrationFarm';
 import MultiAgentDesign from './pages/MultiAgentDesign';
 import AgentRegistry from './pages/AgentRegistry';
+import MobileExtensions from './pages/MobileExtensions';
 import { SocketProvider } from './context/SocketContext';
 import { ThemeProvider } from './context/ThemeContext';
 
@@ -33,6 +34,7 @@ function App() {
     orchestration: <OrchestrationFarm />,
     multiagent: <MultiAgentDesign />,
     agentregistry: <AgentRegistry />,
+    extensions: <MobileExtensions />,
     settings: <Settings />
   };
 

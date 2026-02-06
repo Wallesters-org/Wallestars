@@ -26,6 +26,7 @@ import { jiraRouter } from './routes/jira.js';
 import { linearRouter } from './routes/linear.js';
 import { vercelRouter } from './routes/vercel.js';
 import { replicateRouter } from './routes/replicate.js';
+import { extensionsRouter } from './routes/extensions.js';
 
 dotenv.config();
 
@@ -61,6 +62,7 @@ app.get('/api/health', (req, res) => {
       documentScanner: !!process.env.ANTHROPIC_API_KEY,
       hostinger: !!process.env.HOSTINGER_API_TOKEN,
       orchestration: true,
+      mobileExtensions: true,
       // New integrations
       airtop: !!process.env.AIRTOP_API_KEY,
       gitlab: !!process.env.GITLAB_API_TOKEN,
@@ -100,6 +102,7 @@ app.use('/api/jira', jiraRouter);
 app.use('/api/linear', linearRouter);
 app.use('/api/vercel', vercelRouter);
 app.use('/api/replicate', replicateRouter);
+app.use('/api/extensions', extensionsRouter);
 
 // SSE Route for MCP SuperAssistant
 app.use('/sse', sseRouter);
