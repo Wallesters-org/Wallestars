@@ -13,7 +13,8 @@ import {
   Server,
   Network,
   Brain,
-  Database
+  Database,
+  Puzzle
 } from 'lucide-react';
 
 const menuItems = [
@@ -28,6 +29,7 @@ const menuItems = [
   { id: 'orchestration', name: 'Orchestration Farm', icon: Network },
   { id: 'multiagent', name: 'Multi-Agent Design', icon: Brain },
   { id: 'agentregistry', name: 'Agent Registry', icon: Database },
+  { id: 'extensions', name: 'Brave Extensions', icon: Puzzle },
   { id: 'settings', name: 'Settings', icon: Settings },
 ];
 
